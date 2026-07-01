@@ -1,16 +1,15 @@
 // ========================================
-// الجامع الذكي — الخادم الوسيط الآمن (نسخة 3 — ضمان عدم الفشل)
+// الجامع الذكي — الخادم الوسيط الآمن (نسخة 4 — الحل السريع)
 // يخفي مفاتيح Claude و Gemini
-// يدير: التصنيف + النموذجين + الدمج الذكي
-// الفلسفة: لا يعرض "فشل الاتصال" أبداً — دائماً يرجّع أفضل إجابة متوفرة
-// إصلاحات محفوظة: قطع الإجابة + إزالة المقدمات + منع Markdown + الردود الفارغة
+// يدير: التصنيف + النموذجين السريعين + الدمج
+// الحل: استخدام نماذج سريعة (haiku + flash) لتفادي تجاوز الوقت نهائياً
+// إصلاحات محفوظة: قطع الإجابة + إزالة المقدمات + منع Markdown + الردود الفارغة + ضمان عدم الفشل
 // ========================================
 
-// نموذج سريع للتصنيف
+// النماذج — كلها سريعة الآن لتفادي الـ timeout
 const CLAUDE_FAST = "claude-haiku-4-5-20251001";
-// نماذج الإجابة الأساسية
-const CLAUDE_SMART = "claude-sonnet-4-6";
-const GEMINI_SMART = "gemini-2.5-flash";
+const CLAUDE_MAIN = "claude-haiku-4-5-20251001"; // بدّلنا sonnet بـ haiku للسرعة
+const GEMINI_MAIN = "gemini-2.5-flash";
 
 // تعليمة عامة تُضاف لكل خبير: تمنع المقدمات وتمنع Markdown
 const STYLE_RULES = `
@@ -22,7 +21,6 @@ const STYLE_RULES = `
 - إذا لم تكن متأكداً، قدّم أفضل تحليل ممكن مع توضيح حدود المعرفة، ولا تترك الإجابة فارغة أبداً.
 - اجعل إجابتك وافية لكن مركّزة، دون إطالة غير ضرورية.`;
 
-// دالة مساعدة: تضيف مهلة زمنية لأي طلب
 function withTimeout(promise, ms) {
   return Promise.race([
     promise,
@@ -30,12 +28,10 @@ function withTimeout(promise, ms) {
   ]);
 }
 
-// دالة مساعدة: تتحقق أن النص إجابة حقيقية
 function isRealAnswer(text) {
   return typeof text === "string" && text.trim().length > 15;
 }
 
-// تعليمات الخبراء حسب التخصص
 const EXPERTS = {
   trading: "أنت خبير تداول ومحلل أسواق مالية محترف. حلّل بدقة مع ذكر المخاطر. لا تقدّم نصيحة مالية قاطعة بل معلومات يبني عليها المستخدم قراره." + STYLE_RULES,
   writing: "أنت كاتب وأديب عربي بارع، متمكّن من الأساليب البلاغية والإبداعية والصياغة الراقية." + STYLE_RULES,
@@ -46,8 +42,7 @@ const EXPERTS = {
   general: "أنت مساعد ذكاء اصطناعي خبير وموسوعي. قدّم إجابة شاملة ودقيقة ومنظّمة بالعربية الواضحة." + STYLE_RULES
 };
 
-// استدعاء Claude
-async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_SMART, maxTokens = 2000) {
+async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_MAIN, maxTokens = 2000) {
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -72,8 +67,7 @@ async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_SMART, m
   }
 }
 
-// استدعاء Gemini
-async function askGemini(question, expertPrompt, apiKey, model = GEMINI_SMART, maxTokens = 2000) {
+async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, maxTokens = 2000) {
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     const res = await fetch(url, {
@@ -93,7 +87,6 @@ async function askGemini(question, expertPrompt, apiKey, model = GEMINI_SMART, m
   }
 }
 
-// تصنيف السؤال (نموذج سريع + مهلة قصيرة)
 async function classifyQuestion(question, apiKey) {
   const prompt = `صنّف السؤال التالي إلى واحدة فقط من هذه الفئات:
 trading، writing، programming، science، religion، health، general.
@@ -108,7 +101,7 @@ trading، writing، programming، science، religion، health، general.
   return EXPERTS[category] ? category : "general";
 }
 
-// دمج الإجابتين (بمهلة قصيرة — لو تأخّر نرجّع أفضل إجابة جاهزة)
+// دمج الإجابتين بنموذج سريع
 async function mergeAnswers(question, claudeText, geminiText, claudeKey) {
   const prompt = `لديك إجابتان من خبيرين على نفس السؤال. ألّف إجابة نهائية واحدة متميزة:
 - ادمج أفضل ما فيهما، احذف التكرار، صحّح أي تضارب.
@@ -122,10 +115,9 @@ ${geminiText}
 أخرج الإجابة النهائية فقط:`;
 
   const result = await withTimeout(
-    askClaude(prompt, "أنت محرّر بحثي خبير." + STYLE_RULES, claudeKey, CLAUDE_SMART, 2200),
-    10000
+    askClaude(prompt, "أنت محرّر بحثي خبير." + STYLE_RULES, claudeKey, CLAUDE_MAIN, 2200),
+    9000
   );
-  // لو الدمج فشل أو تأخّر: نرجّع أطول إجابة متوفرة (الأغنى محتوى)
   if (!result.ok) {
     const c = isRealAnswer(claudeText) ? claudeText : "";
     const g = isRealAnswer(geminiText) ? geminiText : "";
@@ -134,9 +126,6 @@ ${geminiText}
   return result.text;
 }
 
-// ========================================
-// المعالج الرئيسي
-// ========================================
 exports.handler = async (event) => {
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -158,14 +147,13 @@ exports.handler = async (event) => {
   try {
     const { action, question } = JSON.parse(event.body);
 
-    // تحسين السؤال (3 صياغات) — نموذج سريع
     if (action === "optimize") {
       const prompt = `أنت خبير في صياغة الأسئلة. اقترح 3 صياغات محسّنة وأوضح للسؤال التالي.
 أجب فقط بـ JSON: {"suggestions": ["...", "...", "..."]}
 السؤال: ${question}`;
       const result = await withTimeout(
         askClaude(prompt, "أنت مساعد صياغة دقيق.", CLAUDE_KEY, CLAUDE_FAST, 500),
-        8000
+        7000
       );
       let suggestions = [];
       try {
@@ -175,24 +163,22 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers, body: JSON.stringify({ suggestions }) };
     }
 
-    // السؤال الكامل: تصنيف ← نموذجان ← دمج ذكي (بدون فشل)
     if (action === "ask") {
-      // 1. التصنيف (سريع)
+      // 1. التصنيف السريع
       const category = await classifyQuestion(question, CLAUDE_KEY);
       const expertPrompt = EXPERTS[category];
 
-      // 2. النموذجان بالتوازي (مهلة 12 ثانية لكل واحد)
+      // 2. النموذجان السريعان بالتوازي
       const [claudeRes, geminiRes] = await Promise.all([
-        withTimeout(askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_SMART, 2000), 12000),
-        withTimeout(askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_SMART, 2000), 12000),
+        withTimeout(askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_MAIN, 2000), 11000),
+        withTimeout(askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, 2000), 11000),
       ]);
 
-      // 3. تحديد الإجابة النهائية — بمنطق يضمن عدم الفشل
+      // 3. الدمج الذكي (بدون فشل)
       let finalAnswer;
-      let mode; // للعرض: هل دُمجت أم أُخذت من نموذج واحد
+      let mode;
 
       if (claudeRes.ok && geminiRes.ok) {
-        // الحالة المثلى: الاثنان نجحا → ندمج
         finalAnswer = await mergeAnswers(question, claudeRes.text, geminiRes.text, CLAUDE_KEY);
         mode = "merged";
       } else if (claudeRes.ok) {
@@ -202,21 +188,15 @@ exports.handler = async (event) => {
         finalAnswer = geminiRes.text;
         mode = "gemini_only";
       } else {
-        // كلاهما فشل تماماً (نادر جداً) — محاولة أخيرة سريعة بنموذج واحد
+        // محاولة أخيرة سريعة جداً بنموذج واحد
         const lastTry = await withTimeout(
-          askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_SMART, 1500),
-          10000
+          askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_FAST, 1500),
+          8000
         );
-        if (lastTry.ok) {
-          finalAnswer = lastTry.text;
-          mode = "retry";
-        } else {
-          finalAnswer = "تعذّر توليد إجابة كافية لهذا السؤال. حاول تبسيط صياغته أو أعد المحاولة بعد قليل.";
-          mode = "failed";
-        }
+        finalAnswer = lastTry.ok ? lastTry.text : "تعذّر توليد إجابة كافية لهذا السؤال. حاول تبسيط صياغته أو أعد المحاولة بعد قليل.";
+        mode = lastTry.ok ? "retry" : "failed";
       }
 
-      // حماية أخيرة: لو الإجابة فارغة لأي سبب
       if (!isRealAnswer(finalAnswer)) {
         finalAnswer = claudeRes.text || geminiRes.text || "تعذّر توليد إجابة كافية. أعد صياغة السؤال وحاول مجدداً.";
       }
