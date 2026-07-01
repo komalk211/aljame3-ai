@@ -1,28 +1,26 @@
 // ========================================
-// الجامع الذكي — الخادم الوسيط الآمن (نسخة محسّنة للسرعة + جودة الإخراج)
+// الجامع الذكي — الخادم الوسيط الآمن (نسخة 3 — ضمان عدم الفشل)
 // يخفي مفاتيح Claude و Gemini
-// يدير: التصنيف + النموذجين + النقاش + الدمج
-// التحسين: نماذج أسرع للخطوات الوسيطة + حماية من تجاوز الوقت
-// إصلاحات: قطع الإجابة + إزالة المقدمات + منع Markdown + معالجة الردود الفارغة
+// يدير: التصنيف + النموذجين + الدمج الذكي
+// الفلسفة: لا يعرض "فشل الاتصال" أبداً — دائماً يرجّع أفضل إجابة متوفرة
+// إصلاحات محفوظة: قطع الإجابة + إزالة المقدمات + منع Markdown + الردود الفارغة
 // ========================================
 
-// نماذج سريعة للخطوات الوسيطة (تصنيف + نقاش)
+// نموذج سريع للتصنيف
 const CLAUDE_FAST = "claude-haiku-4-5-20251001";
-const GEMINI_FAST = "gemini-2.5-flash";
-// نموذج قوي للإجابة الأساسية والدمج النهائي
+// نماذج الإجابة الأساسية
 const CLAUDE_SMART = "claude-sonnet-4-6";
-const GEMINI_SMART = "gemini-2.5-flash"; // flash أسرع بكثير وجودته ممتازة
-
-// حد زمني لكل استدعاء (لمنع تعليق الوظيفة)
-const CALL_TIMEOUT = 9000; // 9 ثوانٍ لكل استدعاء كحد أقصى
+const GEMINI_SMART = "gemini-2.5-flash";
 
 // تعليمة عامة تُضاف لكل خبير: تمنع المقدمات وتمنع Markdown
 const STYLE_RULES = `
 قواعد إلزامية للإخراج:
 - ابدأ مباشرة بالإجابة دون أي مقدمة مثل "بصفتي" أو "كمساعد" أو "بكل سرور" أو "بالطبع".
-- لا تستخدم رموز Markdown إطلاقاً: لا تستخدم # للعناوين، ولا --- للفواصل، ولا ** للتغميق، ولا \`\`\` للكود إلا إذا كان السؤال عن برمجة فعلاً.
-- استخدم نصاً عربياً عادياً منظّماً بفقرات واضحة. للعناوين اكتبها كجملة عادية متبوعة بنقطتين.
-- إذا لم تكن متأكداً من الإجابة، قدّم أفضل تحليل ممكن مع توضيح حدود المعرفة، ولا تترك الإجابة فارغة أبداً.`;
+- لا تستخدم رموز Markdown إطلاقاً: لا # للعناوين، ولا --- للفواصل، ولا ** للتغميق، ولا * أو - في بداية النقاط.
+- عند تعداد النقاط اكتبها كجُمل عادية أو مسبوقة بأرقام عربية (١، ٢، ٣)، وللعناوين اكتبها كجملة عادية متبوعة بنقطتين.
+- استخدم نصاً عربياً عادياً منظّماً بفقرات واضحة.
+- إذا لم تكن متأكداً، قدّم أفضل تحليل ممكن مع توضيح حدود المعرفة، ولا تترك الإجابة فارغة أبداً.
+- اجعل إجابتك وافية لكن مركّزة، دون إطالة غير ضرورية.`;
 
 // دالة مساعدة: تضيف مهلة زمنية لأي طلب
 function withTimeout(promise, ms) {
@@ -32,12 +30,12 @@ function withTimeout(promise, ms) {
   ]);
 }
 
-// دالة مساعدة: تتحقق أن النص ليس فارغاً أو قصيراً جداً (إجابة حقيقية)
+// دالة مساعدة: تتحقق أن النص إجابة حقيقية
 function isRealAnswer(text) {
   return typeof text === "string" && text.trim().length > 15;
 }
 
-// تعليمات الخبراء حسب التخصص (مع إضافة قواعد الأسلوب لكل واحد)
+// تعليمات الخبراء حسب التخصص
 const EXPERTS = {
   trading: "أنت خبير تداول ومحلل أسواق مالية محترف. حلّل بدقة مع ذكر المخاطر. لا تقدّم نصيحة مالية قاطعة بل معلومات يبني عليها المستخدم قراره." + STYLE_RULES,
   writing: "أنت كاتب وأديب عربي بارع، متمكّن من الأساليب البلاغية والإبداعية والصياغة الراقية." + STYLE_RULES,
@@ -48,8 +46,8 @@ const EXPERTS = {
   general: "أنت مساعد ذكاء اصطناعي خبير وموسوعي. قدّم إجابة شاملة ودقيقة ومنظّمة بالعربية الواضحة." + STYLE_RULES
 };
 
-// استدعاء Claude (مع تحديد النموذج)
-async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_SMART, maxTokens = 3000) {
+// استدعاء Claude
+async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_SMART, maxTokens = 2000) {
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -74,8 +72,8 @@ async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_SMART, m
   }
 }
 
-// استدعاء Gemini (مع تحديد النموذج)
-async function askGemini(question, expertPrompt, apiKey, model = GEMINI_SMART, maxTokens = 3000) {
+// استدعاء Gemini
+async function askGemini(question, expertPrompt, apiKey, model = GEMINI_SMART, maxTokens = 2000) {
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     const res = await fetch(url, {
@@ -103,59 +101,36 @@ trading، writing، programming، science، religion، health، general.
 السؤال: ${question}`;
   const result = await withTimeout(
     askClaude(prompt, "أنت مصنّف دقيق.", apiKey, CLAUDE_FAST, 20),
-    4000
+    3500
   );
   if (!result.ok) return "general";
   const category = (result.text || "general").trim().toLowerCase();
   return EXPERTS[category] ? category : "general";
 }
 
-// جولة النقاش: كل نموذج يقرأ جواب الآخر، ينتقده ويكمّل نقصه
-function critiquePrompt(question, ownAnswer, otherAnswer) {
-  return `راجع إجابتك مقارنةً بإجابة زميل خبير آخر على نفس السؤال.
-السؤال: ${question}
-إجابتك:
-${ownAnswer}
-إجابة الزميل:
-${otherAnswer}
-مهمتك: صحّح أي خطأ، أضف ما ينقص، عمّق النقاط المهمة. لا تكرر. لا تبدأ بأي مقدمة ولا تستخدم رموز Markdown. أخرج نسختك المُحسّنة فقط:`;
-}
-
-// دمج الإجابتين بعد جولة النقاش
-async function mergeAnswers(question, claudeText, geminiText, claudeKey, geminiKey) {
-  // الجولة 2: نقاش سريع بالتوازي + مهلة زمنية
-  const [claudeRound2, geminiRound2] = await Promise.all([
-    withTimeout(
-      askClaude(critiquePrompt(question, claudeText, geminiText), "أنت خبير محقّق دقيق.", claudeKey, CLAUDE_FAST, 2000),
-      8000
-    ),
-    withTimeout(
-      askGemini(critiquePrompt(question, geminiText, claudeText), "أنت خبير محقّق دقيق.", geminiKey, GEMINI_FAST, 2000),
-      8000
-    ),
-  ]);
-
-  const finalClaude = claudeRound2.ok ? claudeRound2.text : claudeText;
-  const finalGemini = geminiRound2.ok ? geminiRound2.text : geminiText;
-
-  // الدمج النهائي بنموذج قوي
-  const prompt = `لديك إجابتان من خبيرين ناقشا الموضوع. ألّف إجابة نهائية واحدة بمستوى بحثي:
-- ادمج أعمق ما فيهما، احذف التكرار، صحّح أي تضارب
-- نظّم: مقدمة موجزة، تفصيل، خلاصة. بالعربية الفصحى الواضحة.
-- لا تبدأ بأي مقدمة عن نفسك. لا تستخدم رموز Markdown إطلاقاً (لا # ولا --- ولا **).
+// دمج الإجابتين (بمهلة قصيرة — لو تأخّر نرجّع أفضل إجابة جاهزة)
+async function mergeAnswers(question, claudeText, geminiText, claudeKey) {
+  const prompt = `لديك إجابتان من خبيرين على نفس السؤال. ألّف إجابة نهائية واحدة متميزة:
+- ادمج أفضل ما فيهما، احذف التكرار، صحّح أي تضارب.
+- نظّم الإجابة: مقدمة موجزة، ثم تفصيل، ثم خلاصة. بالعربية الفصحى الواضحة.
+- لا تبدأ بأي مقدمة عن نفسك. لا تستخدم رموز Markdown إطلاقاً (لا # ولا --- ولا ** ولا * في بداية السطر).
 السؤال: ${question}
 الخبير الأول:
-${finalClaude}
+${claudeText}
 الخبير الثاني:
-${finalGemini}
+${geminiText}
 أخرج الإجابة النهائية فقط:`;
 
   const result = await withTimeout(
-    askClaude(prompt, "أنت محرّر بحثي خبير." + STYLE_RULES, claudeKey, CLAUDE_SMART, 4000),
-    12000
+    askClaude(prompt, "أنت محرّر بحثي خبير." + STYLE_RULES, claudeKey, CLAUDE_SMART, 2200),
+    10000
   );
-  // لو الدمج فشل أو تأخّر، نرجّع أفضل إجابة متاحة
-  if (!result.ok) return finalClaude || finalGemini;
+  // لو الدمج فشل أو تأخّر: نرجّع أطول إجابة متوفرة (الأغنى محتوى)
+  if (!result.ok) {
+    const c = isRealAnswer(claudeText) ? claudeText : "";
+    const g = isRealAnswer(geminiText) ? geminiText : "";
+    return c.length >= g.length ? (c || g) : (g || c);
+  }
   return result.text;
 }
 
@@ -188,43 +163,60 @@ exports.handler = async (event) => {
       const prompt = `أنت خبير في صياغة الأسئلة. اقترح 3 صياغات محسّنة وأوضح للسؤال التالي.
 أجب فقط بـ JSON: {"suggestions": ["...", "...", "..."]}
 السؤال: ${question}`;
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-api-key": CLAUDE_KEY, "anthropic-version": "2023-06-01" },
-        body: JSON.stringify({ model: CLAUDE_FAST, max_tokens: 500, messages: [{ role: "user", content: prompt }] }),
-      });
-      const data = await res.json();
-      const raw = (data.content?.[0]?.text || "").replace(/```json|```/g, "").trim();
+      const result = await withTimeout(
+        askClaude(prompt, "أنت مساعد صياغة دقيق.", CLAUDE_KEY, CLAUDE_FAST, 500),
+        8000
+      );
       let suggestions = [];
-      try { suggestions = JSON.parse(raw).suggestions || []; } catch {}
+      try {
+        const raw = (result.text || "").replace(/```json|```/g, "").trim();
+        suggestions = JSON.parse(raw).suggestions || [];
+      } catch {}
       return { statusCode: 200, headers, body: JSON.stringify({ suggestions }) };
     }
 
-    // السؤال الكامل: تصنيف ← نموذجان ← نقاش ← دمج
+    // السؤال الكامل: تصنيف ← نموذجان ← دمج ذكي (بدون فشل)
     if (action === "ask") {
       // 1. التصنيف (سريع)
       const category = await classifyQuestion(question, CLAUDE_KEY);
       const expertPrompt = EXPERTS[category];
 
-      // 2. النموذجان بالتوازي (مع مهلة لكل واحد)
+      // 2. النموذجان بالتوازي (مهلة 12 ثانية لكل واحد)
       const [claudeRes, geminiRes] = await Promise.all([
-        withTimeout(askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_SMART, 3000), 11000),
-        withTimeout(askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_SMART, 3000), 11000),
+        withTimeout(askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_SMART, 2000), 12000),
+        withTimeout(askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_SMART, 2000), 12000),
       ]);
 
-      // 3. الدمج (أو fallback لو فشل أحدهما)
+      // 3. تحديد الإجابة النهائية — بمنطق يضمن عدم الفشل
       let finalAnswer;
+      let mode; // للعرض: هل دُمجت أم أُخذت من نموذج واحد
+
       if (claudeRes.ok && geminiRes.ok) {
-        finalAnswer = await mergeAnswers(question, claudeRes.text, geminiRes.text, CLAUDE_KEY, GEMINI_KEY);
+        // الحالة المثلى: الاثنان نجحا → ندمج
+        finalAnswer = await mergeAnswers(question, claudeRes.text, geminiRes.text, CLAUDE_KEY);
+        mode = "merged";
       } else if (claudeRes.ok) {
         finalAnswer = claudeRes.text;
+        mode = "claude_only";
       } else if (geminiRes.ok) {
         finalAnswer = geminiRes.text;
+        mode = "gemini_only";
       } else {
-        return { statusCode: 500, headers, body: JSON.stringify({ error: "فشل الاتصال بالنماذج. حاول مرة أخرى." }) };
+        // كلاهما فشل تماماً (نادر جداً) — محاولة أخيرة سريعة بنموذج واحد
+        const lastTry = await withTimeout(
+          askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_SMART, 1500),
+          10000
+        );
+        if (lastTry.ok) {
+          finalAnswer = lastTry.text;
+          mode = "retry";
+        } else {
+          finalAnswer = "تعذّر توليد إجابة كافية لهذا السؤال. حاول تبسيط صياغته أو أعد المحاولة بعد قليل.";
+          mode = "failed";
+        }
       }
 
-      // حماية أخيرة: لو الإجابة النهائية طلعت فارغة لأي سبب
+      // حماية أخيرة: لو الإجابة فارغة لأي سبب
       if (!isRealAnswer(finalAnswer)) {
         finalAnswer = claudeRes.text || geminiRes.text || "تعذّر توليد إجابة كافية. أعد صياغة السؤال وحاول مجدداً.";
       }
@@ -235,10 +227,8 @@ exports.handler = async (event) => {
         body: JSON.stringify({
           answer: finalAnswer,
           category,
-          sources: {
-            claude: claudeRes.ok,
-            gemini: geminiRes.ok,
-          },
+          mode,
+          sources: { claude: claudeRes.ok, gemini: geminiRes.ok },
         }),
       };
     }
