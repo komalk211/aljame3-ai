@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>Nexara AI — مجمّع الذكاء الاصطناعي</title>
+  <title>Nexara AI</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0a0a0f" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -19,6 +19,14 @@
       background: linear-gradient(135deg, #0a0a0f 0%, #0d0d1a 50%, #0a0f0a 100%);
       color: #e8e0d0; direction: rtl; min-height: 100vh;
     }
+    /* دعم الاتجاه للغات اللاتينية */
+    body[data-dir="ltr"] { direction: ltr; }
+    body[data-dir="ltr"] textarea { direction: ltr; text-align: left; }
+    body[data-dir="ltr"] .sug-btn { direction: ltr; text-align: left; }
+    body[data-dir="ltr"] .answer-text { direction: ltr; text-align: left; }
+    body[data-dir="ltr"] .btn-row { justify-content: flex-start; }
+    body[data-dir="ltr"] .rating-row { justify-content: flex-start; }
+
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: #0a0a0f; }
     ::-webkit-scrollbar-thumb { background: #c9a84c55; border-radius: 3px; }
@@ -63,9 +71,7 @@
     .hero h1 { font-size: 28px; font-weight: 900; color: #c9a84c; margin-bottom: 6px; }
     .hero p { color: #555; font-size: 14px; }
 
-    .stats-bar {
-      display: flex; justify-content: center; gap: 22px; margin-bottom: 24px; flex-wrap: wrap;
-    }
+    .stats-bar { display: flex; justify-content: center; gap: 22px; margin-bottom: 24px; flex-wrap: wrap; }
     .stat-item { text-align: center; }
     .stat-num { font-size: 20px; font-weight: 900; color: #c9a84c; }
     .stat-label { font-size: 11px; color: #555; }
@@ -85,11 +91,11 @@
       display: flex; align-items: center; gap: 8px; margin-top: 12px;
       padding-top: 12px; border-top: 1px solid #1a1a1a; flex-wrap: wrap;
     }
-    .lang-label { font-size: 12px; color: #555; }
+    .lang-label { font-size: 12px; color: #888; font-weight: 600; }
     .lang-select {
       background: #0d0d15; color: #c9a84c; border: 1px solid #c9a84c33;
       border-radius: 8px; padding: 6px 12px; font-size: 13px; font-family: 'Cairo', sans-serif;
-      cursor: pointer; direction: rtl;
+      cursor: pointer;
     }
     .lang-select:focus { outline: none; border-color: #c9a84c; }
 
@@ -108,10 +114,7 @@
     .btn-send:hover:not(:disabled) { background: #e0bc5a; }
     .btn-send:disabled { background: #222; color: #444; }
 
-    .suggestions-box {
-      background: #0d0d15; border: 1px solid #c9a84c22; border-radius: 12px;
-      padding: 14px; margin-bottom: 14px;
-    }
+    .suggestions-box { background: #0d0d15; border: 1px solid #c9a84c22; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
     .suggestions-title { font-size: 13px; color: #c9a84c; margin-bottom: 10px; font-weight: 600; }
     .sug-btn {
       display: block; width: 100%; text-align: right; background: #ffffff05;
@@ -178,10 +181,7 @@
 
     .about-title { font-size: 22px; font-weight: 900; color: #c9a84c; margin-bottom: 8px; }
     .about-sub { font-size: 13px; color: #555; margin-bottom: 24px; }
-    .about-card {
-      background: #111118; border: 1px solid #c9a84c22; border-radius: 14px;
-      padding: 20px; margin-bottom: 14px;
-    }
+    .about-card { background: #111118; border: 1px solid #c9a84c22; border-radius: 14px; padding: 20px; margin-bottom: 14px; }
     .about-card h3 { font-size: 16px; color: #c9a84c; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
     .about-card p { font-size: 14px; line-height: 1.9; color: #bbb; }
     .about-card .highlight { color: #e0bc5a; font-weight: 600; }
@@ -213,7 +213,7 @@
   </style>
 </head>
 <body>
-<div class="toast" id="toast">تم النسخ ✓</div>
+<div class="toast" id="toast">✓</div>
 
 <header>
   <div class="logo-wrap">
@@ -225,13 +225,13 @@
     </div>
     <div>
       <div class="logo-title">Nexara AI</div>
-      <div class="logo-sub">مجمّع الذكاء الاصطناعي</div>
+      <div class="logo-sub" data-i18n="about_sub">مجمّع الذكاء الاصطناعي</div>
     </div>
   </div>
   <nav>
-    <button class="nav-btn active" id="btn-home" onclick="switchTab('home')">🏠 الرئيسية</button>
-    <button class="nav-btn" id="btn-history" onclick="switchTab('history')">📚 السجل</button>
-    <button class="nav-btn" id="btn-about" onclick="switchTab('about')">ℹ️ عن الموقع</button>
+    <button class="nav-btn active" id="btn-home" onclick="switchTab('home')" data-i18n="nav_home">🏠 الرئيسية</button>
+    <button class="nav-btn" id="btn-history" onclick="switchTab('history')" data-i18n="nav_history">📚 السجل</button>
+    <button class="nav-btn" id="btn-about" onclick="switchTab('about')" data-i18n="nav_about">ℹ️ عن الموقع</button>
   </nav>
 </header>
 
@@ -239,48 +239,48 @@
   <div id="tab-home">
     <div class="hero fade-in" id="hero">
       <div class="hero-icon">✦</div>
-      <h1>اسأل، واحصل على أفضل إجابة</h1>
-      <p>سؤالك يُوجّه لخبراء متخصصين، ويُدمج في إجابة واحدة قوية</p>
+      <h1 data-i18n="hero_h1">اسأل، واحصل على أفضل إجابة</h1>
+      <p data-i18n="hero_p">سؤالك يُوجّه لخبراء متخصصين، ويُدمج في إجابة واحدة قوية</p>
     </div>
 
     <div class="stats-bar" id="stats-bar">
       <div class="stat-item">
         <div class="stat-num" id="stat-visits">—</div>
-        <div class="stat-label">زيارة</div>
+        <div class="stat-label" data-i18n="stat_visits">زيارة</div>
       </div>
       <div class="stat-item">
         <div class="stat-num" id="stat-questions">0</div>
-        <div class="stat-label">سؤالك</div>
+        <div class="stat-label" data-i18n="stat_questions">سؤالك</div>
       </div>
     </div>
 
     <div class="input-card">
-      <textarea id="question-input" rows="4" placeholder="اكتب سؤالك هنا..."></textarea>
+      <textarea id="question-input" rows="4" data-i18n-ph="input_ph" placeholder="اكتب سؤالك هنا..."></textarea>
       <div class="lang-row">
-        <span class="lang-label">🌍 لغة الإجابة:</span>
-        <select class="lang-select" id="lang-select">
-          <option value="auto">🔄 نفس لغة سؤالي (تلقائي)</option>
-          <option value="العربية">🇸🇦 العربية</option>
+        <span class="lang-label" data-i18n="lang_label">🌍 اللغة · Language:</span>
+        <select class="lang-select" id="lang-select" onchange="onLangChange()">
+          <option value="auto">🔄 تلقائي / Auto</option>
+          <option value="العربية">🇸🇦 العربية / Arabic</option>
           <option value="English">🇬🇧 English</option>
-          <option value="Español">🇪🇸 Español</option>
-          <option value="中文">🇨🇳 中文</option>
-          <option value="हिन्दी">🇮🇳 हिन्दी</option>
-          <option value="Français">🇫🇷 Français</option>
+          <option value="Español">🇪🇸 Español / Spanish</option>
+          <option value="中文">🇨🇳 中文 / Chinese</option>
+          <option value="हिन्दी">🇮🇳 हिन्दी / Hindi</option>
+          <option value="Français">🇫🇷 Français / French</option>
         </select>
       </div>
       <div class="btn-row" id="btn-row">
-        <button class="btn btn-ghost" id="btn-clear" onclick="clearAll()" style="display:none">مسح</button>
-        <button class="btn btn-gold" id="btn-optimize" onclick="optimizePrompt()" disabled>✨ حسّن سؤالي</button>
+        <button class="btn btn-ghost" id="btn-clear" onclick="clearAll()" style="display:none" data-i18n="btn_clear">مسح</button>
+        <button class="btn btn-gold" id="btn-optimize" onclick="optimizePrompt()" disabled data-i18n="btn_optimize">✨ حسّن سؤالي</button>
       </div>
     </div>
 
     <div class="suggestions-box fade-in" id="suggestions-box" style="display:none">
-      <div class="suggestions-title">✨ اختر صياغة محسّنة لسؤالك:</div>
+      <div class="suggestions-title" data-i18n="sug_title">✨ اختر صياغة محسّنة لسؤالك:</div>
       <div id="suggestions-list"></div>
     </div>
 
     <div style="text-align:left; margin-bottom:14px; display:none" id="send-row">
-      <button class="btn btn-send" id="btn-send" onclick="askQuestion()">إرسال ✦</button>
+      <button class="btn btn-send" id="btn-send" onclick="askQuestion()" data-i18n="btn_send">إرسال ✦</button>
     </div>
 
     <div class="loading-box fade-in" id="loading-box" style="display:none">
@@ -291,9 +291,9 @@
         </svg>
       </div>
       <div class="loading-steps">
-        <div class="step" id="step-1">🎯 تحليل وتصنيف السؤال...</div>
-        <div class="step" id="step-2">🤖 استشارة الخبراء (Claude + Gemini)...</div>
-        <div class="step" id="step-3">💎 دمج وتأليف الإجابة النهائية...</div>
+        <div class="step" id="step-1" data-i18n="step1">🎯 تحليل وتصنيف السؤال...</div>
+        <div class="step" id="step-2" data-i18n="step2">🤖 استشارة الخبراء (Claude + Gemini)...</div>
+        <div class="step" id="step-3" data-i18n="step3">💎 دمج وتأليف الإجابة النهائية...</div>
       </div>
     </div>
 
@@ -301,82 +301,317 @@
       <div class="answer-header">
         <div class="answer-badge">
           <div class="green-dot"></div>
-          <span class="answer-label">إجابة Nexara AI</span>
+          <span class="answer-label" data-i18n="answer_label">إجابة Nexara AI</span>
           <span class="category-tag" id="category-tag"></span>
         </div>
         <div class="answer-actions">
-          <button class="act-btn" id="speak-btn" onclick="toggleSpeak()">🔊 استمع</button>
-          <button class="act-btn" onclick="shareAnswer()">🔗 مشاركة</button>
-          <button class="act-btn" onclick="copyAnswer()">⎘ نسخ</button>
+          <button class="act-btn" id="speak-btn" onclick="toggleSpeak()" data-i18n="act_listen">🔊 استمع</button>
+          <button class="act-btn" onclick="shareAnswer()" data-i18n="act_share">🔗 مشاركة</button>
+          <button class="act-btn" onclick="copyAnswer()" data-i18n="act_copy">⎘ نسخ</button>
         </div>
       </div>
       <div class="answer-text" id="answer-text"></div>
       <div class="sources-tag" id="sources-tag" style="margin-top:12px"></div>
-      <div class="answer-signature">✦ Nexara AI — مجمّع الذكاء الاصطناعي</div>
+      <div class="answer-signature" data-i18n="signature">✦ Nexara AI — مجمّع الذكاء الاصطناعي</div>
       <div class="rating-row">
-        <span class="rating-label">كيف كانت الإجابة؟</span>
+        <span class="rating-label" data-i18n="rating_label">كيف كانت الإجابة؟</span>
         <button class="rate-btn" id="rate-good" onclick="rate('good')">👍</button>
         <button class="rate-btn" id="rate-bad" onclick="rate('bad')">👎</button>
-        <span class="rate-thanks" id="rate-thanks" style="display:none">شكراً لتقييمك!</span>
+        <span class="rate-thanks" id="rate-thanks" style="display:none" data-i18n="rate_thanks">شكراً لتقييمك!</span>
       </div>
     </div>
   </div>
 
   <div id="tab-history" style="display:none">
-    <div class="history-title">📚 سجل الأسئلة</div>
-    <button class="hist-clear" id="hist-clear-btn" onclick="clearHistory()" style="display:none">🗑 مسح السجل</button>
-    <div id="history-list">
-      <div class="history-empty"><div class="history-empty-icon">📭</div><div>لا يوجد سجل بعد — ابدأ بطرح سؤالك الأول!</div></div>
-    </div>
+    <div class="history-title" data-i18n="history_title">📚 سجل الأسئلة</div>
+    <button class="hist-clear" id="hist-clear-btn" onclick="clearHistory()" style="display:none" data-i18n="hist_clear">🗑 مسح السجل</button>
+    <div id="history-list"></div>
   </div>
 
   <div id="tab-about" style="display:none">
     <div class="about-title">✦ Nexara AI</div>
-    <div class="about-sub">مجمّع الذكاء الاصطناعي</div>
+    <div class="about-sub" data-i18n="about_sub">مجمّع الذكاء الاصطناعي</div>
 
     <div class="about-card">
-      <h3>💡 ما هي فكرة Nexara AI؟</h3>
-      <p>
-        Nexara AI موقع يجمع بين <span class="highlight">أكثر من نموذج ذكاء اصطناعي</span> في مكان واحد.
-        بدلاً من أن تسأل نموذجاً واحداً، يُوجَّه سؤالك حالياً إلى نموذجين متقدّمين
-        (<span class="highlight">Claude</span> و <span class="highlight">Gemini</span>)،
-        ثم تُدمَج إجابتاهما في إجابة واحدة أقوى وأكثر شمولاً وأدق — لتحصل على أفضل ما لدى كل نموذج في ردٍّ واحد.
-      </p>
+      <h3 data-i18n="about1_h">💡 ما هي فكرة Nexara AI؟</h3>
+      <p data-i18n-html="about1_p"></p>
     </div>
 
     <div class="about-card">
-      <h3>🎯 لماذا الدمج بين نموذجين؟</h3>
-      <p>
-        لكل نموذج ذكاء اصطناعي نقاط قوة مختلفة. عندما نجمع بين إجاباتهما،
-        نحصل على تغطية أوسع، ونقلّل الأخطاء، ونستفيد من وجهات نظر متعددة —
-        فتكون الإجابة النهائية أعمق من أي نموذج بمفرده.
-      </p>
+      <h3 data-i18n="about2_h">🎯 لماذا الدمج بين نموذجين؟</h3>
+      <p data-i18n-html="about2_p"></p>
     </div>
 
     <div class="about-card">
-      <h3>🚀 رؤيتنا المستقبلية</h3>
-      <div class="roadmap-item"><span class="roadmap-icon">🧠</span><span>إضافة <span class="highlight">نماذج ذكاء اصطناعي أكثر</span> كلما زاد استخدام الموقع.</span></div>
-      <div class="roadmap-item"><span class="roadmap-icon">💬</span><span>جعل النماذج <span class="highlight">تتناقش فيما بينها</span> للوصول إلى الإجابة الأدق.</span></div>
-      <div class="roadmap-item"><span class="roadmap-icon">🖼️</span><span>إمكانية <span class="highlight">إرفاق الصور</span> مع السؤال وتحليلها.</span></div>
-      <div class="roadmap-item"><span class="roadmap-icon">🌍</span><span>دعم المزيد من اللغات لخدمة مستخدمين من كل العالم.</span></div>
+      <h3 data-i18n="about3_h">🚀 رؤيتنا المستقبلية</h3>
+      <div class="roadmap-item"><span class="roadmap-icon">🧠</span><span data-i18n-html="about3_r1"></span></div>
+      <div class="roadmap-item"><span class="roadmap-icon">💬</span><span data-i18n-html="about3_r2"></span></div>
+      <div class="roadmap-item"><span class="roadmap-icon">🖼️</span><span data-i18n-html="about3_r3"></span></div>
+      <div class="roadmap-item"><span class="roadmap-icon">🌍</span><span data-i18n-html="about3_r4"></span></div>
     </div>
 
     <div class="about-card">
-      <h3>📬 اتصل بنا</h3>
-      <p>هل لديك اقتراح، أو ملاحظة، أو ترغب بالتواصل؟ يسعدنا أن نسمع منك:</p>
+      <h3 data-i18n="about4_h">📬 اتصل بنا</h3>
+      <p data-i18n="about4_p">هل لديك اقتراح، أو ملاحظة، أو ترغب بالتواصل؟ يسعدنا أن نسمع منك:</p>
       <a class="contact-email" href="mailto:Kamakoma21@gmail.com">✉️ Kamakoma21@gmail.com</a>
     </div>
   </div>
 </main>
 
-<footer>Nexara AI ✦ مجمّع الذكاء الاصطناعي</footer>
+<footer data-i18n="footer">Nexara AI ✦ مجمّع الذكاء الاصطناعي</footer>
 
 <script>
-  const CATEGORY_NAMES = {
-    trading: "💹 تداول", writing: "✍️ كتابة", programming: "💻 برمجة",
-    science: "🔬 علوم", religion: "🕌 شريعة", health: "⚕️ صحة", general: "📌 عام"
+  // ===== نظام الترجمة i18n =====
+  const I18N = {
+    ar: {
+      nav_home:"🏠 الرئيسية", nav_history:"📚 السجل", nav_about:"ℹ️ عن الموقع",
+      hero_h1:"اسأل، واحصل على أفضل إجابة",
+      hero_p:"سؤالك يُوجّه لخبراء متخصصين، ويُدمج في إجابة واحدة قوية",
+      stat_visits:"زيارة", stat_questions:"سؤالك",
+      input_ph:"اكتب سؤالك هنا...",
+      lang_label:"🌍 اللغة · Language:",
+      btn_clear:"مسح", btn_optimize:"✨ حسّن سؤالي", btn_optimizing:"جاري التحسين...", btn_send:"إرسال ✦",
+      sug_title:"✨ اختر صياغة محسّنة لسؤالك:", sug_original:"أرسل سؤالي بصيغتي الأصلية",
+      step1:"🎯 تحليل وتصنيف السؤال...", step2:"🤖 استشارة الخبراء (Claude + Gemini)...", step3:"💎 دمج وتأليف الإجابة النهائية...",
+      answer_label:"إجابة Nexara AI", act_listen:"🔊 استمع", act_stop:"⏹ إيقاف", act_share:"🔗 مشاركة", act_copy:"⎘ نسخ",
+      rating_label:"كيف كانت الإجابة؟", rate_thanks:"شكراً لتقييمك!",
+      sources_label:"🔗 المصادر:", signature:"✦ Nexara AI — مجمّع الذكاء الاصطناعي",
+      history_title:"📚 سجل الأسئلة", hist_clear:"🗑 مسح السجل", hist_empty:"لا يوجد سجل بعد — ابدأ بطرح سؤالك الأول!",
+      about_sub:"مجمّع الذكاء الاصطناعي",
+      about1_h:"💡 ما هي فكرة Nexara AI؟",
+      about1_p:"Nexara AI موقع يجمع بين <span class='highlight'>أكثر من نموذج ذكاء اصطناعي</span> في مكان واحد. بدلاً من أن تسأل نموذجاً واحداً، يُوجَّه سؤالك حالياً إلى نموذجين متقدّمين (<span class='highlight'>Claude</span> و <span class='highlight'>Gemini</span>)، ثم تُدمَج إجابتاهما في إجابة واحدة أقوى وأشمل وأدق — لتحصل على أفضل ما لدى كل نموذج في ردٍّ واحد.",
+      about2_h:"🎯 لماذا الدمج بين نموذجين؟",
+      about2_p:"لكل نموذج ذكاء اصطناعي نقاط قوة مختلفة. عندما نجمع بين إجاباتهما، نحصل على تغطية أوسع، ونقلّل الأخطاء، ونستفيد من وجهات نظر متعددة — فتكون الإجابة النهائية أعمق من أي نموذج بمفرده.",
+      about3_h:"🚀 رؤيتنا المستقبلية",
+      about3_r1:"إضافة <span class='highlight'>نماذج ذكاء اصطناعي أكثر</span> كلما زاد استخدام الموقع.",
+      about3_r2:"جعل النماذج <span class='highlight'>تتناقش فيما بينها</span> للوصول إلى الإجابة الأدق.",
+      about3_r3:"إمكانية <span class='highlight'>إرفاق الصور</span> مع السؤال وتحليلها.",
+      about3_r4:"دعم المزيد من اللغات لخدمة مستخدمين من كل العالم.",
+      about4_h:"📬 اتصل بنا", about4_p:"هل لديك اقتراح، أو ملاحظة، أو ترغب بالتواصل؟ يسعدنا أن نسمع منك:",
+      footer:"Nexara AI ✦ مجمّع الذكاء الاصطناعي",
+      toast_copied:"تم النسخ ✓", toast_shared:"تم نسخ الإجابة للمشاركة ✓", toast_no_tts:"المتصفح لا يدعم القراءة الصوتية",
+      optimize_fail:"تعذّر التحسين، جرّب مرة أخرى", err_prefix:"⚠️ حدث خطأ: ", confirm_clear:"هل تريد مسح كل السجل؟ لا يمكن التراجع.",
+      share_q:"سؤال:", share_a:"الإجابة:", share_via:"— عبر Nexara AI ✦",
+      cat:{trading:"💹 تداول",writing:"✍️ كتابة",programming:"💻 برمجة",science:"🔬 علوم",religion:"🕌 شريعة",health:"⚕️ صحة",general:"📌 عام"}
+    },
+    en: {
+      nav_home:"🏠 Home", nav_history:"📚 History", nav_about:"ℹ️ About",
+      hero_h1:"Ask, and get the best answer",
+      hero_p:"Your question goes to specialized experts and is merged into one powerful answer",
+      stat_visits:"Visits", stat_questions:"Your questions",
+      input_ph:"Type your question here...",
+      lang_label:"🌍 Language:",
+      btn_clear:"Clear", btn_optimize:"✨ Improve my question", btn_optimizing:"Improving...", btn_send:"Send ✦",
+      sug_title:"✨ Choose an improved version of your question:", sug_original:"Send my question as originally written",
+      step1:"🎯 Analyzing and classifying the question...", step2:"🤖 Consulting the experts (Claude + Gemini)...", step3:"💎 Merging and composing the final answer...",
+      answer_label:"Nexara AI Answer", act_listen:"🔊 Listen", act_stop:"⏹ Stop", act_share:"🔗 Share", act_copy:"⎘ Copy",
+      rating_label:"How was the answer?", rate_thanks:"Thanks for your feedback!",
+      sources_label:"🔗 Sources:", signature:"✦ Nexara AI — AI Aggregator",
+      history_title:"📚 Question History", hist_clear:"🗑 Clear history", hist_empty:"No history yet — start by asking your first question!",
+      about_sub:"AI Aggregator",
+      about1_h:"💡 What is Nexara AI?",
+      about1_p:"Nexara AI is a platform that brings together <span class='highlight'>more than one AI model</span> in one place. Instead of asking a single model, your question currently goes to two advanced models (<span class='highlight'>Claude</span> and <span class='highlight'>Gemini</span>), then their answers are merged into one stronger, more comprehensive and more accurate answer — giving you the best of each model in a single reply.",
+      about2_h:"🎯 Why merge two models?",
+      about2_p:"Each AI model has different strengths. By combining their answers, we get broader coverage, fewer errors, and multiple perspectives — so the final answer is deeper than any single model alone.",
+      about3_h:"🚀 Our future vision",
+      about3_r1:"Adding <span class='highlight'>more AI models</span> as the site grows.",
+      about3_r2:"Letting the models <span class='highlight'>debate each other</span> to reach the most accurate answer.",
+      about3_r3:"Allowing you to <span class='highlight'>attach images</span> with your question for analysis.",
+      about3_r4:"Supporting more languages to serve users worldwide.",
+      about4_h:"📬 Contact us", about4_p:"Have a suggestion, feedback, or want to get in touch? We'd love to hear from you:",
+      footer:"Nexara AI ✦ AI Aggregator",
+      toast_copied:"Copied ✓", toast_shared:"Answer copied for sharing ✓", toast_no_tts:"Your browser doesn't support text-to-speech",
+      optimize_fail:"Couldn't improve, try again", err_prefix:"⚠️ An error occurred: ", confirm_clear:"Clear all history? This can't be undone.",
+      share_q:"Question:", share_a:"Answer:", share_via:"— via Nexara AI ✦",
+      cat:{trading:"💹 Trading",writing:"✍️ Writing",programming:"💻 Programming",science:"🔬 Science",religion:"🕌 Religion",health:"⚕️ Health",general:"📌 General"}
+    },
+    es: {
+      nav_home:"🏠 Inicio", nav_history:"📚 Historial", nav_about:"ℹ️ Acerca de",
+      hero_h1:"Pregunta y obtén la mejor respuesta",
+      hero_p:"Tu pregunta va a expertos especializados y se combina en una sola respuesta potente",
+      stat_visits:"Visitas", stat_questions:"Tus preguntas",
+      input_ph:"Escribe tu pregunta aquí...",
+      lang_label:"🌍 Idioma:",
+      btn_clear:"Borrar", btn_optimize:"✨ Mejorar mi pregunta", btn_optimizing:"Mejorando...", btn_send:"Enviar ✦",
+      sug_title:"✨ Elige una versión mejorada de tu pregunta:", sug_original:"Enviar mi pregunta tal como está",
+      step1:"🎯 Analizando y clasificando la pregunta...", step2:"🤖 Consultando a los expertos (Claude + Gemini)...", step3:"💎 Combinando y redactando la respuesta final...",
+      answer_label:"Respuesta de Nexara AI", act_listen:"🔊 Escuchar", act_stop:"⏹ Detener", act_share:"🔗 Compartir", act_copy:"⎘ Copiar",
+      rating_label:"¿Qué te pareció la respuesta?", rate_thanks:"¡Gracias por tu valoración!",
+      sources_label:"🔗 Fuentes:", signature:"✦ Nexara AI — Agregador de IA",
+      history_title:"📚 Historial de preguntas", hist_clear:"🗑 Borrar historial", hist_empty:"Aún no hay historial: ¡empieza haciendo tu primera pregunta!",
+      about_sub:"Agregador de IA",
+      about1_h:"💡 ¿Qué es Nexara AI?",
+      about1_p:"Nexara AI es una plataforma que reúne <span class='highlight'>más de un modelo de IA</span> en un solo lugar. En lugar de preguntar a un único modelo, tu pregunta va actualmente a dos modelos avanzados (<span class='highlight'>Claude</span> y <span class='highlight'>Gemini</span>), y luego sus respuestas se combinan en una sola respuesta más potente, completa y precisa: lo mejor de cada modelo en una única respuesta.",
+      about2_h:"🎯 ¿Por qué combinar dos modelos?",
+      about2_p:"Cada modelo de IA tiene fortalezas diferentes. Al combinar sus respuestas obtenemos una cobertura más amplia, menos errores y varias perspectivas, por lo que la respuesta final es más profunda que la de un solo modelo.",
+      about3_h:"🚀 Nuestra visión de futuro",
+      about3_r1:"Añadir <span class='highlight'>más modelos de IA</span> a medida que el sitio crezca.",
+      about3_r2:"Permitir que los modelos <span class='highlight'>debatan entre sí</span> para llegar a la respuesta más precisa.",
+      about3_r3:"Permitir <span class='highlight'>adjuntar imágenes</span> con tu pregunta para analizarlas.",
+      about3_r4:"Admitir más idiomas para servir a usuarios de todo el mundo.",
+      about4_h:"📬 Contáctanos", about4_p:"¿Tienes una sugerencia, un comentario o quieres ponerte en contacto? Nos encantaría saber de ti:",
+      footer:"Nexara AI ✦ Agregador de IA",
+      toast_copied:"Copiado ✓", toast_shared:"Respuesta copiada para compartir ✓", toast_no_tts:"Tu navegador no admite lectura por voz",
+      optimize_fail:"No se pudo mejorar, inténtalo de nuevo", err_prefix:"⚠️ Ocurrió un error: ", confirm_clear:"¿Borrar todo el historial? No se puede deshacer.",
+      share_q:"Pregunta:", share_a:"Respuesta:", share_via:"— vía Nexara AI ✦",
+      cat:{trading:"💹 Trading",writing:"✍️ Escritura",programming:"💻 Programación",science:"🔬 Ciencia",religion:"🕌 Religión",health:"⚕️ Salud",general:"📌 General"}
+    },
+    fr: {
+      nav_home:"🏠 Accueil", nav_history:"📚 Historique", nav_about:"ℹ️ À propos",
+      hero_h1:"Posez une question et obtenez la meilleure réponse",
+      hero_p:"Votre question est envoyée à des experts spécialisés puis fusionnée en une seule réponse puissante",
+      stat_visits:"Visites", stat_questions:"Vos questions",
+      input_ph:"Écrivez votre question ici...",
+      lang_label:"🌍 Langue :",
+      btn_clear:"Effacer", btn_optimize:"✨ Améliorer ma question", btn_optimizing:"Amélioration...", btn_send:"Envoyer ✦",
+      sug_title:"✨ Choisissez une version améliorée de votre question :", sug_original:"Envoyer ma question telle quelle",
+      step1:"🎯 Analyse et classification de la question...", step2:"🤖 Consultation des experts (Claude + Gemini)...", step3:"💎 Fusion et rédaction de la réponse finale...",
+      answer_label:"Réponse de Nexara AI", act_listen:"🔊 Écouter", act_stop:"⏹ Arrêter", act_share:"🔗 Partager", act_copy:"⎘ Copier",
+      rating_label:"Comment était la réponse ?", rate_thanks:"Merci pour votre retour !",
+      sources_label:"🔗 Sources :", signature:"✦ Nexara AI — Agrégateur d'IA",
+      history_title:"📚 Historique des questions", hist_clear:"🗑 Effacer l'historique", hist_empty:"Aucun historique pour l'instant — commencez par poser votre première question !",
+      about_sub:"Agrégateur d'IA",
+      about1_h:"💡 Qu'est-ce que Nexara AI ?",
+      about1_p:"Nexara AI est une plateforme qui réunit <span class='highlight'>plusieurs modèles d'IA</span> au même endroit. Au lieu d'interroger un seul modèle, votre question est actuellement envoyée à deux modèles avancés (<span class='highlight'>Claude</span> et <span class='highlight'>Gemini</span>), puis leurs réponses sont fusionnées en une seule réponse plus puissante, plus complète et plus précise — le meilleur de chaque modèle en une seule réponse.",
+      about2_h:"🎯 Pourquoi fusionner deux modèles ?",
+      about2_p:"Chaque modèle d'IA a des points forts différents. En combinant leurs réponses, on obtient une couverture plus large, moins d'erreurs et plusieurs points de vue — la réponse finale est donc plus approfondie qu'avec un seul modèle.",
+      about3_h:"🚀 Notre vision d'avenir",
+      about3_r1:"Ajouter <span class='highlight'>davantage de modèles d'IA</span> à mesure que le site se développe.",
+      about3_r2:"Permettre aux modèles de <span class='highlight'>débattre entre eux</span> pour atteindre la réponse la plus précise.",
+      about3_r3:"Permettre de <span class='highlight'>joindre des images</span> à votre question pour les analyser.",
+      about3_r4:"Prendre en charge davantage de langues pour servir des utilisateurs du monde entier.",
+      about4_h:"📬 Contactez-nous", about4_p:"Vous avez une suggestion, un commentaire ou souhaitez nous contacter ? Nous serions ravis de vous lire :",
+      footer:"Nexara AI ✦ Agrégateur d'IA",
+      toast_copied:"Copié ✓", toast_shared:"Réponse copiée pour le partage ✓", toast_no_tts:"Votre navigateur ne prend pas en charge la lecture vocale",
+      optimize_fail:"Amélioration impossible, réessayez", err_prefix:"⚠️ Une erreur s'est produite : ", confirm_clear:"Effacer tout l'historique ? Action irréversible.",
+      share_q:"Question :", share_a:"Réponse :", share_via:"— via Nexara AI ✦",
+      cat:{trading:"💹 Trading",writing:"✍️ Rédaction",programming:"💻 Programmation",science:"🔬 Science",religion:"🕌 Religion",health:"⚕️ Santé",general:"📌 Général"}
+    },
+    zh: {
+      nav_home:"🏠 首页", nav_history:"📚 历史", nav_about:"ℹ️ 关于",
+      hero_h1:"提问，获得最佳答案",
+      hero_p:"您的问题将发送给专业模型，并合并为一个强大的答案",
+      stat_visits:"访问量", stat_questions:"您的提问",
+      input_ph:"在此输入您的问题…",
+      lang_label:"🌍 语言：",
+      btn_clear:"清除", btn_optimize:"✨ 优化我的问题", btn_optimizing:"优化中…", btn_send:"发送 ✦",
+      sug_title:"✨ 选择一个优化后的问题版本：", sug_original:"按原样发送我的问题",
+      step1:"🎯 正在分析并分类问题…", step2:"🤖 正在咨询专家（Claude + Gemini）…", step3:"💎 正在合并并生成最终答案…",
+      answer_label:"Nexara AI 答案", act_listen:"🔊 朗读", act_stop:"⏹ 停止", act_share:"🔗 分享", act_copy:"⎘ 复制",
+      rating_label:"这个答案怎么样？", rate_thanks:"感谢您的反馈！",
+      sources_label:"🔗 来源：", signature:"✦ Nexara AI — AI 聚合器",
+      history_title:"📚 提问历史", hist_clear:"🗑 清除历史", hist_empty:"暂无历史记录 — 先提出您的第一个问题吧！",
+      about_sub:"AI 聚合器",
+      about1_h:"💡 什么是 Nexara AI？",
+      about1_p:"Nexara AI 是一个将<span class='highlight'>多个 AI 模型</span>汇聚在一起的平台。您无需只询问一个模型，您的问题目前会同时发送给两个先进模型（<span class='highlight'>Claude</span> 和 <span class='highlight'>Gemini</span>），然后将它们的答案合并为一个更强大、更全面、更准确的答案 —— 在一条回复中获得每个模型的精华。",
+      about2_h:"🎯 为什么要合并两个模型？",
+      about2_p:"每个 AI 模型都有不同的优势。将它们的答案结合起来，可以获得更广的覆盖、更少的错误和多种视角 —— 因此最终答案比任何单一模型都更深入。",
+      about3_h:"🚀 我们的未来愿景",
+      about3_r1:"随着网站的发展，<span class='highlight'>加入更多 AI 模型</span>。",
+      about3_r2:"让模型<span class='highlight'>相互讨论</span>，以得出最准确的答案。",
+      about3_r3:"支持在提问时<span class='highlight'>附加图片</span>并进行分析。",
+      about3_r4:"支持更多语言，服务全球用户。",
+      about4_h:"📬 联系我们", about4_p:"有建议、反馈，或想联系我们？我们很乐意听到您的声音：",
+      footer:"Nexara AI ✦ AI 聚合器",
+      toast_copied:"已复制 ✓", toast_shared:"已复制答案以便分享 ✓", toast_no_tts:"您的浏览器不支持语音朗读",
+      optimize_fail:"优化失败，请重试", err_prefix:"⚠️ 发生错误： ", confirm_clear:"确定清除所有历史记录吗？此操作无法撤销。",
+      share_q:"问题：", share_a:"答案：", share_via:"— 来自 Nexara AI ✦",
+      cat:{trading:"💹 交易",writing:"✍️ 写作",programming:"💻 编程",science:"🔬 科学",religion:"🕌 宗教",health:"⚕️ 健康",general:"📌 综合"}
+    },
+    hi: {
+      nav_home:"🏠 होम", nav_history:"📚 इतिहास", nav_about:"ℹ️ परिचय",
+      hero_h1:"पूछें, और सबसे अच्छा उत्तर पाएं",
+      hero_p:"आपका सवाल विशेषज्ञ मॉडलों को भेजा जाता है और एक सशक्त उत्तर में मिला दिया जाता है",
+      stat_visits:"विज़िट", stat_questions:"आपके सवाल",
+      input_ph:"अपना सवाल यहाँ लिखें…",
+      lang_label:"🌍 भाषा:",
+      btn_clear:"साफ़ करें", btn_optimize:"✨ मेरा सवाल बेहतर करें", btn_optimizing:"बेहतर किया जा रहा है…", btn_send:"भेजें ✦",
+      sug_title:"✨ अपने सवाल का बेहतर रूप चुनें:", sug_original:"मेरा सवाल जैसा है वैसा भेजें",
+      step1:"🎯 सवाल का विश्लेषण और वर्गीकरण…", step2:"🤖 विशेषज्ञों से परामर्श (Claude + Gemini)…", step3:"💎 अंतिम उत्तर तैयार किया जा रहा है…",
+      answer_label:"Nexara AI उत्तर", act_listen:"🔊 सुनें", act_stop:"⏹ रोकें", act_share:"🔗 साझा करें", act_copy:"⎘ कॉपी",
+      rating_label:"उत्तर कैसा रहा?", rate_thanks:"आपकी राय के लिए धन्यवाद!",
+      sources_label:"🔗 स्रोत:", signature:"✦ Nexara AI — AI एग्रीगेटर",
+      history_title:"📚 सवालों का इतिहास", hist_clear:"🗑 इतिहास साफ़ करें", hist_empty:"अभी कोई इतिहास नहीं — अपना पहला सवाल पूछकर शुरू करें!",
+      about_sub:"AI एग्रीगेटर",
+      about1_h:"💡 Nexara AI क्या है?",
+      about1_p:"Nexara AI एक ऐसा प्लेटफ़ॉर्म है जो <span class='highlight'>एक से ज़्यादा AI मॉडल</span> को एक ही जगह लाता है। किसी एक मॉडल से पूछने के बजाय, आपका सवाल फ़िलहाल दो उन्नत मॉडलों (<span class='highlight'>Claude</span> और <span class='highlight'>Gemini</span>) को भेजा जाता है, फिर उनके उत्तरों को एक अधिक सशक्त, व्यापक और सटीक उत्तर में मिला दिया जाता है — एक ही जवाब में हर मॉडल का सर्वश्रेष्ठ।",
+      about2_h:"🎯 दो मॉडल क्यों मिलाएं?",
+      about2_p:"हर AI मॉडल की अलग खूबियाँ होती हैं। उनके उत्तरों को मिलाने से व्यापक कवरेज, कम गलतियाँ और कई दृष्टिकोण मिलते हैं — इसलिए अंतिम उत्तर किसी अकेले मॉडल से ज़्यादा गहरा होता है।",
+      about3_h:"🚀 हमारी भविष्य की सोच",
+      about3_r1:"साइट बढ़ने के साथ <span class='highlight'>और AI मॉडल जोड़ना</span>।",
+      about3_r2:"सबसे सटीक उत्तर तक पहुँचने के लिए मॉडलों को <span class='highlight'>आपस में चर्चा</span> करने देना।",
+      about3_r3:"सवाल के साथ <span class='highlight'>छवियाँ जोड़ने</span> और उनका विश्लेषण करने की सुविधा।",
+      about3_r4:"दुनिया भर के उपयोगकर्ताओं के लिए और भाषाओं का समर्थन।",
+      about4_h:"📬 संपर्क करें", about4_p:"कोई सुझाव, राय, या संपर्क करना चाहते हैं? हमें आपसे सुनकर खुशी होगी:",
+      footer:"Nexara AI ✦ AI एग्रीगेटर",
+      toast_copied:"कॉपी हो गया ✓", toast_shared:"साझा करने के लिए उत्तर कॉपी हुआ ✓", toast_no_tts:"आपका ब्राउज़र वॉइस रीडिंग का समर्थन नहीं करता",
+      optimize_fail:"बेहतर नहीं कर सके, फिर से कोशिश करें", err_prefix:"⚠️ एक त्रुटि हुई: ", confirm_clear:"पूरा इतिहास साफ़ करें? इसे पूर्ववत नहीं किया जा सकता।",
+      share_q:"सवाल:", share_a:"उत्तर:", share_via:"— Nexara AI ✦ के ज़रिए",
+      cat:{trading:"💹 ट्रेडिंग",writing:"✍️ लेखन",programming:"💻 प्रोग्रामिंग",science:"🔬 विज्ञान",religion:"🕌 धर्म",health:"⚕️ स्वास्थ्य",general:"📌 सामान्य"}
+    }
   };
 
+  const UI_MAP = { "auto":"ar", "العربية":"ar", "English":"en", "Español":"es", "中文":"zh", "हिन्दी":"hi", "Français":"fr" };
+  const LOCALE = { ar:"ar-EG", en:"en-US", es:"es-ES", zh:"zh-CN", hi:"hi-IN", fr:"fr-FR" };
+  const SPEECH = { "العربية":"ar-SA", "English":"en-US", "Español":"es-ES", "中文":"zh-CN", "हिन्दी":"hi-IN", "Français":"fr-FR" };
+
+  let uiLang = "ar";
+  let T = I18N.ar;
+  let uiLocale = "ar-EG";
+  let lastCategory = "";
+
+  function catName(c) { return (T.cat && T.cat[c]) || ""; }
+
+  function applyLang(code) {
+    uiLang = I18N[code] ? code : "ar";
+    T = I18N[uiLang];
+    uiLocale = LOCALE[uiLang] || "en-US";
+
+    document.body.dataset.dir = (uiLang === "ar") ? "rtl" : "ltr";
+    document.documentElement.lang = uiLang;
+    document.documentElement.dir = (uiLang === "ar") ? "rtl" : "ltr";
+
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      const k = el.getAttribute("data-i18n");
+      if (T[k] != null) el.textContent = T[k];
+    });
+    document.querySelectorAll("[data-i18n-html]").forEach(el => {
+      const k = el.getAttribute("data-i18n-html");
+      if (T[k] != null) el.innerHTML = T[k];
+    });
+    document.querySelectorAll("[data-i18n-ph]").forEach(el => {
+      const k = el.getAttribute("data-i18n-ph");
+      if (T[k] != null) el.placeholder = T[k];
+    });
+
+    // تحديث العناصر الديناميكية إن كانت ظاهرة
+    if (document.getElementById("answer-box").style.display !== "none" && lastCategory) {
+      document.getElementById("category-tag").textContent = catName(lastCategory);
+    }
+    if (isSpeaking) {
+      const sb = document.getElementById("speak-btn");
+      if (sb) sb.textContent = T.act_stop;
+    }
+    if (document.getElementById("tab-history").style.display !== "none") renderHistory();
+  }
+
+  function onLangChange() {
+    const sel = document.getElementById("lang-select").value;
+    localStorage.setItem("nexara_sel", sel);
+    applyLang(UI_MAP[sel] || "ar");
+  }
+
+  function loadSavedLang() {
+    const sel = localStorage.getItem("nexara_sel");
+    if (sel && UI_MAP[sel]) {
+      document.getElementById("lang-select").value = sel;
+      applyLang(UI_MAP[sel]);
+    } else {
+      applyLang("ar");
+    }
+  }
+
+  // ===== منطق التطبيق =====
   let currentQuestion = "";
   let currentAnswer = "";
   let optimizeDone = false;
@@ -398,7 +633,7 @@
       : "https://api.countapi.xyz/hit/nexara-ai/visits";
     sessionStorage.setItem("aljame3_counted", "1");
     fetch(url).then(r => r.json())
-      .then(d => { if (d && typeof d.value === "number") document.getElementById("stat-visits").textContent = d.value.toLocaleString("ar"); })
+      .then(d => { if (d && typeof d.value === "number") document.getElementById("stat-visits").textContent = d.value.toLocaleString(uiLocale); })
       .catch(() => { document.getElementById("stat-visits").textContent = "—"; });
   }
 
@@ -437,7 +672,7 @@
 
     const btn = document.getElementById("btn-optimize");
     btn.disabled = true;
-    btn.innerHTML = '<span class="spin">⟳</span> جاري التحسين...';
+    btn.innerHTML = '<span class="spin">⟳</span> ' + T.btn_optimizing;
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
 
@@ -445,10 +680,10 @@
       const data = await api("optimize", q);
       renderSuggestions(data.suggestions || [], q);
     } catch {
-      renderSuggestions(["تعذّر التحسين، جرّب مرة أخرى"], q);
+      renderSuggestions([T.optimize_fail], q);
     }
     btn.disabled = false;
-    btn.innerHTML = '✨ حسّن سؤالي';
+    btn.textContent = T.btn_optimize;
   }
 
   function renderSuggestions(suggestions, original) {
@@ -457,13 +692,13 @@
     suggestions.forEach((s, i) => {
       const btn = document.createElement("button");
       btn.className = "sug-btn";
-      btn.innerHTML = `<span class="num">${i + 1}.</span> ${s}`;
+      btn.innerHTML = '<span class="num">' + (i + 1) + '.</span> ' + s;
       btn.onclick = () => selectSuggestion(s);
       list.appendChild(btn);
     });
     const orig = document.createElement("button");
     orig.className = "sug-btn original";
-    orig.innerHTML = `<span class="num">${suggestions.length + 1}.</span> أرسل سؤالي بصيغتي الأصلية`;
+    orig.innerHTML = '<span class="num">' + (suggestions.length + 1) + '.</span> ' + T.sug_original;
     orig.onclick = () => selectSuggestion(original, true);
     list.appendChild(orig);
     document.getElementById("suggestions-box").style.display = "block";
@@ -512,15 +747,16 @@
       if (data.error) throw new Error(data.error);
 
       currentAnswer = data.answer;
+      lastCategory = data.category || "";
       document.getElementById("answer-text").textContent = data.answer;
-      document.getElementById("category-tag").textContent = CATEGORY_NAMES[data.category] || "";
+      document.getElementById("category-tag").textContent = catName(lastCategory);
       const srcs = [];
       if (data.sources?.claude) srcs.push("Claude");
       if (data.sources?.gemini) srcs.push("Gemini");
-      document.getElementById("sources-tag").textContent = srcs.length ? `🔗 المصادر: ${srcs.join(" + ")}` : "";
+      document.getElementById("sources-tag").textContent = srcs.length ? (T.sources_label + " " + srcs.join(" + ")) : "";
       document.getElementById("answer-box").style.display = "block";
 
-      const entry = { q, a: data.answer, cat: data.category, time: new Date().toLocaleString("ar"), rating: null };
+      const entry = { q, a: data.answer, cat: lastCategory, time: new Date().toLocaleString(uiLocale), rating: null };
       history.unshift(entry);
       if (history.length > 50) history.pop();
       currentHistoryIndex = 0;
@@ -529,7 +765,8 @@
       document.getElementById("stat-questions").textContent = history.length;
     } catch (e) {
       clearTimeout(t1); clearTimeout(t2);
-      currentAnswer = "⚠️ حدث خطأ: " + e.message;
+      currentAnswer = T.err_prefix + e.message;
+      lastCategory = "";
       document.getElementById("answer-text").textContent = currentAnswer;
       document.getElementById("category-tag").textContent = "";
       document.getElementById("sources-tag").textContent = "";
@@ -542,7 +779,7 @@
   function clearAll() {
     stopSpeak();
     input.value = "";
-    currentQuestion = ""; currentAnswer = ""; optimizeDone = false; currentHistoryIndex = -1;
+    currentQuestion = ""; currentAnswer = ""; optimizeDone = false; currentHistoryIndex = -1; lastCategory = "";
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
     document.getElementById("answer-box").style.display = "none";
@@ -555,23 +792,25 @@
   }
 
   function copyAnswer() {
-    navigator.clipboard.writeText(currentAnswer).then(() => showToast("تم النسخ ✓"));
+    navigator.clipboard.writeText(currentAnswer).then(() => showToast(T.toast_copied));
   }
 
   function shareAnswer() {
-    const shareText = `سؤال: ${currentQuestion}\n\nالإجابة:\n${currentAnswer}\n\n— عبر Nexara AI ✦`;
+    const shareText = T.share_q + " " + currentQuestion + "\n\n" + T.share_a + "\n" + currentAnswer + "\n\n" + T.share_via;
     if (navigator.share) {
       navigator.share({ title: "Nexara AI", text: shareText }).catch(() => {});
     } else {
-      navigator.clipboard.writeText(shareText).then(() => showToast("تم نسخ الإجابة للمشاركة ✓"));
+      navigator.clipboard.writeText(shareText).then(() => showToast(T.toast_shared));
     }
   }
 
   let isSpeaking = false;
   function toggleSpeak() {
     if (isSpeaking) { stopSpeak(); return; }
-    if (!("speechSynthesis" in window)) { showToast("المتصفح لا يدعم القراءة الصوتية"); return; }
+    if (!("speechSynthesis" in window)) { showToast(T.toast_no_tts); return; }
     const utter = new SpeechSynthesisUtterance(currentAnswer);
+    const sel = document.getElementById("lang-select").value;
+    utter.lang = SPEECH[sel] || (/[\u0600-\u06FF]/.test(currentAnswer) ? "ar-SA" : "en-US");
     utter.rate = 0.95;
     utter.onend = () => stopSpeak();
     utter.onerror = () => stopSpeak();
@@ -579,13 +818,13 @@
     isSpeaking = true;
     const btn = document.getElementById("speak-btn");
     btn.classList.add("speaking");
-    btn.innerHTML = "⏹ إيقاف";
+    btn.textContent = T.act_stop;
   }
   function stopSpeak() {
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
     isSpeaking = false;
     const btn = document.getElementById("speak-btn");
-    if (btn) { btn.classList.remove("speaking"); btn.innerHTML = "🔊 استمع"; }
+    if (btn) { btn.classList.remove("speaking"); btn.textContent = T.act_listen; }
   }
 
   function rate(val) {
@@ -609,12 +848,7 @@
     localStorage.setItem("aljame3_history", JSON.stringify(history));
   }
   function saveLastAnswer() {
-    const last = {
-      q: currentQuestion, a: currentAnswer,
-      cat: document.getElementById("category-tag").textContent,
-      src: document.getElementById("sources-tag").textContent,
-      idx: currentHistoryIndex
-    };
+    const last = { q: currentQuestion, a: currentAnswer, cat: lastCategory, idx: currentHistoryIndex };
     localStorage.setItem("aljame3_last", JSON.stringify(last));
   }
 
@@ -624,11 +858,12 @@
       if (last && last.a) {
         currentQuestion = last.q || "";
         currentAnswer = last.a;
+        lastCategory = last.cat || "";
         currentHistoryIndex = (typeof last.idx === "number") ? last.idx : -1;
         input.value = last.q || "";
         document.getElementById("answer-text").textContent = last.a;
-        document.getElementById("category-tag").textContent = last.cat || "";
-        document.getElementById("sources-tag").textContent = last.src || "";
+        document.getElementById("category-tag").textContent = catName(lastCategory);
+        document.getElementById("sources-tag").textContent = "";
         document.getElementById("answer-box").style.display = "block";
         document.getElementById("hero").style.display = "none";
         if (currentHistoryIndex >= 0 && history[currentHistoryIndex]?.rating) {
@@ -645,22 +880,23 @@
     const list = document.getElementById("history-list");
     const clearBtn = document.getElementById("hist-clear-btn");
     if (history.length === 0) {
-      list.innerHTML = `<div class="history-empty"><div class="history-empty-icon">📭</div><div>لا يوجد سجل بعد — ابدأ بطرح سؤالك الأول!</div></div>`;
+      list.innerHTML = '<div class="history-empty"><div class="history-empty-icon">📭</div><div>' + T.hist_empty + '</div></div>';
       clearBtn.style.display = "none";
       return;
     }
     clearBtn.style.display = "inline-block";
     list.innerHTML = history.map((item, i) => {
       const ratingIcon = item.rating === "good" ? "👍" : item.rating === "bad" ? "👎" : "";
-      return `
-      <div class="hist-item" onclick="loadHistory(${i})">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-          <div class="hist-q">${(CATEGORY_NAMES[item.cat] || "")} — ${item.q.length > 70 ? item.q.slice(0, 70) + "..." : item.q}</div>
-          <div class="hist-time">${item.time}</div>
-        </div>
-        <div class="hist-preview">${item.a.slice(0, 120)}...</div>
-        ${ratingIcon ? `<div class="hist-rating">${ratingIcon}</div>` : ""}
-      </div>`;
+      const qShort = item.q.length > 70 ? item.q.slice(0, 70) + "..." : item.q;
+      return '' +
+      '<div class="hist-item" onclick="loadHistory(' + i + ')">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
+          '<div class="hist-q">' + (catName(item.cat)) + ' — ' + qShort + '</div>' +
+          '<div class="hist-time">' + item.time + '</div>' +
+        '</div>' +
+        '<div class="hist-preview">' + item.a.slice(0, 120) + '...</div>' +
+        (ratingIcon ? '<div class="hist-rating">' + ratingIcon + '</div>' : '') +
+      '</div>';
     }).join("");
   }
 
@@ -668,9 +904,9 @@
     stopSpeak();
     const item = history[i];
     input.value = item.q;
-    currentQuestion = item.q; currentAnswer = item.a; currentHistoryIndex = i;
+    currentQuestion = item.q; currentAnswer = item.a; currentHistoryIndex = i; lastCategory = item.cat || "";
     document.getElementById("answer-text").textContent = item.a;
-    document.getElementById("category-tag").textContent = CATEGORY_NAMES[item.cat] || "";
+    document.getElementById("category-tag").textContent = catName(lastCategory);
     document.getElementById("sources-tag").textContent = "";
     document.getElementById("answer-box").style.display = "block";
     document.getElementById("hero").style.display = "none";
@@ -682,7 +918,7 @@
   }
 
   function clearHistory() {
-    if (!confirm("هل تريد مسح كل السجل؟ لا يمكن التراجع.")) return;
+    if (!confirm(T.confirm_clear)) return;
     history = [];
     saveHistory();
     localStorage.removeItem("aljame3_last");
@@ -690,6 +926,8 @@
     renderHistory();
   }
 
+  // ===== التشغيل =====
+  loadSavedLang();
   initStats();
   restoreLastAnswer();
 
