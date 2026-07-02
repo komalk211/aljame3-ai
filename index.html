@@ -195,6 +195,22 @@
     }
     .contact-email:hover { background: #c9a84c25; }
 
+    /* شعار الصورة (الحلقتين) */
+    .logo-orb { background: transparent !important; box-shadow: none !important; animation: none !important; overflow: hidden; }
+    .logo-img { width: 44px; height: 44px; object-fit: cover; border-radius: 50%; display: block; }
+    .loading-icon { perspective: 700px; }
+    .loading-img { width: 92px; height: 92px; object-fit: contain; display: inline-block; filter: drop-shadow(0 0 12px #c9a84c55); }
+    @keyframes spin3d { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+    .spin-3d { animation: spin3d 2.4s linear infinite; }
+
+    /* بطاقات الاستخدام والملاحظات */
+    .use-item { display: flex; gap: 10px; margin-bottom: 12px; font-size: 14px; color: #bbb; line-height: 1.7; }
+    .use-icon { flex-shrink: 0; }
+    .note-item { display: flex; gap: 10px; margin-bottom: 14px; font-size: 14px; color: #bbb; line-height: 1.8; }
+    .note-item:last-child { margin-bottom: 0; }
+    .note-icon { flex-shrink: 0; }
+    .note-warn { color: #e0bc5a; }
+
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
       background: #c9a84c; color: #0a0a0f; padding: 10px 24px; border-radius: 20px;
@@ -217,11 +233,8 @@
 
 <header>
   <div class="logo-wrap">
-    <div class="logo-orb orb">
-      <svg viewBox="0 0 100 100" width="26" height="26" aria-hidden="true">
-        <polygon points="50,16 82,72 18,72" fill="none" stroke="#0a0a0f" stroke-width="8" stroke-linejoin="round"/>
-        <polygon points="50,34 67,64 33,64" fill="none" stroke="#0a0a0f" stroke-width="5" stroke-linejoin="round" opacity="0.5"/>
-      </svg>
+    <div class="logo-orb">
+      <img src="logo.jpeg" alt="Nexara AI" class="logo-img" />
     </div>
     <div>
       <div class="logo-title">Nexara AI</div>
@@ -285,10 +298,7 @@
 
     <div class="loading-box fade-in" id="loading-box" style="display:none">
       <div class="loading-icon">
-        <svg class="spin" viewBox="0 0 100 100" width="46" height="46" aria-hidden="true">
-          <polygon points="50,14 84,72 16,72" fill="none" stroke="#c9a84c" stroke-width="7" stroke-linejoin="round"/>
-          <polygon points="50,33 68,64 32,64" fill="none" stroke="#e0bc5a" stroke-width="4" stroke-linejoin="round" opacity="0.55"/>
-        </svg>
+        <img src="logo.jpeg" alt="" class="loading-img spin-3d" />
       </div>
       <div class="loading-steps">
         <div class="step" id="step-1" data-i18n="step1">🎯 تحليل وتصنيف السؤال...</div>
@@ -308,6 +318,7 @@
           <button class="act-btn" id="speak-btn" onclick="toggleSpeak()" data-i18n="act_listen">🔊 استمع</button>
           <button class="act-btn" onclick="shareAnswer()" data-i18n="act_share">🔗 مشاركة</button>
           <button class="act-btn" onclick="copyAnswer()" data-i18n="act_copy">⎘ نسخ</button>
+          <button class="act-btn" onclick="printAnswer()" data-i18n="act_print">🖨️ طباعة</button>
         </div>
       </div>
       <div class="answer-text" id="answer-text"></div>
@@ -338,8 +349,27 @@
     </div>
 
     <div class="about-card">
+      <h3 data-i18n="who_h">🎯 لمن هذا الموقع؟</h3>
+      <p data-i18n="who_intro" style="margin-bottom:14px"></p>
+      <div class="use-item"><span class="use-icon">📚</span><span data-i18n-html="who_students"></span></div>
+      <div class="use-item"><span class="use-icon">💻</span><span data-i18n-html="who_dev"></span></div>
+      <div class="use-item"><span class="use-icon">✍️</span><span data-i18n-html="who_writer"></span></div>
+      <div class="use-item"><span class="use-icon">💼</span><span data-i18n-html="who_business"></span></div>
+      <div class="use-item"><span class="use-icon">💹</span><span data-i18n-html="who_trading"></span></div>
+      <div class="use-item"><span class="use-icon">⚕️</span><span data-i18n-html="who_health"></span></div>
+      <div class="use-item"><span class="use-icon">🧑</span><span data-i18n-html="who_daily"></span></div>
+    </div>
+
+    <div class="about-card">
       <h3 data-i18n="about2_h">🎯 لماذا الدمج بين نموذجين؟</h3>
       <p data-i18n-html="about2_p"></p>
+    </div>
+
+    <div class="about-card">
+      <h3 data-i18n="notes_h">📌 معلومات مهمة</h3>
+      <div class="note-item"><span class="note-icon">⚠️</span><span class="note-warn" data-i18n="note_verify"></span></div>
+      <div class="note-item"><span class="note-icon">🌍</span><span data-i18n="note_lang"></span></div>
+      <div class="note-item"><span class="note-icon">🔧</span><span data-i18n="note_dev"></span></div>
     </div>
 
     <div class="about-card">
@@ -389,6 +419,20 @@
       about3_r4:"دعم المزيد من اللغات لخدمة مستخدمين من كل العالم.",
       about4_h:"📬 اتصل بنا", about4_p:"هل لديك اقتراح، أو ملاحظة، أو ترغب بالتواصل؟ يسعدنا أن نسمع منك:",
       footer:"Nexara AI ✦ مجمّع الذكاء الاصطناعي",
+      act_print:"🖨️ طباعة", toast_no_print:"تعذّر فتح الطباعة",
+      who_h:"🎯 لمن هذا الموقع؟",
+      who_intro:"Nexara AI مفيد لأي شخص تقريباً. مهما كانت فئتك، إليك بعض ما يمكنك فعله:",
+      who_students:"<span class='highlight'>طالب أو متعلّم:</span> اطلب شرحاً مبسّطاً لأي موضوع، أو تلخيصاً، أو حلّ مسائل خطوة بخطوة.",
+      who_dev:"<span class='highlight'>مبرمج:</span> اطلب كوداً جاهزاً، أو حلّ خطأ برمجي، أو شرح مفهوم تقني.",
+      who_writer:"<span class='highlight'>كاتب أو صانع محتوى:</span> اطلب مقالاً، أو قصة، أو صياغة نص إبداعي أو تسويقي.",
+      who_business:"<span class='highlight'>صاحب عمل:</span> أفكار تسويقية، رسائل احترافية، أو خطط ومقترحات عمل.",
+      who_trading:"<span class='highlight'>مهتم بالتداول والعملات الرقمية:</span> اسأل عن التحليل والمفاهيم والاستراتيجيات (معلومات عامة، وليست نصيحة مالية).",
+      who_health:"<span class='highlight'>استشارة أو مشكلة صحية:</span> اطرح سؤالك للحصول على معلومات وإرشاد عام (مع مراجعة الطبيب المختص دائماً).",
+      who_daily:"<span class='highlight'>استخدام يومي:</span> أي سؤال يخطر ببالك — نصيحة، فكرة، معلومة، أو حتى مجرد فضول.",
+      notes_h:"📌 معلومات مهمة",
+      note_verify:"تحقّق دائماً من الإجابات. الذكاء الاصطناعي قوي لكنه قد يخطئ أحياناً، خاصة في الأرقام والحقائق الدقيقة والمواضيع الحساسة.",
+      note_lang:"يمكنك الكتابة بأي لغة في العالم — وليس فقط اللغات الست في القائمة. اترك الخيار على \"تلقائي\" واكتب بلغتك، وستأتيك الإجابة بنفس لغتك.",
+      note_dev:"الموقع قيد التطوير المستمر. إذا توقّف فجأة أو تأخّرت الإجابة، انتظر بضع دقائق ثم أعد المحاولة.",
       toast_copied:"تم النسخ ✓", toast_shared:"تم نسخ الإجابة للمشاركة ✓", toast_no_tts:"المتصفح لا يدعم القراءة الصوتية",
       optimize_fail:"تعذّر التحسين، جرّب مرة أخرى", err_prefix:"⚠️ حدث خطأ: ", confirm_clear:"هل تريد مسح كل السجل؟ لا يمكن التراجع.",
       share_q:"سؤال:", share_a:"الإجابة:", share_via:"— عبر Nexara AI ✦",
@@ -420,6 +464,20 @@
       about3_r4:"Supporting more languages to serve users worldwide.",
       about4_h:"📬 Contact us", about4_p:"Have a suggestion, feedback, or want to get in touch? We'd love to hear from you:",
       footer:"Nexara AI ✦ AI Aggregator",
+      act_print:"🖨️ Print", toast_no_print:"Couldn't open print",
+      who_h:"🎯 Who is this for?",
+      who_intro:"Nexara AI is useful for almost anyone. Whatever your field, here are some things you can do:",
+      who_students:"<span class='highlight'>Student or learner:</span> ask for a simple explanation of any topic, a summary, or step-by-step problem solving.",
+      who_dev:"<span class='highlight'>Developer:</span> ask for ready code, help fixing a bug, or an explanation of a technical concept.",
+      who_writer:"<span class='highlight'>Writer or content creator:</span> ask for an article, a story, or creative and marketing copy.",
+      who_business:"<span class='highlight'>Business owner:</span> marketing ideas, professional messages, or business plans and proposals.",
+      who_trading:"<span class='highlight'>Into trading and crypto:</span> ask about analysis, concepts and strategies (general information, not financial advice).",
+      who_health:"<span class='highlight'>Health question or concern:</span> ask your question for general information and guidance (always consult a specialist).",
+      who_daily:"<span class='highlight'>Everyday use:</span> any question on your mind — advice, an idea, a fact, or just curiosity.",
+      notes_h:"📌 Good to know",
+      note_verify:"Always verify the answers. AI is powerful but can sometimes make mistakes, especially with numbers, precise facts and sensitive topics.",
+      note_lang:"You can write in any language in the world — not only the six in the list. Leave the option on \"Auto\" and write in your language; the answer will come in the same language.",
+      note_dev:"The site is under continuous development. If it suddenly stops or the answer is delayed, wait a few minutes and try again.",
       toast_copied:"Copied ✓", toast_shared:"Answer copied for sharing ✓", toast_no_tts:"Your browser doesn't support text-to-speech",
       optimize_fail:"Couldn't improve, try again", err_prefix:"⚠️ An error occurred: ", confirm_clear:"Clear all history? This can't be undone.",
       share_q:"Question:", share_a:"Answer:", share_via:"— via Nexara AI ✦",
@@ -451,6 +509,20 @@
       about3_r4:"Admitir más idiomas para servir a usuarios de todo el mundo.",
       about4_h:"📬 Contáctanos", about4_p:"¿Tienes una sugerencia, un comentario o quieres ponerte en contacto? Nos encantaría saber de ti:",
       footer:"Nexara AI ✦ Agregador de IA",
+      act_print:"🖨️ Imprimir", toast_no_print:"No se pudo abrir la impresión",
+      who_h:"🎯 ¿Para quién es esto?",
+      who_intro:"Nexara AI es útil para casi cualquier persona. Sea cual sea tu área, esto es algo de lo que puedes hacer:",
+      who_students:"<span class='highlight'>Estudiante o aprendiz:</span> pide una explicación sencilla de cualquier tema, un resumen o la resolución paso a paso de problemas.",
+      who_dev:"<span class='highlight'>Programador:</span> pide código listo, ayuda para corregir un error o la explicación de un concepto técnico.",
+      who_writer:"<span class='highlight'>Escritor o creador de contenido:</span> pide un artículo, una historia o textos creativos y de marketing.",
+      who_business:"<span class='highlight'>Dueño de negocio:</span> ideas de marketing, mensajes profesionales o planes y propuestas de negocio.",
+      who_trading:"<span class='highlight'>Interesado en trading y cripto:</span> pregunta sobre análisis, conceptos y estrategias (información general, no asesoramiento financiero).",
+      who_health:"<span class='highlight'>Consulta o problema de salud:</span> haz tu pregunta para obtener información y orientación general (consulta siempre a un especialista).",
+      who_daily:"<span class='highlight'>Uso diario:</span> cualquier pregunta que tengas en mente: un consejo, una idea, un dato o simple curiosidad.",
+      notes_h:"📌 Información importante",
+      note_verify:"Verifica siempre las respuestas. La IA es potente, pero a veces puede equivocarse, especialmente con números, datos precisos y temas delicados.",
+      note_lang:"Puedes escribir en cualquier idioma del mundo, no solo en los seis de la lista. Deja la opción en \"Auto\" y escribe en tu idioma; la respuesta llegará en el mismo idioma.",
+      note_dev:"El sitio está en desarrollo continuo. Si se detiene de repente o la respuesta tarda, espera unos minutos e inténtalo de nuevo.",
       toast_copied:"Copiado ✓", toast_shared:"Respuesta copiada para compartir ✓", toast_no_tts:"Tu navegador no admite lectura por voz",
       optimize_fail:"No se pudo mejorar, inténtalo de nuevo", err_prefix:"⚠️ Ocurrió un error: ", confirm_clear:"¿Borrar todo el historial? No se puede deshacer.",
       share_q:"Pregunta:", share_a:"Respuesta:", share_via:"— vía Nexara AI ✦",
@@ -482,6 +554,20 @@
       about3_r4:"Prendre en charge davantage de langues pour servir des utilisateurs du monde entier.",
       about4_h:"📬 Contactez-nous", about4_p:"Vous avez une suggestion, un commentaire ou souhaitez nous contacter ? Nous serions ravis de vous lire :",
       footer:"Nexara AI ✦ Agrégateur d'IA",
+      act_print:"🖨️ Imprimer", toast_no_print:"Impossible d'ouvrir l'impression",
+      who_h:"🎯 Pour qui est-ce ?",
+      who_intro:"Nexara AI est utile pour presque tout le monde. Quel que soit votre domaine, voici quelques exemples de ce que vous pouvez faire :",
+      who_students:"<span class='highlight'>Étudiant ou apprenant :</span> demandez une explication simple d'un sujet, un résumé, ou la résolution d'exercices étape par étape.",
+      who_dev:"<span class='highlight'>Développeur :</span> demandez du code prêt à l'emploi, de l'aide pour corriger un bug, ou l'explication d'un concept technique.",
+      who_writer:"<span class='highlight'>Rédacteur ou créateur de contenu :</span> demandez un article, une histoire, ou des textes créatifs et marketing.",
+      who_business:"<span class='highlight'>Chef d'entreprise :</span> des idées marketing, des messages professionnels, ou des plans et propositions.",
+      who_trading:"<span class='highlight'>Intéressé par le trading et la crypto :</span> posez des questions sur l'analyse, les concepts et les stratégies (informations générales, pas un conseil financier).",
+      who_health:"<span class='highlight'>Question ou souci de santé :</span> posez votre question pour des informations et des conseils généraux (consultez toujours un spécialiste).",
+      who_daily:"<span class='highlight'>Usage quotidien :</span> toute question qui vous vient à l'esprit — un conseil, une idée, une information, ou simplement de la curiosité.",
+      notes_h:"📌 Bon à savoir",
+      note_verify:"Vérifiez toujours les réponses. L'IA est puissante mais peut parfois se tromper, surtout pour les chiffres, les faits précis et les sujets sensibles.",
+      note_lang:"Vous pouvez écrire dans n'importe quelle langue du monde — pas seulement les six de la liste. Laissez l'option sur « Auto » et écrivez dans votre langue ; la réponse arrivera dans la même langue.",
+      note_dev:"Le site est en développement continu. S'il s'arrête soudainement ou si la réponse tarde, attendez quelques minutes puis réessayez.",
       toast_copied:"Copié ✓", toast_shared:"Réponse copiée pour le partage ✓", toast_no_tts:"Votre navigateur ne prend pas en charge la lecture vocale",
       optimize_fail:"Amélioration impossible, réessayez", err_prefix:"⚠️ Une erreur s'est produite : ", confirm_clear:"Effacer tout l'historique ? Action irréversible.",
       share_q:"Question :", share_a:"Réponse :", share_via:"— via Nexara AI ✦",
@@ -513,6 +599,20 @@
       about3_r4:"支持更多语言，服务全球用户。",
       about4_h:"📬 联系我们", about4_p:"有建议、反馈，或想联系我们？我们很乐意听到您的声音：",
       footer:"Nexara AI ✦ AI 聚合器",
+      act_print:"🖨️ 打印", toast_no_print:"无法打开打印",
+      who_h:"🎯 这个网站适合谁？",
+      who_intro:"Nexara AI 几乎对所有人都有用。无论你属于哪一类，以下是你可以做的一些事：",
+      who_students:"<span class='highlight'>学生或学习者：</span>请求对任何主题的简单讲解、摘要，或分步解题。",
+      who_dev:"<span class='highlight'>开发者：</span>请求现成代码、帮助修复错误，或讲解技术概念。",
+      who_writer:"<span class='highlight'>写作者或内容创作者：</span>请求文章、故事，或创意与营销文案。",
+      who_business:"<span class='highlight'>企业主：</span>营销创意、专业信息，或商业计划与提案。",
+      who_trading:"<span class='highlight'>关注交易与加密货币：</span>询问分析、概念和策略（一般信息，并非投资建议）。",
+      who_health:"<span class='highlight'>健康问题或疑虑：</span>提出你的问题以获取一般信息和指导（请务必咨询专业人士）。",
+      who_daily:"<span class='highlight'>日常使用：</span>任何你想到的问题 —— 建议、想法、知识，或只是好奇。",
+      notes_h:"📌 重要提示",
+      note_verify:"请务必核实答案。AI 很强大，但有时也会出错，尤其是在数字、精确事实和敏感话题上。",
+      note_lang:"你可以用世界上任何语言书写 —— 不仅限于列表中的六种。将选项保持为\"自动\"并用你的语言书写，答案会用相同的语言返回。",
+      note_dev:"本网站持续开发中。如果突然停止或回答延迟，请稍等几分钟后重试。",
       toast_copied:"已复制 ✓", toast_shared:"已复制答案以便分享 ✓", toast_no_tts:"您的浏览器不支持语音朗读",
       optimize_fail:"优化失败，请重试", err_prefix:"⚠️ 发生错误： ", confirm_clear:"确定清除所有历史记录吗？此操作无法撤销。",
       share_q:"问题：", share_a:"答案：", share_via:"— 来自 Nexara AI ✦",
@@ -544,6 +644,20 @@
       about3_r4:"दुनिया भर के उपयोगकर्ताओं के लिए और भाषाओं का समर्थन।",
       about4_h:"📬 संपर्क करें", about4_p:"कोई सुझाव, राय, या संपर्क करना चाहते हैं? हमें आपसे सुनकर खुशी होगी:",
       footer:"Nexara AI ✦ AI एग्रीगेटर",
+      act_print:"🖨️ प्रिंट", toast_no_print:"प्रिंट नहीं खुल सका",
+      who_h:"🎯 यह किसके लिए है?",
+      who_intro:"Nexara AI लगभग हर किसी के लिए उपयोगी है। आप चाहे किसी भी क्षेत्र से हों, यहाँ कुछ चीज़ें हैं जो आप कर सकते हैं:",
+      who_students:"<span class='highlight'>छात्र या सीखने वाले:</span> किसी भी विषय की आसान व्याख्या, सारांश, या चरण-दर-चरण हल माँगें।",
+      who_dev:"<span class='highlight'>डेवलपर:</span> तैयार कोड, बग ठीक करने में मदद, या किसी तकनीकी अवधारणा की व्याख्या माँगें।",
+      who_writer:"<span class='highlight'>लेखक या कंटेंट क्रिएटर:</span> लेख, कहानी, या रचनात्मक और मार्केटिंग टेक्स्ट माँगें।",
+      who_business:"<span class='highlight'>व्यवसाय मालिक:</span> मार्केटिंग आइडिया, पेशेवर संदेश, या बिज़नेस प्लान और प्रस्ताव।",
+      who_trading:"<span class='highlight'>ट्रेडिंग और क्रिप्टो में रुचि:</span> विश्लेषण, अवधारणाओं और रणनीतियों के बारे में पूछें (सामान्य जानकारी, वित्तीय सलाह नहीं)।",
+      who_health:"<span class='highlight'>स्वास्थ्य सवाल या चिंता:</span> सामान्य जानकारी और मार्गदर्शन के लिए अपना सवाल पूछें (हमेशा विशेषज्ञ से सलाह लें)।",
+      who_daily:"<span class='highlight'>रोज़मर्रा का उपयोग:</span> मन में आने वाला कोई भी सवाल — सलाह, विचार, जानकारी, या बस जिज्ञासा।",
+      notes_h:"📌 ज़रूरी जानकारी",
+      note_verify:"उत्तरों को हमेशा जाँचें। AI शक्तिशाली है लेकिन कभी-कभी गलती कर सकता है, खासकर संख्याओं, सटीक तथ्यों और संवेदनशील विषयों में।",
+      note_lang:"आप दुनिया की किसी भी भाषा में लिख सकते हैं — केवल सूची की छह भाषाओं तक सीमित नहीं। विकल्प को \"ऑटो\" पर रखें और अपनी भाषा में लिखें; उत्तर उसी भाषा में आएगा।",
+      note_dev:"साइट लगातार विकसित हो रही है। अगर यह अचानक रुक जाए या उत्तर में देरी हो, तो कुछ मिनट रुककर फिर कोशिश करें।",
       toast_copied:"कॉपी हो गया ✓", toast_shared:"साझा करने के लिए उत्तर कॉपी हुआ ✓", toast_no_tts:"आपका ब्राउज़र वॉइस रीडिंग का समर्थन नहीं करता",
       optimize_fail:"बेहतर नहीं कर सके, फिर से कोशिश करें", err_prefix:"⚠️ एक त्रुटि हुई: ", confirm_clear:"पूरा इतिहास साफ़ करें? इसे पूर्ववत नहीं किया जा सकता।",
       share_q:"सवाल:", share_a:"उत्तर:", share_via:"— Nexara AI ✦ के ज़रिए",
@@ -794,6 +908,28 @@
 
   function copyAnswer() {
     navigator.clipboard.writeText(currentAnswer).then(() => showToast(T.toast_copied));
+  }
+
+  function printAnswer() {
+    if (!currentAnswer) return;
+    const dir = (uiLang === "ar") ? "rtl" : "ltr";
+    const w = window.open("", "_blank");
+    if (!w) { showToast(T.toast_no_print || "..."); return; }
+    const esc = s => (s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    w.document.write(
+      '<html dir="' + dir + '"><head><meta charset="utf-8"><title>Nexara AI</title>' +
+      '<style>body{font-family:Arial,Helvetica,sans-serif;line-height:1.9;color:#111;padding:32px;max-width:800px;margin:auto}' +
+      'h2{color:#b58a2e}.q{background:#faf6ea;border:1px solid #e6d9b0;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-weight:bold}' +
+      '.a{white-space:pre-wrap;font-size:15px}.sig{margin-top:28px;padding-top:14px;border-top:1px solid #ddd;text-align:center;color:#b58a2e;font-weight:bold}</style>' +
+      '</head><body>' +
+      '<h2>Nexara AI</h2>' +
+      (currentQuestion ? '<div class="q">' + esc(currentQuestion) + '</div>' : '') +
+      '<div class="a">' + esc(currentAnswer) + '</div>' +
+      '<div class="sig">' + esc(T.signature) + '</div>' +
+      '</body></html>'
+    );
+    w.document.close();
+    setTimeout(() => { w.focus(); w.print(); }, 400);
   }
 
   function shareAnswer() {
