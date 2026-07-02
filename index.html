@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>الجامع الذكي</title>
+  <title>Nexara AI — مجمّع الذكاء الاصطناعي</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0a0a0f" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-title" content="الجامع الذكي" />
+  <meta name="apple-mobile-web-app-title" content="Nexara AI" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
@@ -46,12 +46,12 @@
       background: radial-gradient(circle at 35% 35%, #f0d080, #c9a84c, #7a5f20);
       display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
     }
-    .logo-title { font-size: 19px; font-weight: 900; color: #c9a84c; }
-    .logo-sub { font-size: 10px; color: #666; letter-spacing: 1px; }
+    .logo-title { font-size: 19px; font-weight: 900; color: #c9a84c; letter-spacing: 0.5px; }
+    .logo-sub { font-size: 10px; color: #666; }
     nav { display: flex; gap: 6px; }
     .nav-btn {
       background: transparent; color: #777; border: 1px solid transparent;
-      padding: 7px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      padding: 7px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;
       font-family: 'Cairo', sans-serif; cursor: pointer; transition: all 0.2s;
     }
     .nav-btn.active { background: #c9a84c22; color: #c9a84c; border-color: #c9a84c44; }
@@ -63,6 +63,13 @@
     .hero h1 { font-size: 28px; font-weight: 900; color: #c9a84c; margin-bottom: 6px; }
     .hero p { color: #555; font-size: 14px; }
 
+    .stats-bar {
+      display: flex; justify-content: center; gap: 22px; margin-bottom: 24px; flex-wrap: wrap;
+    }
+    .stat-item { text-align: center; }
+    .stat-num { font-size: 20px; font-weight: 900; color: #c9a84c; }
+    .stat-label { font-size: 11px; color: #555; }
+
     .input-card {
       background: #111118; border: 1px solid #c9a84c33; border-radius: 16px;
       padding: 18px; margin-bottom: 14px; box-shadow: 0 4px 40px #c9a84c0d;
@@ -73,6 +80,18 @@
     }
     textarea:focus { outline: none; }
     textarea::placeholder { color: #444; }
+
+    .lang-row {
+      display: flex; align-items: center; gap: 8px; margin-top: 12px;
+      padding-top: 12px; border-top: 1px solid #1a1a1a; flex-wrap: wrap;
+    }
+    .lang-label { font-size: 12px; color: #555; }
+    .lang-select {
+      background: #0d0d15; color: #c9a84c; border: 1px solid #c9a84c33;
+      border-radius: 8px; padding: 6px 12px; font-size: 13px; font-family: 'Cairo', sans-serif;
+      cursor: pointer; direction: rtl;
+    }
+    .lang-select:focus { outline: none; border-color: #c9a84c; }
 
     .btn-row { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; flex-wrap: wrap; }
     .btn {
@@ -113,11 +132,14 @@
     .answer-label { font-size: 13px; color: #4a7c4a; font-weight: 600; }
     .category-tag { font-size: 11px; color: #c9a84c; background: #c9a84c15; padding: 3px 10px; border-radius: 10px; }
     .sources-tag { font-size: 11px; color: #555; }
-    .copy-btn {
+    .answer-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .act-btn {
       background: transparent; color: #555; border: 1px solid #2a2a2a; border-radius: 6px;
       padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: 'Cairo', sans-serif; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 4px;
     }
-    .copy-btn:hover { background: #ffffff11; color: #aaa; }
+    .act-btn:hover { background: #ffffff11; color: #aaa; }
+    .act-btn.speaking { background: #c9a84c22; color: #c9a84c; border-color: #c9a84c; }
     .answer-text { font-size: 15px; line-height: 2; color: #ddd; white-space: pre-wrap; direction: rtl; }
     .rating-row { margin-top: 18px; padding-top: 14px; border-top: 1px solid #1a1a1a; display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
     .rating-label { font-size: 13px; color: #444; }
@@ -141,6 +163,32 @@
     .hist-q { font-size: 14px; font-weight: 600; color: #c9a84c; flex: 1; }
     .hist-time { font-size: 11px; color: #333; white-space: nowrap; }
     .hist-preview { font-size: 13px; color: #444; line-height: 1.5; margin-top: 6px; }
+    .hist-rating { font-size: 12px; margin-top: 6px; }
+    .hist-clear {
+      background: transparent; color: #664; border: 1px solid #332; border-radius: 8px;
+      padding: 8px 16px; font-size: 12px; cursor: pointer; font-family: 'Cairo', sans-serif;
+      margin-bottom: 16px; transition: all 0.2s;
+    }
+    .hist-clear:hover { color: #a55; border-color: #a55; }
+
+    .about-title { font-size: 22px; font-weight: 900; color: #c9a84c; margin-bottom: 8px; }
+    .about-sub { font-size: 13px; color: #555; margin-bottom: 24px; }
+    .about-card {
+      background: #111118; border: 1px solid #c9a84c22; border-radius: 14px;
+      padding: 20px; margin-bottom: 14px;
+    }
+    .about-card h3 { font-size: 16px; color: #c9a84c; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .about-card p { font-size: 14px; line-height: 1.9; color: #bbb; }
+    .about-card .highlight { color: #e0bc5a; font-weight: 600; }
+    .roadmap-item { display: flex; gap: 10px; margin-bottom: 12px; font-size: 14px; color: #bbb; line-height: 1.7; }
+    .roadmap-icon { flex-shrink: 0; }
+    .contact-email {
+      display: inline-flex; align-items: center; gap: 8px; background: #c9a84c15;
+      border: 1px solid #c9a84c44; border-radius: 10px; padding: 12px 18px;
+      color: #c9a84c; font-size: 15px; font-weight: 600; text-decoration: none;
+      margin-top: 6px; transition: all 0.2s; direction: ltr;
+    }
+    .contact-email:hover { background: #c9a84c25; }
 
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
@@ -153,7 +201,7 @@
 
     @media (max-width: 480px) {
       .logo-title { font-size: 16px; }
-      .nav-btn { padding: 6px 10px; font-size: 12px; }
+      .nav-btn { padding: 6px 9px; font-size: 12px; }
       .hero h1 { font-size: 22px; }
       .btn { padding: 9px 14px; font-size: 13px; }
     }
@@ -164,15 +212,21 @@
 
 <header>
   <div class="logo-wrap">
-    <div class="logo-orb orb">✦</div>
+    <div class="logo-orb orb">
+      <svg viewBox="0 0 100 100" width="26" height="26" aria-hidden="true">
+        <polygon points="50,16 82,72 18,72" fill="none" stroke="#0a0a0f" stroke-width="8" stroke-linejoin="round"/>
+        <polygon points="50,34 67,64 33,64" fill="none" stroke="#0a0a0f" stroke-width="5" stroke-linejoin="round" opacity="0.5"/>
+      </svg>
+    </div>
     <div>
-      <div class="logo-title">الجامع الذكي</div>
-      <div class="logo-sub">AI AGGREGATOR</div>
+      <div class="logo-title">Nexara AI</div>
+      <div class="logo-sub">مجمّع الذكاء الاصطناعي</div>
     </div>
   </div>
   <nav>
     <button class="nav-btn active" id="btn-home" onclick="switchTab('home')">🏠 الرئيسية</button>
     <button class="nav-btn" id="btn-history" onclick="switchTab('history')">📚 السجل</button>
+    <button class="nav-btn" id="btn-about" onclick="switchTab('about')">ℹ️ عن الموقع</button>
   </nav>
 </header>
 
@@ -184,8 +238,31 @@
       <p>سؤالك يُوجّه لخبراء متخصصين، ويُدمج في إجابة واحدة قوية</p>
     </div>
 
+    <div class="stats-bar" id="stats-bar">
+      <div class="stat-item">
+        <div class="stat-num" id="stat-visits">—</div>
+        <div class="stat-label">زيارة</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="stat-questions">0</div>
+        <div class="stat-label">سؤالك</div>
+      </div>
+    </div>
+
     <div class="input-card">
       <textarea id="question-input" rows="4" placeholder="اكتب سؤالك هنا..."></textarea>
+      <div class="lang-row">
+        <span class="lang-label">🌍 لغة الإجابة:</span>
+        <select class="lang-select" id="lang-select">
+          <option value="auto">🔄 نفس لغة سؤالي (تلقائي)</option>
+          <option value="العربية">🇸🇦 العربية</option>
+          <option value="English">🇬🇧 English</option>
+          <option value="Español">🇪🇸 Español</option>
+          <option value="中文">🇨🇳 中文</option>
+          <option value="हिन्दी">🇮🇳 हिन्दी</option>
+          <option value="Français">🇫🇷 Français</option>
+        </select>
+      </div>
       <div class="btn-row" id="btn-row">
         <button class="btn btn-ghost" id="btn-clear" onclick="clearAll()" style="display:none">مسح</button>
         <button class="btn btn-gold" id="btn-optimize" onclick="optimizePrompt()" disabled>✨ حسّن سؤالي</button>
@@ -202,12 +279,16 @@
     </div>
 
     <div class="loading-box fade-in" id="loading-box" style="display:none">
-      <div class="loading-icon spin">✦</div>
+      <div class="loading-icon">
+        <svg class="spin" viewBox="0 0 100 100" width="46" height="46" aria-hidden="true">
+          <polygon points="50,14 84,72 16,72" fill="none" stroke="#c9a84c" stroke-width="7" stroke-linejoin="round"/>
+          <polygon points="50,33 68,64 32,64" fill="none" stroke="#e0bc5a" stroke-width="4" stroke-linejoin="round" opacity="0.55"/>
+        </svg>
+      </div>
       <div class="loading-steps">
         <div class="step" id="step-1">🎯 تحليل وتصنيف السؤال...</div>
         <div class="step" id="step-2">🤖 استشارة الخبراء (Claude + Gemini)...</div>
-        <div class="step" id="step-3">🔬 النموذجان يتناقشان ويعمّقان الإجابة...</div>
-        <div class="step" id="step-4">💎 تأليف الإجابة البحثية النهائية...</div>
+        <div class="step" id="step-3">💎 دمج وتأليف الإجابة النهائية...</div>
       </div>
     </div>
 
@@ -215,10 +296,14 @@
       <div class="answer-header">
         <div class="answer-badge">
           <div class="green-dot"></div>
-          <span class="answer-label">إجابة الجامع الذكي</span>
+          <span class="answer-label">إجابة Nexara AI</span>
           <span class="category-tag" id="category-tag"></span>
         </div>
-        <button class="copy-btn" onclick="copyAnswer()">نسخ ⎘</button>
+        <div class="answer-actions">
+          <button class="act-btn" id="speak-btn" onclick="toggleSpeak()">🔊 استمع</button>
+          <button class="act-btn" onclick="shareAnswer()">🔗 مشاركة</button>
+          <button class="act-btn" onclick="copyAnswer()">⎘ نسخ</button>
+        </div>
       </div>
       <div class="answer-text" id="answer-text"></div>
       <div class="sources-tag" id="sources-tag" style="margin-top:12px"></div>
@@ -233,13 +318,52 @@
 
   <div id="tab-history" style="display:none">
     <div class="history-title">📚 سجل الأسئلة</div>
+    <button class="hist-clear" id="hist-clear-btn" onclick="clearHistory()" style="display:none">🗑 مسح السجل</button>
     <div id="history-list">
       <div class="history-empty"><div class="history-empty-icon">📭</div><div>لا يوجد سجل بعد — ابدأ بطرح سؤالك الأول!</div></div>
     </div>
   </div>
+
+  <div id="tab-about" style="display:none">
+    <div class="about-title">✦ Nexara AI</div>
+    <div class="about-sub">مجمّع الذكاء الاصطناعي</div>
+
+    <div class="about-card">
+      <h3>💡 ما هي فكرة Nexara AI؟</h3>
+      <p>
+        Nexara AI موقع يجمع بين <span class="highlight">أكثر من نموذج ذكاء اصطناعي</span> في مكان واحد.
+        بدلاً من أن تسأل نموذجاً واحداً، يُوجَّه سؤالك حالياً إلى نموذجين متقدّمين
+        (<span class="highlight">Claude</span> و <span class="highlight">Gemini</span>)،
+        ثم تُدمَج إجابتاهما في إجابة واحدة أقوى وأكثر شمولاً وأدق — لتحصل على أفضل ما لدى كل نموذج في ردٍّ واحد.
+      </p>
+    </div>
+
+    <div class="about-card">
+      <h3>🎯 لماذا الدمج بين نموذجين؟</h3>
+      <p>
+        لكل نموذج ذكاء اصطناعي نقاط قوة مختلفة. عندما نجمع بين إجاباتهما،
+        نحصل على تغطية أوسع، ونقلّل الأخطاء، ونستفيد من وجهات نظر متعددة —
+        فتكون الإجابة النهائية أعمق من أي نموذج بمفرده.
+      </p>
+    </div>
+
+    <div class="about-card">
+      <h3>🚀 رؤيتنا المستقبلية</h3>
+      <div class="roadmap-item"><span class="roadmap-icon">🧠</span><span>إضافة <span class="highlight">نماذج ذكاء اصطناعي أكثر</span> كلما زاد استخدام الموقع.</span></div>
+      <div class="roadmap-item"><span class="roadmap-icon">💬</span><span>جعل النماذج <span class="highlight">تتناقش فيما بينها</span> للوصول إلى الإجابة الأدق.</span></div>
+      <div class="roadmap-item"><span class="roadmap-icon">🖼️</span><span>إمكانية <span class="highlight">إرفاق الصور</span> مع السؤال وتحليلها.</span></div>
+      <div class="roadmap-item"><span class="roadmap-icon">🌍</span><span>دعم المزيد من اللغات لخدمة مستخدمين من كل العالم.</span></div>
+    </div>
+
+    <div class="about-card">
+      <h3>📬 اتصل بنا</h3>
+      <p>هل لديك اقتراح، أو ملاحظة، أو ترغب بالتواصل؟ يسعدنا أن نسمع منك:</p>
+      <a class="contact-email" href="mailto:Kamakoma21@gmail.com">✉️ Kamakoma21@gmail.com</a>
+    </div>
+  </div>
 </main>
 
-<footer>الجامع الذكي ✦ أول مجمّع ذكاء اصطناعي عربي</footer>
+<footer>Nexara AI ✦ مجمّع الذكاء الاصطناعي</footer>
 
 <script>
   const CATEGORY_NAMES = {
@@ -251,6 +375,7 @@
   let currentAnswer = "";
   let optimizeDone = false;
   let history = JSON.parse(localStorage.getItem("aljame3_history") || "[]");
+  let currentHistoryIndex = -1;
 
   const input = document.getElementById("question-input");
   input.addEventListener("input", onInput);
@@ -259,6 +384,17 @@
       if (optimizeDone) askQuestion(); else optimizePrompt();
     }
   });
+
+  function initStats() {
+    document.getElementById("stat-questions").textContent = history.length;
+    const url = sessionStorage.getItem("aljame3_counted")
+      ? "https://api.countapi.xyz/get/nexara-ai/visits"
+      : "https://api.countapi.xyz/hit/nexara-ai/visits";
+    sessionStorage.setItem("aljame3_counted", "1");
+    fetch(url).then(r => r.json())
+      .then(d => { if (d && typeof d.value === "number") document.getElementById("stat-visits").textContent = d.value.toLocaleString("ar"); })
+      .catch(() => { document.getElementById("stat-visits").textContent = "—"; });
+  }
 
   function onInput() {
     const val = input.value.trim();
@@ -271,18 +407,18 @@
   }
 
   function switchTab(tab) {
-    document.getElementById("tab-home").style.display = tab === "home" ? "block" : "none";
-    document.getElementById("tab-history").style.display = tab === "history" ? "block" : "none";
-    document.getElementById("btn-home").classList.toggle("active", tab === "home");
-    document.getElementById("btn-history").classList.toggle("active", tab === "history");
+    ["home", "history", "about"].forEach(t => {
+      document.getElementById("tab-" + t).style.display = t === tab ? "block" : "none";
+      document.getElementById("btn-" + t).classList.toggle("active", t === tab);
+    });
     if (tab === "history") renderHistory();
   }
 
-  async function api(action, question) {
+  async function api(action, question, lang) {
     const res = await fetch("/api", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, question })
+      body: JSON.stringify({ action, question, lang })
     });
     return await res.json();
   }
@@ -321,7 +457,7 @@
     });
     const orig = document.createElement("button");
     orig.className = "sug-btn original";
-    orig.innerHTML = `<span class="num">4.</span> أرسل سؤالي بصيغتي الأصلية`;
+    orig.innerHTML = `<span class="num">${suggestions.length + 1}.</span> أرسل سؤالي بصيغتي الأصلية`;
     orig.onclick = () => selectSuggestion(original, true);
     list.appendChild(orig);
     document.getElementById("suggestions-box").style.display = "block";
@@ -337,7 +473,7 @@
   }
 
   function setStep(n) {
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= 3; i++) {
       const el = document.getElementById("step-" + i);
       el.classList.remove("active", "done");
       if (i < n) el.classList.add("done");
@@ -349,6 +485,9 @@
     const q = currentQuestion || input.value.trim();
     if (!q) return;
 
+    stopSpeak();
+    const lang = document.getElementById("lang-select").value;
+
     document.getElementById("send-row").style.display = "none";
     document.getElementById("answer-box").style.display = "none";
     document.getElementById("loading-box").style.display = "block";
@@ -358,12 +497,11 @@
 
     setStep(1);
     const t1 = setTimeout(() => setStep(2), 1500);
-    const t2 = setTimeout(() => setStep(3), 6000);
-    const t3 = setTimeout(() => setStep(4), 14000);
+    const t2 = setTimeout(() => setStep(3), 7000);
 
     try {
-      const data = await api("ask", q);
-      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+      const data = await api("ask", q, lang);
+      clearTimeout(t1); clearTimeout(t2);
 
       if (data.error) throw new Error(data.error);
 
@@ -376,12 +514,15 @@
       document.getElementById("sources-tag").textContent = srcs.length ? `🔗 المصادر: ${srcs.join(" + ")}` : "";
       document.getElementById("answer-box").style.display = "block";
 
-      const entry = { q, a: data.answer, cat: data.category, time: new Date().toLocaleString("ar") };
+      const entry = { q, a: data.answer, cat: data.category, time: new Date().toLocaleString("ar"), rating: null };
       history.unshift(entry);
-      if (history.length > 30) history.pop();
-      localStorage.setItem("aljame3_history", JSON.stringify(history));
+      if (history.length > 50) history.pop();
+      currentHistoryIndex = 0;
+      saveHistory();
+      saveLastAnswer();
+      document.getElementById("stat-questions").textContent = history.length;
     } catch (e) {
-      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3);
+      clearTimeout(t1); clearTimeout(t2);
       currentAnswer = "⚠️ حدث خطأ: " + e.message;
       document.getElementById("answer-text").textContent = currentAnswer;
       document.getElementById("category-tag").textContent = "";
@@ -393,8 +534,9 @@
   }
 
   function clearAll() {
+    stopSpeak();
     input.value = "";
-    currentQuestion = ""; currentAnswer = ""; optimizeDone = false;
+    currentQuestion = ""; currentAnswer = ""; optimizeDone = false; currentHistoryIndex = -1;
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
     document.getElementById("answer-box").style.display = "none";
@@ -402,6 +544,7 @@
     document.getElementById("btn-clear").style.display = "none";
     document.getElementById("btn-optimize").disabled = true;
     document.getElementById("hero").style.display = "block";
+    localStorage.removeItem("aljame3_last");
     input.focus();
   }
 
@@ -409,10 +552,45 @@
     navigator.clipboard.writeText(currentAnswer).then(() => showToast("تم النسخ ✓"));
   }
 
+  function shareAnswer() {
+    const shareText = `سؤال: ${currentQuestion}\n\nالإجابة:\n${currentAnswer}\n\n— عبر Nexara AI ✦`;
+    if (navigator.share) {
+      navigator.share({ title: "Nexara AI", text: shareText }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(shareText).then(() => showToast("تم نسخ الإجابة للمشاركة ✓"));
+    }
+  }
+
+  let isSpeaking = false;
+  function toggleSpeak() {
+    if (isSpeaking) { stopSpeak(); return; }
+    if (!("speechSynthesis" in window)) { showToast("المتصفح لا يدعم القراءة الصوتية"); return; }
+    const utter = new SpeechSynthesisUtterance(currentAnswer);
+    utter.rate = 0.95;
+    utter.onend = () => stopSpeak();
+    utter.onerror = () => stopSpeak();
+    window.speechSynthesis.speak(utter);
+    isSpeaking = true;
+    const btn = document.getElementById("speak-btn");
+    btn.classList.add("speaking");
+    btn.innerHTML = "⏹ إيقاف";
+  }
+  function stopSpeak() {
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    isSpeaking = false;
+    const btn = document.getElementById("speak-btn");
+    if (btn) { btn.classList.remove("speaking"); btn.innerHTML = "🔊 استمع"; }
+  }
+
   function rate(val) {
     document.getElementById("rate-good").classList.toggle("active", val === "good");
     document.getElementById("rate-bad").classList.toggle("active", val === "bad");
     document.getElementById("rate-thanks").style.display = "inline";
+    if (currentHistoryIndex >= 0 && history[currentHistoryIndex]) {
+      history[currentHistoryIndex].rating = val;
+      saveHistory();
+      saveLastAnswer();
+    }
   }
 
   function showToast(msg) {
@@ -421,34 +599,93 @@
     setTimeout(() => t.classList.remove("show"), 2000);
   }
 
+  function saveHistory() {
+    localStorage.setItem("aljame3_history", JSON.stringify(history));
+  }
+  function saveLastAnswer() {
+    const last = {
+      q: currentQuestion, a: currentAnswer,
+      cat: document.getElementById("category-tag").textContent,
+      src: document.getElementById("sources-tag").textContent,
+      idx: currentHistoryIndex
+    };
+    localStorage.setItem("aljame3_last", JSON.stringify(last));
+  }
+
+  function restoreLastAnswer() {
+    try {
+      const last = JSON.parse(localStorage.getItem("aljame3_last") || "null");
+      if (last && last.a) {
+        currentQuestion = last.q || "";
+        currentAnswer = last.a;
+        currentHistoryIndex = (typeof last.idx === "number") ? last.idx : -1;
+        input.value = last.q || "";
+        document.getElementById("answer-text").textContent = last.a;
+        document.getElementById("category-tag").textContent = last.cat || "";
+        document.getElementById("sources-tag").textContent = last.src || "";
+        document.getElementById("answer-box").style.display = "block";
+        document.getElementById("hero").style.display = "none";
+        if (currentHistoryIndex >= 0 && history[currentHistoryIndex]?.rating) {
+          const r = history[currentHistoryIndex].rating;
+          document.getElementById("rate-good").classList.toggle("active", r === "good");
+          document.getElementById("rate-bad").classList.toggle("active", r === "bad");
+          document.getElementById("rate-thanks").style.display = "inline";
+        }
+      }
+    } catch {}
+  }
+
   function renderHistory() {
     const list = document.getElementById("history-list");
+    const clearBtn = document.getElementById("hist-clear-btn");
     if (history.length === 0) {
       list.innerHTML = `<div class="history-empty"><div class="history-empty-icon">📭</div><div>لا يوجد سجل بعد — ابدأ بطرح سؤالك الأول!</div></div>`;
+      clearBtn.style.display = "none";
       return;
     }
-    list.innerHTML = history.map((item, i) => `
+    clearBtn.style.display = "inline-block";
+    list.innerHTML = history.map((item, i) => {
+      const ratingIcon = item.rating === "good" ? "👍" : item.rating === "bad" ? "👎" : "";
+      return `
       <div class="hist-item" onclick="loadHistory(${i})">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
           <div class="hist-q">${(CATEGORY_NAMES[item.cat] || "")} — ${item.q.length > 70 ? item.q.slice(0, 70) + "..." : item.q}</div>
           <div class="hist-time">${item.time}</div>
         </div>
         <div class="hist-preview">${item.a.slice(0, 120)}...</div>
-      </div>
-    `).join("");
+        ${ratingIcon ? `<div class="hist-rating">${ratingIcon}</div>` : ""}
+      </div>`;
+    }).join("");
   }
 
   function loadHistory(i) {
+    stopSpeak();
     const item = history[i];
     input.value = item.q;
-    currentQuestion = item.q; currentAnswer = item.a;
+    currentQuestion = item.q; currentAnswer = item.a; currentHistoryIndex = i;
     document.getElementById("answer-text").textContent = item.a;
     document.getElementById("category-tag").textContent = CATEGORY_NAMES[item.cat] || "";
     document.getElementById("sources-tag").textContent = "";
     document.getElementById("answer-box").style.display = "block";
     document.getElementById("hero").style.display = "none";
+    document.getElementById("rate-good").classList.toggle("active", item.rating === "good");
+    document.getElementById("rate-bad").classList.toggle("active", item.rating === "bad");
+    document.getElementById("rate-thanks").style.display = item.rating ? "inline" : "none";
+    saveLastAnswer();
     switchTab("home");
   }
+
+  function clearHistory() {
+    if (!confirm("هل تريد مسح كل السجل؟ لا يمكن التراجع.")) return;
+    history = [];
+    saveHistory();
+    localStorage.removeItem("aljame3_last");
+    document.getElementById("stat-questions").textContent = "0";
+    renderHistory();
+  }
+
+  initStats();
+  restoreLastAnswer();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
