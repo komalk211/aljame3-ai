@@ -677,7 +677,8 @@
     document.getElementById("send-row").style.display = "none";
 
     try {
-      const data = await api("optimize", q);
+      const selLang = document.getElementById("lang-select").value;
+      const data = await api("optimize", q, selLang);
       renderSuggestions(data.suggestions || [], q);
     } catch {
       renderSuggestions([T.optimize_fail], q);
