@@ -1,8 +1,9 @@
 // ========================================
-// الجامع الذكي — الخادم الوسيط الآمن (نسخة 4 — الحل السريع)
+// Nexara AI — الخادم الوسيط الآمن (نسخة 5 — دعم اللغات)
 // يخفي مفاتيح Claude و Gemini
 // يدير: التصنيف + النموذجين السريعين + الدمج
 // الحل: استخدام نماذج سريعة (haiku + flash) لتفادي تجاوز الوقت نهائياً
+// جديد: دعم اختيار لغة الإجابة (تلقائي أو لغة محددة)
 // إصلاحات محفوظة: قطع الإجابة + إزالة المقدمات + منع Markdown + الردود الفارغة + ضمان عدم الفشل
 // ========================================
 
@@ -20,6 +21,14 @@ const STYLE_RULES = `
 - استخدم نصاً عربياً عادياً منظّماً بفقرات واضحة.
 - إذا لم تكن متأكداً، قدّم أفضل تحليل ممكن مع توضيح حدود المعرفة، ولا تترك الإجابة فارغة أبداً.
 - اجعل إجابتك وافية لكن مركّزة، دون إطالة غير ضرورية.`;
+
+// تعليمة اللغة: تُبنى حسب اختيار المستخدم
+function langInstruction(lang) {
+  if (!lang || lang === "auto") {
+    return `\n- مهم جداً: اكتب إجابتك بنفس لغة سؤال المستخدم تماماً. إذا سأل بالعربية أجب بالعربية، وإذا سأل بأي لغة أخرى أجب بنفس تلك اللغة.`;
+  }
+  return `\n- مهم جداً: اكتب إجابتك بالكامل بلغة: ${lang} فقط، بغضّ النظر عن لغة السؤال. يجب أن تكون الإجابة كلها بلغة ${lang}.`;
+}
 
 function withTimeout(promise, ms) {
   return Promise.race([
@@ -102,11 +111,11 @@ trading، writing، programming، science، religion، health، general.
 }
 
 // دمج الإجابتين بنموذج سريع
-async function mergeAnswers(question, claudeText, geminiText, claudeKey) {
+async function mergeAnswers(question, claudeText, geminiText, claudeKey, lang) {
   const prompt = `لديك إجابتان من خبيرين على نفس السؤال. ألّف إجابة نهائية واحدة متميزة:
 - ادمج أفضل ما فيهما، احذف التكرار، صحّح أي تضارب.
-- نظّم الإجابة: مقدمة موجزة، ثم تفصيل، ثم خلاصة. بالعربية الفصحى الواضحة.
-- لا تبدأ بأي مقدمة عن نفسك. لا تستخدم رموز Markdown إطلاقاً (لا # ولا --- ولا ** ولا * في بداية السطر).
+- نظّم الإجابة: مقدمة موجزة، ثم تفصيل، ثم خلاصة.
+- لا تبدأ بأي مقدمة عن نفسك. لا تستخدم رموز Markdown إطلاقاً (لا # ولا --- ولا ** ولا * في بداية السطر).${langInstruction(lang)}
 السؤال: ${question}
 الخبير الأول:
 ${claudeText}
@@ -145,7 +154,7 @@ exports.handler = async (event) => {
   const GEMINI_KEY = process.env.GEMINI_API_KEY;
 
   try {
-    const { action, question } = JSON.parse(event.body);
+    const { action, question, lang } = JSON.parse(event.body);
 
     if (action === "optimize") {
       const prompt = `أنت خبير في صياغة الأسئلة. اقترح 3 صياغات محسّنة وأوضح للسؤال التالي.
@@ -166,7 +175,7 @@ exports.handler = async (event) => {
     if (action === "ask") {
       // 1. التصنيف السريع
       const category = await classifyQuestion(question, CLAUDE_KEY);
-      const expertPrompt = EXPERTS[category];
+      const expertPrompt = EXPERTS[category] + langInstruction(lang);
 
       // 2. النموذجان السريعان بالتوازي
       const [claudeRes, geminiRes] = await Promise.all([
@@ -179,7 +188,7 @@ exports.handler = async (event) => {
       let mode;
 
       if (claudeRes.ok && geminiRes.ok) {
-        finalAnswer = await mergeAnswers(question, claudeRes.text, geminiRes.text, CLAUDE_KEY);
+        finalAnswer = await mergeAnswers(question, claudeRes.text, geminiRes.text, CLAUDE_KEY, lang);
         mode = "merged";
       } else if (claudeRes.ok) {
         finalAnswer = claudeRes.text;
