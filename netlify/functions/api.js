@@ -158,6 +158,9 @@ exports.handler = async (event) => {
 
     if (action === "optimize") {
       const prompt = `أنت خبير في صياغة الأسئلة. اقترح 3 صياغات محسّنة وأوضح للسؤال التالي.
+${(!lang || lang === "auto")
+  ? "اكتب الصياغات المقترحة بنفس لغة السؤال الأصلي تماماً."
+  : "اكتب الصياغات المقترحة الثلاث بلغة: " + lang + " فقط."}
 أجب فقط بـ JSON: {"suggestions": ["...", "...", "..."]}
 السؤال: ${question}`;
       const result = await withTimeout(
