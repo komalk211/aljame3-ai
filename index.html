@@ -19,7 +19,6 @@
       background: linear-gradient(135deg, #0a0a0f 0%, #0d0d1a 50%, #0a0f0a 100%);
       color: #e8e0d0; direction: rtl; min-height: 100vh;
     }
-    /* دعم الاتجاه للغات اللاتينية */
     body[data-dir="ltr"] { direction: ltr; }
     body[data-dir="ltr"] textarea { direction: ltr; text-align: left; }
     body[data-dir="ltr"] .sug-btn { direction: ltr; text-align: left; }
@@ -202,7 +201,6 @@
     }
     .contact-email:hover { background: #c9a84c25; }
 
-    /* شعار الصورة (الحلقتين) */
     .logo-orb { background: transparent !important; box-shadow: none !important; animation: none !important; overflow: hidden; }
     .logo-img { width: 44px; height: 44px; object-fit: cover; border-radius: 50%; display: block; }
     .loading-icon { perspective: 700px; }
@@ -210,7 +208,6 @@
     @keyframes spin3d { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
     .spin-3d { animation: spin3d 2.4s linear infinite; }
 
-    /* بطاقات الاستخدام والملاحظات */
     .use-item { display: flex; gap: 10px; margin-bottom: 12px; font-size: 14px; color: #bbb; line-height: 1.7; }
     .use-icon { flex-shrink: 0; }
     .note-item { display: flex; gap: 10px; margin-bottom: 14px; font-size: 14px; color: #bbb; line-height: 1.8; }
@@ -335,7 +332,7 @@
       </div>
       <div class="answer-text" id="answer-text"></div>
       <div class="sources-tag" id="sources-tag" style="margin-top:12px"></div>
-      <div class="answer-signature" data-i18n="signature">✦ Nexara AI — مجمّع الذكاء الاصطناعي</div>
+      <div class="answer-signature" data-i18n="signature">✦ Nexara AI — nexaraapp.net</div>
       <div class="rating-row">
         <span class="rating-label" data-i18n="rating_label">كيف كانت الإجابة؟</span>
         <button class="rate-btn" id="rate-good" onclick="rate('good')">👍</button>
@@ -400,7 +397,7 @@
   </div>
 </main>
 
-<footer data-i18n="footer">Nexara AI ✦ مجمّع الذكاء الاصطناعي</footer>
+<footer data-i18n="footer">Nexara AI ✦ nexaraapp.net</footer>
 
 <script>
   // ===== نظام الترجمة i18n =====
@@ -417,7 +414,7 @@
       step1:"🎯 تحليل وتصنيف السؤال...", step2:"🤖 استشارة الخبراء (Claude + Gemini)...", step3:"💎 دمج وتأليف الإجابة النهائية...",
       answer_label:"إجابة Nexara AI", act_listen:"🔊 استمع", act_stop:"⏹ إيقاف", act_share:"🔗 مشاركة", act_copy:"⎘ نسخ",
       rating_label:"كيف كانت الإجابة؟", rate_thanks:"شكراً لتقييمك!",
-      sources_label:"🔗 المصادر:", signature:"✦ Nexara AI — مجمّع الذكاء الاصطناعي",
+      sources_label:"🔗 المصادر:", signature:"✦ Nexara AI — nexaraapp.net",
       history_title:"📚 سجل الأسئلة", hist_clear:"🗑 مسح السجل", hist_empty:"لا يوجد سجل بعد — ابدأ بطرح سؤالك الأول!",
       about_sub:"مجمّع الذكاء الاصطناعي",
       about1_h:"💡 ما هي فكرة Nexara AI؟",
@@ -430,7 +427,7 @@
       about3_r3:"إمكانية <span class='highlight'>إرفاق الصور</span> مع السؤال وتحليلها.",
       about3_r4:"دعم المزيد من اللغات لخدمة مستخدمين من كل العالم.",
       about4_h:"📬 اتصل بنا", about4_p:"هل لديك اقتراح، أو ملاحظة، أو ترغب بالتواصل؟ يسعدنا أن نسمع منك:",
-      footer:"Nexara AI ✦ مجمّع الذكاء الاصطناعي",
+      footer:"Nexara AI ✦ nexaraapp.net",
       beta_notice:"الموقع في مرحلة تجريبية. قد يتوقف مؤقتاً إذا زاد الاستخدام — إن حدث ذلك، انتظر قليلاً وحاول مجدداً. نعمل على تطويره باستمرار، وقد نضيف خطط استخدام مرنة قريباً.",
       busy_notice:"🚀 يبدو أن الموقع يشهد إقبالاً كبيراً الآن، وقد توقّف مؤقتاً.\n\nهذا يحدث عندما يزداد عدد المستخدمين — انتظر بضع دقائق وحاول مجدداً.\n\nهل أعجبتك التجربة وتريد استخداماً غير محدود؟ يسعدنا تواصلك معنا:\n📧 Kamakoma21@gmail.com",
       act_print:"🖨️ طباعة", toast_no_print:"تعذّر فتح الطباعة",
@@ -449,7 +446,7 @@
       note_dev:"الموقع قيد التطوير المستمر. إذا توقّف فجأة أو تأخّرت الإجابة، انتظر بضع دقائق ثم أعد المحاولة.",
       toast_copied:"تم النسخ ✓", toast_shared:"تم نسخ الإجابة للمشاركة ✓", toast_no_tts:"المتصفح لا يدعم القراءة الصوتية",
       optimize_fail:"تعذّر التحسين، جرّب مرة أخرى", err_prefix:"⚠️ حدث خطأ: ", confirm_clear:"هل تريد مسح كل السجل؟ لا يمكن التراجع.",
-      share_q:"سؤال:", share_a:"الإجابة:", share_via:"— عبر Nexara AI ✦",
+      share_q:"سؤال:", share_a:"الإجابة:", share_via:"— عبر Nexara AI ✦ · nexaraapp.net",
       cat:{trading:"💹 تداول",writing:"✍️ كتابة",programming:"💻 برمجة",science:"🔬 علوم",religion:"🕌 شريعة",health:"⚕️ صحة",general:"📌 عام"}
     },
     en: {
@@ -464,7 +461,7 @@
       step1:"🎯 Analyzing and classifying the question...", step2:"🤖 Consulting the experts (Claude + Gemini)...", step3:"💎 Merging and composing the final answer...",
       answer_label:"Nexara AI Answer", act_listen:"🔊 Listen", act_stop:"⏹ Stop", act_share:"🔗 Share", act_copy:"⎘ Copy",
       rating_label:"How was the answer?", rate_thanks:"Thanks for your feedback!",
-      sources_label:"🔗 Sources:", signature:"✦ Nexara AI — AI Aggregator",
+      sources_label:"🔗 Sources:", signature:"✦ Nexara AI — nexaraapp.net",
       history_title:"📚 Question History", hist_clear:"🗑 Clear history", hist_empty:"No history yet — start by asking your first question!",
       about_sub:"AI Aggregator",
       about1_h:"💡 What is Nexara AI?",
@@ -477,7 +474,7 @@
       about3_r3:"Allowing you to <span class='highlight'>attach images</span> with your question for analysis.",
       about3_r4:"Supporting more languages to serve users worldwide.",
       about4_h:"📬 Contact us", about4_p:"Have a suggestion, feedback, or want to get in touch? We'd love to hear from you:",
-      footer:"Nexara AI ✦ AI Aggregator",
+      footer:"Nexara AI ✦ nexaraapp.net",
       beta_notice:"The site is in a trial phase. It may pause temporarily if usage grows — if that happens, wait a moment and try again. We're improving it continuously, and may add flexible usage plans soon.",
       busy_notice:"🚀 It looks like the site is very busy right now and has paused temporarily.\n\nThis happens when the number of users grows — please wait a few minutes and try again.\n\nEnjoyed the experience and want unlimited access? We'd love to hear from you:\n📧 Kamakoma21@gmail.com",
       act_print:"🖨️ Print", toast_no_print:"Couldn't open print",
@@ -496,7 +493,7 @@
       note_dev:"The site is under continuous development. If it suddenly stops or the answer is delayed, wait a few minutes and try again.",
       toast_copied:"Copied ✓", toast_shared:"Answer copied for sharing ✓", toast_no_tts:"Your browser doesn't support text-to-speech",
       optimize_fail:"Couldn't improve, try again", err_prefix:"⚠️ An error occurred: ", confirm_clear:"Clear all history? This can't be undone.",
-      share_q:"Question:", share_a:"Answer:", share_via:"— via Nexara AI ✦",
+      share_q:"Question:", share_a:"Answer:", share_via:"— via Nexara AI ✦ · nexaraapp.net",
       cat:{trading:"💹 Trading",writing:"✍️ Writing",programming:"💻 Programming",science:"🔬 Science",religion:"🕌 Religion",health:"⚕️ Health",general:"📌 General"}
     },
     es: {
@@ -511,7 +508,7 @@
       step1:"🎯 Analizando y clasificando la pregunta...", step2:"🤖 Consultando a los expertos (Claude + Gemini)...", step3:"💎 Combinando y redactando la respuesta final...",
       answer_label:"Respuesta de Nexara AI", act_listen:"🔊 Escuchar", act_stop:"⏹ Detener", act_share:"🔗 Compartir", act_copy:"⎘ Copiar",
       rating_label:"¿Qué te pareció la respuesta?", rate_thanks:"¡Gracias por tu valoración!",
-      sources_label:"🔗 Fuentes:", signature:"✦ Nexara AI — Agregador de IA",
+      sources_label:"🔗 Fuentes:", signature:"✦ Nexara AI — nexaraapp.net",
       history_title:"📚 Historial de preguntas", hist_clear:"🗑 Borrar historial", hist_empty:"Aún no hay historial: ¡empieza haciendo tu primera pregunta!",
       about_sub:"Agregador de IA",
       about1_h:"💡 ¿Qué es Nexara AI?",
@@ -524,7 +521,7 @@
       about3_r3:"Permitir <span class='highlight'>adjuntar imágenes</span> con tu pregunta para analizarlas.",
       about3_r4:"Admitir más idiomas para servir a usuarios de todo el mundo.",
       about4_h:"📬 Contáctanos", about4_p:"¿Tienes una sugerencia, un comentario o quieres ponerte en contacto? Nos encantaría saber de ti:",
-      footer:"Nexara AI ✦ Agregador de IA",
+      footer:"Nexara AI ✦ nexaraapp.net",
       beta_notice:"El sitio está en fase de prueba. Puede detenerse temporalmente si aumenta el uso; si ocurre, espera un momento e inténtalo de nuevo. Lo mejoramos continuamente y pronto podríamos añadir planes de uso flexibles.",
       busy_notice:"🚀 Parece que el sitio está muy solicitado ahora mismo y se ha detenido temporalmente.\n\nEsto ocurre cuando aumenta el número de usuarios: espera unos minutos e inténtalo de nuevo.\n\n¿Te gustó la experiencia y quieres acceso ilimitado? Nos encantaría saber de ti:\n📧 Kamakoma21@gmail.com",
       act_print:"🖨️ Imprimir", toast_no_print:"No se pudo abrir la impresión",
@@ -543,7 +540,7 @@
       note_dev:"El sitio está en desarrollo continuo. Si se detiene de repente o la respuesta tarda, espera unos minutos e inténtalo de nuevo.",
       toast_copied:"Copiado ✓", toast_shared:"Respuesta copiada para compartir ✓", toast_no_tts:"Tu navegador no admite lectura por voz",
       optimize_fail:"No se pudo mejorar, inténtalo de nuevo", err_prefix:"⚠️ Ocurrió un error: ", confirm_clear:"¿Borrar todo el historial? No se puede deshacer.",
-      share_q:"Pregunta:", share_a:"Respuesta:", share_via:"— vía Nexara AI ✦",
+      share_q:"Pregunta:", share_a:"Respuesta:", share_via:"— vía Nexara AI ✦ · nexaraapp.net",
       cat:{trading:"💹 Trading",writing:"✍️ Escritura",programming:"💻 Programación",science:"🔬 Ciencia",religion:"🕌 Religión",health:"⚕️ Salud",general:"📌 General"}
     },
     fr: {
@@ -558,7 +555,7 @@
       step1:"🎯 Analyse et classification de la question...", step2:"🤖 Consultation des experts (Claude + Gemini)...", step3:"💎 Fusion et rédaction de la réponse finale...",
       answer_label:"Réponse de Nexara AI", act_listen:"🔊 Écouter", act_stop:"⏹ Arrêter", act_share:"🔗 Partager", act_copy:"⎘ Copier",
       rating_label:"Comment était la réponse ?", rate_thanks:"Merci pour votre retour !",
-      sources_label:"🔗 Sources :", signature:"✦ Nexara AI — Agrégateur d'IA",
+      sources_label:"🔗 Sources :", signature:"✦ Nexara AI — nexaraapp.net",
       history_title:"📚 Historique des questions", hist_clear:"🗑 Effacer l'historique", hist_empty:"Aucun historique pour l'instant — commencez par poser votre première question !",
       about_sub:"Agrégateur d'IA",
       about1_h:"💡 Qu'est-ce que Nexara AI ?",
@@ -571,7 +568,7 @@
       about3_r3:"Permettre de <span class='highlight'>joindre des images</span> à votre question pour les analyser.",
       about3_r4:"Prendre en charge davantage de langues pour servir des utilisateurs du monde entier.",
       about4_h:"📬 Contactez-nous", about4_p:"Vous avez une suggestion, un commentaire ou souhaitez nous contacter ? Nous serions ravis de vous lire :",
-      footer:"Nexara AI ✦ Agrégateur d'IA",
+      footer:"Nexara AI ✦ nexaraapp.net",
       beta_notice:"Le site est en phase d'essai. Il peut s'arrêter temporairement si l'utilisation augmente ; le cas échéant, patientez un instant et réessayez. Nous l'améliorons en continu et pourrions bientôt ajouter des formules d'utilisation flexibles.",
       busy_notice:"🚀 Le site semble très sollicité en ce moment et s'est arrêté temporairement.\n\nCela arrive lorsque le nombre d'utilisateurs augmente — patientez quelques minutes puis réessayez.\n\nL'expérience vous a plu et vous voulez un accès illimité ? Nous serions ravis de vous lire :\n📧 Kamakoma21@gmail.com",
       act_print:"🖨️ Imprimer", toast_no_print:"Impossible d'ouvrir l'impression",
@@ -590,7 +587,7 @@
       note_dev:"Le site est en développement continu. S'il s'arrête soudainement ou si la réponse tarde, attendez quelques minutes puis réessayez.",
       toast_copied:"Copié ✓", toast_shared:"Réponse copiée pour le partage ✓", toast_no_tts:"Votre navigateur ne prend pas en charge la lecture vocale",
       optimize_fail:"Amélioration impossible, réessayez", err_prefix:"⚠️ Une erreur s'est produite : ", confirm_clear:"Effacer tout l'historique ? Action irréversible.",
-      share_q:"Question :", share_a:"Réponse :", share_via:"— via Nexara AI ✦",
+      share_q:"Question :", share_a:"Réponse :", share_via:"— via Nexara AI ✦ · nexaraapp.net",
       cat:{trading:"💹 Trading",writing:"✍️ Rédaction",programming:"💻 Programmation",science:"🔬 Science",religion:"🕌 Religion",health:"⚕️ Santé",general:"📌 Général"}
     },
     zh: {
@@ -605,7 +602,7 @@
       step1:"🎯 正在分析并分类问题…", step2:"🤖 正在咨询专家（Claude + Gemini）…", step3:"💎 正在合并并生成最终答案…",
       answer_label:"Nexara AI 答案", act_listen:"🔊 朗读", act_stop:"⏹ 停止", act_share:"🔗 分享", act_copy:"⎘ 复制",
       rating_label:"这个答案怎么样？", rate_thanks:"感谢您的反馈！",
-      sources_label:"🔗 来源：", signature:"✦ Nexara AI — AI 聚合器",
+      sources_label:"🔗 来源：", signature:"✦ Nexara AI — nexaraapp.net",
       history_title:"📚 提问历史", hist_clear:"🗑 清除历史", hist_empty:"暂无历史记录 — 先提出您的第一个问题吧！",
       about_sub:"AI 聚合器",
       about1_h:"💡 什么是 Nexara AI？",
@@ -618,7 +615,7 @@
       about3_r3:"支持在提问时<span class='highlight'>附加图片</span>并进行分析。",
       about3_r4:"支持更多语言，服务全球用户。",
       about4_h:"📬 联系我们", about4_p:"有建议、反馈，或想联系我们？我们很乐意听到您的声音：",
-      footer:"Nexara AI ✦ AI 聚合器",
+      footer:"Nexara AI ✦ nexaraapp.net",
       beta_notice:"本网站处于试用阶段。如果使用量增加，可能会暂时停止——若发生这种情况，请稍等片刻再试。我们在持续改进，并可能很快推出灵活的使用套餐。",
       busy_notice:"🚀 网站目前似乎访问量很大，已暂时停止。\n\n当用户数量增加时会出现这种情况——请稍等几分钟后再试。\n\n喜欢这个体验并希望无限使用吗？欢迎联系我们：\n📧 Kamakoma21@gmail.com",
       act_print:"🖨️ 打印", toast_no_print:"无法打开打印",
@@ -637,7 +634,7 @@
       note_dev:"本网站持续开发中。如果突然停止或回答延迟，请稍等几分钟后重试。",
       toast_copied:"已复制 ✓", toast_shared:"已复制答案以便分享 ✓", toast_no_tts:"您的浏览器不支持语音朗读",
       optimize_fail:"优化失败，请重试", err_prefix:"⚠️ 发生错误： ", confirm_clear:"确定清除所有历史记录吗？此操作无法撤销。",
-      share_q:"问题：", share_a:"答案：", share_via:"— 来自 Nexara AI ✦",
+      share_q:"问题：", share_a:"答案：", share_via:"— 来自 Nexara AI ✦ · nexaraapp.net",
       cat:{trading:"💹 交易",writing:"✍️ 写作",programming:"💻 编程",science:"🔬 科学",religion:"🕌 宗教",health:"⚕️ 健康",general:"📌 综合"}
     },
     hi: {
@@ -652,7 +649,7 @@
       step1:"🎯 सवाल का विश्लेषण और वर्गीकरण…", step2:"🤖 विशेषज्ञों से परामर्श (Claude + Gemini)…", step3:"💎 अंतिम उत्तर तैयार किया जा रहा है…",
       answer_label:"Nexara AI उत्तर", act_listen:"🔊 सुनें", act_stop:"⏹ रोकें", act_share:"🔗 साझा करें", act_copy:"⎘ कॉपी",
       rating_label:"उत्तर कैसा रहा?", rate_thanks:"आपकी राय के लिए धन्यवाद!",
-      sources_label:"🔗 स्रोत:", signature:"✦ Nexara AI — AI एग्रीगेटर",
+      sources_label:"🔗 स्रोत:", signature:"✦ Nexara AI — nexaraapp.net",
       history_title:"📚 सवालों का इतिहास", hist_clear:"🗑 इतिहास साफ़ करें", hist_empty:"अभी कोई इतिहास नहीं — अपना पहला सवाल पूछकर शुरू करें!",
       about_sub:"AI एग्रीगेटर",
       about1_h:"💡 Nexara AI क्या है?",
@@ -665,7 +662,7 @@
       about3_r3:"सवाल के साथ <span class='highlight'>छवियाँ जोड़ने</span> और उनका विश्लेषण करने की सुविधा।",
       about3_r4:"दुनिया भर के उपयोगकर्ताओं के लिए और भाषाओं का समर्थन।",
       about4_h:"📬 संपर्क करें", about4_p:"कोई सुझाव, राय, या संपर्क करना चाहते हैं? हमें आपसे सुनकर खुशी होगी:",
-      footer:"Nexara AI ✦ AI एग्रीगेटर",
+      footer:"Nexara AI ✦ nexaraapp.net",
       beta_notice:"साइट परीक्षण चरण में है। उपयोग बढ़ने पर यह अस्थायी रूप से रुक सकती है — ऐसा होने पर थोड़ा रुककर फिर कोशिश करें। हम इसे लगातार बेहतर बना रहे हैं, और जल्द ही लचीली उपयोग योजनाएँ जोड़ सकते हैं।",
       busy_notice:"🚀 ऐसा लगता है कि साइट पर अभी बहुत भीड़ है और यह अस्थायी रूप से रुक गई है।\n\nयह तब होता है जब उपयोगकर्ताओं की संख्या बढ़ती है — कृपया कुछ मिनट रुककर फिर कोशिश करें।\n\nअनुभव पसंद आया और असीमित उपयोग चाहते हैं? हमें आपसे सुनकर खुशी होगी:\n📧 Kamakoma21@gmail.com",
       act_print:"🖨️ प्रिंट", toast_no_print:"प्रिंट नहीं खुल सका",
@@ -684,7 +681,7 @@
       note_dev:"साइट लगातार विकसित हो रही है। अगर यह अचानक रुक जाए या उत्तर में देरी हो, तो कुछ मिनट रुककर फिर कोशिश करें।",
       toast_copied:"कॉपी हो गया ✓", toast_shared:"साझा करने के लिए उत्तर कॉपी हुआ ✓", toast_no_tts:"आपका ब्राउज़र वॉइस रीडिंग का समर्थन नहीं करता",
       optimize_fail:"बेहतर नहीं कर सके, फिर से कोशिश करें", err_prefix:"⚠️ एक त्रुटि हुई: ", confirm_clear:"पूरा इतिहास साफ़ करें? इसे पूर्ववत नहीं किया जा सकता।",
-      share_q:"सवाल:", share_a:"उत्तर:", share_via:"— Nexara AI ✦ के ज़रिए",
+      share_q:"सवाल:", share_a:"उत्तर:", share_via:"— Nexara AI ✦ · nexaraapp.net के ज़रिए",
       cat:{trading:"💹 ट्रेडिंग",writing:"✍️ लेखन",programming:"💻 प्रोग्रामिंग",science:"🔬 विज्ञान",religion:"🕌 धर्म",health:"⚕️ स्वास्थ्य",general:"📌 सामान्य"}
     }
   };
@@ -722,7 +719,6 @@
       if (T[k] != null) el.placeholder = T[k];
     });
 
-    // تحديث العناصر الديناميكية إن كانت ظاهرة
     if (document.getElementById("answer-box").style.display !== "none" && lastCategory) {
       document.getElementById("category-tag").textContent = catName(lastCategory);
     }
