@@ -72,6 +72,13 @@
     .hero p { color: #555; font-size: 14px; }
 
     .stats-bar { display: flex; justify-content: center; gap: 22px; margin-bottom: 24px; flex-wrap: wrap; }
+    .beta-banner {
+      background: linear-gradient(90deg, #c9a84c12, #c9a84c08);
+      border: 1px solid #c9a84c33; border-radius: 12px;
+      padding: 12px 16px; margin-bottom: 18px; font-size: 13px; line-height: 1.7;
+      color: #c9a856; display: flex; gap: 10px; align-items: flex-start;
+    }
+    .beta-banner .beta-icon { flex-shrink: 0; font-size: 16px; }
     .stat-item { text-align: center; }
     .stat-num { font-size: 20px; font-weight: 900; color: #c9a84c; }
     .stat-label { font-size: 11px; color: #555; }
@@ -267,6 +274,11 @@
       </div>
     </div>
 
+    <div class="beta-banner">
+      <span class="beta-icon">🧪</span>
+      <span data-i18n="beta_notice">الموقع في مرحلة تجريبية. قد يتوقف مؤقتاً إذا زاد الاستخدام — إن حدث ذلك، انتظر قليلاً وحاول مجدداً. نعمل على تطويره باستمرار، وقد نضيف خطط استخدام مرنة قريباً.</span>
+    </div>
+
     <div class="input-card">
       <textarea id="question-input" rows="4" data-i18n-ph="input_ph" placeholder="اكتب سؤالك هنا..."></textarea>
       <div class="lang-row">
@@ -419,6 +431,7 @@
       about3_r4:"دعم المزيد من اللغات لخدمة مستخدمين من كل العالم.",
       about4_h:"📬 اتصل بنا", about4_p:"هل لديك اقتراح، أو ملاحظة، أو ترغب بالتواصل؟ يسعدنا أن نسمع منك:",
       footer:"Nexara AI ✦ مجمّع الذكاء الاصطناعي",
+      beta_notice:"الموقع في مرحلة تجريبية. قد يتوقف مؤقتاً إذا زاد الاستخدام — إن حدث ذلك، انتظر قليلاً وحاول مجدداً. نعمل على تطويره باستمرار، وقد نضيف خطط استخدام مرنة قريباً.",
       act_print:"🖨️ طباعة", toast_no_print:"تعذّر فتح الطباعة",
       who_h:"🎯 لمن هذا الموقع؟",
       who_intro:"Nexara AI مفيد لأي شخص تقريباً. مهما كانت فئتك، إليك بعض ما يمكنك فعله:",
@@ -464,6 +477,7 @@
       about3_r4:"Supporting more languages to serve users worldwide.",
       about4_h:"📬 Contact us", about4_p:"Have a suggestion, feedback, or want to get in touch? We'd love to hear from you:",
       footer:"Nexara AI ✦ AI Aggregator",
+      beta_notice:"The site is in a trial phase. It may pause temporarily if usage grows — if that happens, wait a moment and try again. We're improving it continuously, and may add flexible usage plans soon.",
       act_print:"🖨️ Print", toast_no_print:"Couldn't open print",
       who_h:"🎯 Who is this for?",
       who_intro:"Nexara AI is useful for almost anyone. Whatever your field, here are some things you can do:",
@@ -509,6 +523,7 @@
       about3_r4:"Admitir más idiomas para servir a usuarios de todo el mundo.",
       about4_h:"📬 Contáctanos", about4_p:"¿Tienes una sugerencia, un comentario o quieres ponerte en contacto? Nos encantaría saber de ti:",
       footer:"Nexara AI ✦ Agregador de IA",
+      beta_notice:"El sitio está en fase de prueba. Puede detenerse temporalmente si aumenta el uso; si ocurre, espera un momento e inténtalo de nuevo. Lo mejoramos continuamente y pronto podríamos añadir planes de uso flexibles.",
       act_print:"🖨️ Imprimir", toast_no_print:"No se pudo abrir la impresión",
       who_h:"🎯 ¿Para quién es esto?",
       who_intro:"Nexara AI es útil para casi cualquier persona. Sea cual sea tu área, esto es algo de lo que puedes hacer:",
@@ -554,6 +569,7 @@
       about3_r4:"Prendre en charge davantage de langues pour servir des utilisateurs du monde entier.",
       about4_h:"📬 Contactez-nous", about4_p:"Vous avez une suggestion, un commentaire ou souhaitez nous contacter ? Nous serions ravis de vous lire :",
       footer:"Nexara AI ✦ Agrégateur d'IA",
+      beta_notice:"Le site est en phase d'essai. Il peut s'arrêter temporairement si l'utilisation augmente ; le cas échéant, patientez un instant et réessayez. Nous l'améliorons en continu et pourrions bientôt ajouter des formules d'utilisation flexibles.",
       act_print:"🖨️ Imprimer", toast_no_print:"Impossible d'ouvrir l'impression",
       who_h:"🎯 Pour qui est-ce ?",
       who_intro:"Nexara AI est utile pour presque tout le monde. Quel que soit votre domaine, voici quelques exemples de ce que vous pouvez faire :",
@@ -599,6 +615,7 @@
       about3_r4:"支持更多语言，服务全球用户。",
       about4_h:"📬 联系我们", about4_p:"有建议、反馈，或想联系我们？我们很乐意听到您的声音：",
       footer:"Nexara AI ✦ AI 聚合器",
+      beta_notice:"本网站处于试用阶段。如果使用量增加，可能会暂时停止——若发生这种情况，请稍等片刻再试。我们在持续改进，并可能很快推出灵活的使用套餐。",
       act_print:"🖨️ 打印", toast_no_print:"无法打开打印",
       who_h:"🎯 这个网站适合谁？",
       who_intro:"Nexara AI 几乎对所有人都有用。无论你属于哪一类，以下是你可以做的一些事：",
@@ -644,6 +661,7 @@
       about3_r4:"दुनिया भर के उपयोगकर्ताओं के लिए और भाषाओं का समर्थन।",
       about4_h:"📬 संपर्क करें", about4_p:"कोई सुझाव, राय, या संपर्क करना चाहते हैं? हमें आपसे सुनकर खुशी होगी:",
       footer:"Nexara AI ✦ AI एग्रीगेटर",
+      beta_notice:"साइट परीक्षण चरण में है। उपयोग बढ़ने पर यह अस्थायी रूप से रुक सकती है — ऐसा होने पर थोड़ा रुककर फिर कोशिश करें। हम इसे लगातार बेहतर बना रहे हैं, और जल्द ही लचीली उपयोग योजनाएँ जोड़ सकते हैं।",
       act_print:"🖨️ प्रिंट", toast_no_print:"प्रिंट नहीं खुल सका",
       who_h:"🎯 यह किसके लिए है?",
       who_intro:"Nexara AI लगभग हर किसी के लिए उपयोगी है। आप चाहे किसी भी क्षेत्र से हों, यहाँ कुछ चीज़ें हैं जो आप कर सकते हैं:",
