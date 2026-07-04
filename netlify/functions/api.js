@@ -191,34 +191,41 @@ exports.handler = async (event) => {
 
     // ---------- تحسين السؤال (على Gemini للتوفير) ----------
     if (action === "optimize") {
-      const prompt = `أنت خبير في صياغة الأسئلة. اقترح 3 صياغات محسّنة وأوضح وأكثر احترافية للسؤال التالي، بحيث تعطي كل صياغة نتيجة أعمق.
-${(!lang || lang === "auto")
-  ? "اكتب الصياغات المقترحة الثلاث بنفس لغة السؤال الأصلي تماماً."
-  : "اكتب الصياغات المقترحة الثلاث بلغة: " + lang + " فقط."}
-أعد فقط JSON صالحاً بهذا الشكل بالضبط دون أي نص قبله أو بعده:
-{"suggestions": ["الصياغة الأولى", "الصياغة الثانية", "الصياغة الثالثة"]}
+      const langLine = (!lang || lang === "auto")
+        ? "اكتب الصياغات الثلاث بنفس لغة السؤال الأصلي تماماً."
+        : "اكتب الصياغات الثلاث بلغة: " + lang + " فقط.";
+      const prompt = `أنت خبير في صياغة الأسئلة. أعد صياغة السؤال التالي بثلاث طرق محسّنة وأوضح وأكثر احترافية، بحيث تعطي كل صياغة نتيجة أعمق وأدق.
+${langLine}
+قواعد صارمة للإخراج:
+- أخرج ثلاث صياغات فقط، كل واحدة في سطر مستقل.
+- ابدأ كل سطر برقمه هكذا: 1. ثم الصياغة، 2. ثم الصياغة، 3. ثم الصياغة.
+- لا تكتب أي مقدمة أو شرح أو رموز أو أقواس أو علامات JSON. الصياغات فقط.
 السؤال: ${question}`;
+
       const result = await withTimeout(
-        askGemini(prompt, "أنت مساعد صياغة دقيق. تُخرج JSON صالحاً فقط دون أي شرح أو نص إضافي.", GEMINI_KEY, GEMINI_MAIN, 1200),
+        askGemini(prompt, "أنت مساعد صياغة دقيق. تُخرج ثلاث صياغات مرقّمة فقط دون أي نص إضافي.", GEMINI_KEY, GEMINI_MAIN, 1000),
         8000
       );
+
       let suggestions = [];
-      try {
-        let raw = (result.text || "").replace(/```json|```/g, "").trim();
-        // استخراج أول كائن JSON من النص (يتجاهل أي نص قبله أو بعده)
-        const match = raw.match(/\{[\s\S]*\}/);
-        if (match) raw = match[0];
-        const parsed = JSON.parse(raw);
-        suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
-      } catch {}
-      // خطة بديلة: لو فشل JSON، نحاول استخراج أسطر مرقّمة كصياغات
-      if (suggestions.length === 0 && result.text) {
-        const lines = result.text
-          .split("\n")
-          .map(l => l.replace(/^["'\s\-\d\.\)\]]+/, "").replace(/["',]+$/, "").trim())
-          .filter(l => l.length > 8);
-        suggestions = lines.slice(0, 3);
+      const text = (result.text || "").trim();
+
+      if (text) {
+        // تقسيم على الأسطر، ثم تنظيف كل سطر من الأرقام والرموز والأقواس
+        suggestions = text
+          .split(/\n+/)
+          .map(l => l
+            .replace(/[{}\[\]"]/g, "")               // إزالة أقواس وعلامات JSON
+            .replace(/suggestions\s*:?/gi, "")         // إزالة كلمة suggestions لو ظهرت
+            .replace(/^\s*[\d\u0660-\u0669]+[\.\)\-:]\s*/, "") // إزالة الترقيم في البداية
+            .replace(/^["'\s\-\*]+/, "")             // إزالة رموز البداية
+            .replace(/[,"']+$/, "")                    // إزالة رموز النهاية
+            .trim()
+          )
+          .filter(l => l.length > 8)                  // نتجاهل الأسطر القصيرة/الفارغة
+          .slice(0, 3);                               // أول ثلاث فقط
       }
+
       return { statusCode: 200, headers, body: JSON.stringify({ suggestions }) };
     }
 
