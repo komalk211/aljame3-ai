@@ -191,21 +191,34 @@ exports.handler = async (event) => {
 
     // ---------- تحسين السؤال (على Gemini للتوفير) ----------
     if (action === "optimize") {
-      const prompt = `أنت خبير في صياغة الأسئلة. اقترح 3 صياغات محسّنة وأوضح للسؤال التالي.
+      const prompt = `أنت خبير في صياغة الأسئلة. اقترح 3 صياغات محسّنة وأوضح وأكثر احترافية للسؤال التالي، بحيث تعطي كل صياغة نتيجة أعمق.
 ${(!lang || lang === "auto")
-  ? "اكتب الصياغات المقترحة بنفس لغة السؤال الأصلي تماماً."
+  ? "اكتب الصياغات المقترحة الثلاث بنفس لغة السؤال الأصلي تماماً."
   : "اكتب الصياغات المقترحة الثلاث بلغة: " + lang + " فقط."}
-أجب فقط بـ JSON: {"suggestions": ["...", "...", "..."]}
+أعد فقط JSON صالحاً بهذا الشكل بالضبط دون أي نص قبله أو بعده:
+{"suggestions": ["الصياغة الأولى", "الصياغة الثانية", "الصياغة الثالثة"]}
 السؤال: ${question}`;
       const result = await withTimeout(
-        askGemini(prompt, "أنت مساعد صياغة دقيق تُخرج JSON فقط.", GEMINI_KEY, GEMINI_MAIN, 500),
-        7000
+        askGemini(prompt, "أنت مساعد صياغة دقيق. تُخرج JSON صالحاً فقط دون أي شرح أو نص إضافي.", GEMINI_KEY, GEMINI_MAIN, 1200),
+        8000
       );
       let suggestions = [];
       try {
-        const raw = (result.text || "").replace(/```json|```/g, "").trim();
-        suggestions = JSON.parse(raw).suggestions || [];
+        let raw = (result.text || "").replace(/```json|```/g, "").trim();
+        // استخراج أول كائن JSON من النص (يتجاهل أي نص قبله أو بعده)
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (match) raw = match[0];
+        const parsed = JSON.parse(raw);
+        suggestions = Array.isArray(parsed.suggestions) ? parsed.suggestions : [];
       } catch {}
+      // خطة بديلة: لو فشل JSON، نحاول استخراج أسطر مرقّمة كصياغات
+      if (suggestions.length === 0 && result.text) {
+        const lines = result.text
+          .split("\n")
+          .map(l => l.replace(/^["'\s\-\d\.\)\]]+/, "").replace(/["',]+$/, "").trim())
+          .filter(l => l.length > 8);
+        suggestions = lines.slice(0, 3);
+      }
       return { statusCode: 200, headers, body: JSON.stringify({ suggestions }) };
     }
 
