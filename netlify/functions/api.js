@@ -1,18 +1,23 @@
 // ========================================
-// Nexara AI — الخادم الوسيط الآمن (نسخة 5 — دعم اللغات)
+// Nexara AI — الخادم الوسيط الآمن (نسخة 6 — اقتصادية عالية الأداء)
 // يخفي مفاتيح Claude و Gemini
-// يدير: التصنيف + النموذجين السريعين + الدمج
-// الحل: استخدام نماذج سريعة (haiku + flash) لتفادي تجاوز الوقت نهائياً
+// الاستراتيجية الجديدة:
+//   • Gemini Flash هو النموذج الأساسي (رخيص + يتحمّل مئات وآلاف المستخدمين)
+//   • Claude يُستدعى فقط للأسئلة المعقّدة جداً أو الحسّاسة (الضرورة القصوى)
+//   • استدعاءان فقط لكل سؤال: تصنيف + إجابة  (بدل 4 سابقاً)
+//   • برومبت قوي لكل الأسئلة؛ البسيط يُجاب مباشرة، المعقّد يمرّ بتحليل + تدقيق داخلي
+//   • التحسين (optimize) على Gemini للتوفير
 // جديد: دعم اختيار لغة الإجابة (تلقائي أو لغة محددة)
-// إصلاحات محفوظة: قطع الإجابة + إزالة المقدمات + منع Markdown + الردود الفارغة + ضمان عدم الفشل
+// إصلاحات محفوظة: منع المقدمات + منع Markdown + عدم ترك الإجابة فارغة أبداً
 // ========================================
 
-// النماذج — كلها سريعة الآن لتفادي الـ timeout
-const CLAUDE_FAST = "claude-haiku-4-5-20251001";
-const CLAUDE_MAIN = "claude-haiku-4-5-20251001"; // بدّلنا sonnet بـ haiku للسرعة
-const GEMINI_MAIN = "gemini-2.5-flash";
+// النماذج
+const GEMINI_MAIN = "gemini-2.5-flash";                 // الأساسي لكل شيء تقريباً
+const CLAUDE_HEAVY = "claude-haiku-4-5-20251001";       // يُستدعى للضرورة القصوى فقط
 
-// تعليمة عامة تُضاف لكل خبير: تمنع المقدمات وتمنع Markdown
+// ========================================
+// قواعد الأسلوب — تُضاف لكل خبير
+// ========================================
 const STYLE_RULES = `
 قواعد إلزامية للإخراج:
 - ابدأ مباشرة بالإجابة دون أي مقدمة مثل "بصفتي" أو "كمساعد" أو "بكل سرور" أو "بالطبع".
@@ -21,6 +26,16 @@ const STYLE_RULES = `
 - استخدم نصاً عربياً عادياً منظّماً بفقرات واضحة.
 - إذا لم تكن متأكداً، قدّم أفضل تحليل ممكن مع توضيح حدود المعرفة، ولا تترك الإجابة فارغة أبداً.
 - اجعل إجابتك وافية لكن مركّزة، دون إطالة غير ضرورية.`;
+
+// ========================================
+// برومبت المعالجة العميقة — للأسئلة المعقّدة (تحليل + تدقيق داخلي في استدعاء واحد)
+// ========================================
+const DEEP_RULES = `
+منهجية الإجابة (طبّقها داخلياً ثم أخرج النتيجة النهائية فقط):
+- حلّل السؤال من أكثر من زاوية، وفكّر في الجوانب التي قد تغيب عن إجابة سطحية.
+- بعد صياغة إجابتك، راجعها ذاتياً: صحّح أي خطأ، واحذف أي تكرار، وتأكّد من دقّة الأرقام والحقائق.
+- ادمج التحليل في إجابة واحدة عميقة ومنظّمة ودقيقة.
+- لا تُظهر خطوات تفكيرك أو مراجعتك، أخرج الإجابة النهائية المصقولة فقط.`;
 
 // تعليمة اللغة: تُبنى حسب اختيار المستخدم
 function langInstruction(lang) {
@@ -41,6 +56,9 @@ function isRealAnswer(text) {
   return typeof text === "string" && text.trim().length > 15;
 }
 
+// ========================================
+// الشخصيات (الخبراء) — موسّعة
+// ========================================
 const EXPERTS = {
   trading: "أنت خبير تداول ومحلل أسواق مالية محترف. حلّل بدقة مع ذكر المخاطر. لا تقدّم نصيحة مالية قاطعة بل معلومات يبني عليها المستخدم قراره." + STYLE_RULES,
   writing: "أنت كاتب وأديب عربي بارع، متمكّن من الأساليب البلاغية والإبداعية والصياغة الراقية." + STYLE_RULES,
@@ -48,10 +66,21 @@ const EXPERTS = {
   science: "أنت عالم وباحث متخصص. قدّم معلومات دقيقة مبنية على الأدلة العلمية بلغة واضحة." + STYLE_RULES,
   religion: "أنت باحث متخصص في العلوم الشرعية، دقيق وموضوعي، تذكر الآراء المختلفة باحترام." + STYLE_RULES,
   health: "أنت مختص صحي يقدّم معلومات طبية عامة موثوقة، مع التنبيه دائماً لمراجعة الطبيب المختص." + STYLE_RULES,
+  education: "أنت معلّم خبير بارع في التبسيط. اشرح المفاهيم خطوة بخطوة بأسلوب سهل مع أمثلة توضيحية." + STYLE_RULES,
+  business: "أنت مستشار أعمال وتسويق محترف. قدّم أفكاراً عملية وخططاً واقعية قابلة للتنفيذ." + STYLE_RULES,
+  translation: "أنت مترجم محترف دقيق. ترجم بأمانة مع مراعاة السياق والمعنى والأسلوب الطبيعي في اللغة الهدف." + STYLE_RULES,
+  law: "أنت مستشار قانوني يقدّم معلومات قانونية عامة للتوعية، مع التنبيه دائماً لمراجعة محامٍ مختص لكل حالة." + STYLE_RULES,
+  psychology: "أنت مختص في علم النفس والتطوير الذاتي، تقدّم إرشاداً عاماً داعماً، مع التنبيه لمراجعة مختص عند الحاجة." + STYLE_RULES,
   general: "أنت مساعد ذكاء اصطناعي خبير وموسوعي. قدّم إجابة شاملة ودقيقة ومنظّمة بالعربية الواضحة." + STYLE_RULES
 };
 
-async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_MAIN, maxTokens = 2000) {
+// الفئات التي تُعدّ حسّاسة (يُفضّل استدعاء Claude لها عندما تكون معقّدة)
+const SENSITIVE = ["health", "religion", "law", "trading"];
+
+// ========================================
+// استدعاء Claude
+// ========================================
+async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_HEAVY, maxTokens = 2000) {
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -76,6 +105,9 @@ async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_MAIN, ma
   }
 }
 
+// ========================================
+// استدعاء Gemini
+// ========================================
 async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, maxTokens = 2000) {
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -96,45 +128,46 @@ async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, ma
   }
 }
 
-async function classifyQuestion(question, apiKey) {
-  const prompt = `صنّف السؤال التالي إلى واحدة فقط من هذه الفئات:
-trading، writing، programming، science، religion، health، general.
-أجب بكلمة واحدة فقط.
+// ========================================
+// التصنيف الذكي — استدعاء واحد بـ Gemini يحدّد:
+//   المجال + مستوى التعقيد (simple / complex)
+// يُرجِع: { category, complexity }
+// ========================================
+async function classifyQuestion(question, geminiKey) {
+  const cats = Object.keys(EXPERTS).join("، ");
+  const prompt = `صنّف السؤال التالي وأرجع JSON فقط بهذا الشكل بالضبط:
+{"category":"<إحدى الفئات>","complexity":"simple أو complex"}
+
+الفئات المتاحة: ${cats}.
+- اختر الفئة الأنسب لموضوع السؤال.
+- "complexity": ضع "simple" إذا كان السؤال بسيطاً ومباشراً (تعريف، معلومة سريعة، سؤال قصير).
+  وضع "complex" إذا كان يحتاج تحليلاً أو شرحاً معمّقاً أو موضوعاً متشعّباً أو حسّاساً.
+أجب بالـ JSON فقط دون أي نص إضافي.
 السؤال: ${question}`;
-  const result = await withTimeout(
-    askClaude(prompt, "أنت مصنّف دقيق.", apiKey, CLAUDE_FAST, 20),
-    3500
-  );
-  if (!result.ok) return "general";
-  const category = (result.text || "general").trim().toLowerCase();
-  return EXPERTS[category] ? category : "general";
-}
-
-// دمج الإجابتين بنموذج سريع
-async function mergeAnswers(question, claudeText, geminiText, claudeKey, lang) {
-  const prompt = `لديك إجابتان من خبيرين على نفس السؤال. ألّف إجابة نهائية واحدة متميزة:
-- ادمج أفضل ما فيهما، احذف التكرار، صحّح أي تضارب.
-- نظّم الإجابة: مقدمة موجزة، ثم تفصيل، ثم خلاصة.
-- لا تبدأ بأي مقدمة عن نفسك. لا تستخدم رموز Markdown إطلاقاً (لا # ولا --- ولا ** ولا * في بداية السطر).${langInstruction(lang)}
-السؤال: ${question}
-الخبير الأول:
-${claudeText}
-الخبير الثاني:
-${geminiText}
-أخرج الإجابة النهائية فقط:`;
 
   const result = await withTimeout(
-    askClaude(prompt, "أنت محرّر بحثي خبير." + STYLE_RULES, claudeKey, CLAUDE_MAIN, 2200),
-    9000
+    askGemini(prompt, "أنت مصنّف دقيق تُخرج JSON فقط.", geminiKey, GEMINI_MAIN, 60),
+    4000
   );
-  if (!result.ok) {
-    const c = isRealAnswer(claudeText) ? claudeText : "";
-    const g = isRealAnswer(geminiText) ? geminiText : "";
-    return c.length >= g.length ? (c || g) : (g || c);
+
+  let category = "general";
+  let complexity = "complex"; // الافتراض الآمن: عامله كمعقّد لضمان الجودة
+  try {
+    const raw = (result.text || "").replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(raw);
+    if (EXPERTS[parsed.category]) category = parsed.category;
+    if (parsed.complexity === "simple" || parsed.complexity === "complex") {
+      complexity = parsed.complexity;
+    }
+  } catch {
+    // في حال فشل التصنيف: نبقى على general + complex (الأضمن للجودة)
   }
-  return result.text;
+  return { category, complexity };
 }
 
+// ========================================
+// المعالج الرئيسي
+// ========================================
 exports.handler = async (event) => {
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -156,6 +189,7 @@ exports.handler = async (event) => {
   try {
     const { action, question, lang } = JSON.parse(event.body);
 
+    // ---------- تحسين السؤال (على Gemini للتوفير) ----------
     if (action === "optimize") {
       const prompt = `أنت خبير في صياغة الأسئلة. اقترح 3 صياغات محسّنة وأوضح للسؤال التالي.
 ${(!lang || lang === "auto")
@@ -164,7 +198,7 @@ ${(!lang || lang === "auto")
 أجب فقط بـ JSON: {"suggestions": ["...", "...", "..."]}
 السؤال: ${question}`;
       const result = await withTimeout(
-        askClaude(prompt, "أنت مساعد صياغة دقيق.", CLAUDE_KEY, CLAUDE_FAST, 500),
+        askGemini(prompt, "أنت مساعد صياغة دقيق تُخرج JSON فقط.", GEMINI_KEY, GEMINI_MAIN, 500),
         7000
       );
       let suggestions = [];
@@ -175,42 +209,69 @@ ${(!lang || lang === "auto")
       return { statusCode: 200, headers, body: JSON.stringify({ suggestions }) };
     }
 
+    // ---------- الإجابة ----------
     if (action === "ask") {
-      // 1. التصنيف السريع
-      const category = await classifyQuestion(question, CLAUDE_KEY);
-      const expertPrompt = EXPERTS[category] + langInstruction(lang);
+      // 1) التصنيف الذكي (استدعاء واحد بـ Gemini): المجال + التعقيد
+      const { category, complexity } = await classifyQuestion(question, GEMINI_KEY);
 
-      // 2. النموذجان السريعان بالتوازي
-      const [claudeRes, geminiRes] = await Promise.all([
-        withTimeout(askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_MAIN, 2000), 11000),
-        withTimeout(askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, 2000), 11000),
-      ]);
+      // نبني تعليمة الخبير + اللغة
+      let expertPrompt = EXPERTS[category] + langInstruction(lang);
 
-      // 3. الدمج الذكي (بدون فشل)
-      let finalAnswer;
-      let mode;
+      // هل نحتاج المعالجة العميقة؟ (معقّد)
+      const isComplex = complexity === "complex";
+      // هل نستدعي Claude (الضرورة القصوى)؟ = معقّد + فئة حسّاسة
+      const needClaude = isComplex && SENSITIVE.includes(category);
 
-      if (claudeRes.ok && geminiRes.ok) {
-        finalAnswer = await mergeAnswers(question, claudeRes.text, geminiRes.text, CLAUDE_KEY, lang);
-        mode = "merged";
-      } else if (claudeRes.ok) {
-        finalAnswer = claudeRes.text;
-        mode = "claude_only";
-      } else if (geminiRes.ok) {
-        finalAnswer = geminiRes.text;
-        mode = "gemini_only";
-      } else {
-        // محاولة أخيرة سريعة جداً بنموذج واحد
-        const lastTry = await withTimeout(
-          askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_FAST, 1500),
-          8000
-        );
-        finalAnswer = lastTry.ok ? lastTry.text : "تعذّر توليد إجابة كافية لهذا السؤال. حاول تبسيط صياغته أو أعد المحاولة بعد قليل.";
-        mode = lastTry.ok ? "retry" : "failed";
+      // للأسئلة المعقّدة نضيف منهجية التحليل والتدقيق الداخلي
+      if (isComplex) {
+        expertPrompt += "\n" + DEEP_RULES;
       }
 
+      // 2) الإجابة (استدعاء واحد)
+      let finalAnswer = "";
+      let usedModel = "gemini";
+
+      if (needClaude) {
+        // الضرورة القصوى: Claude
+        const claudeRes = await withTimeout(
+          askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, 2200),
+          12000
+        );
+        if (claudeRes.ok) {
+          finalAnswer = claudeRes.text;
+          usedModel = "claude";
+        } else {
+          // فشل كلود → نرجع لجيميني كخطة بديلة
+          const geminiRes = await withTimeout(
+            askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, 2200),
+            12000
+          );
+          finalAnswer = geminiRes.ok ? geminiRes.text : "";
+          usedModel = "gemini_fallback";
+        }
+      } else {
+        // الأغلب: Gemini وحده (بسيط أو معقّد غير حسّاس)
+        const geminiRes = await withTimeout(
+          askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, isComplex ? 2200 : 1400),
+          12000
+        );
+        if (geminiRes.ok) {
+          finalAnswer = geminiRes.text;
+          usedModel = "gemini";
+        } else {
+          // فشل جيميني → محاولة أخيرة بكلود لضمان عدم الفشل
+          const claudeRes = await withTimeout(
+            askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, 1800),
+            10000
+          );
+          finalAnswer = claudeRes.ok ? claudeRes.text : "";
+          usedModel = "claude_fallback";
+        }
+      }
+
+      // ضمان عدم ترك الإجابة فارغة أبداً
       if (!isRealAnswer(finalAnswer)) {
-        finalAnswer = claudeRes.text || geminiRes.text || "تعذّر توليد إجابة كافية. أعد صياغة السؤال وحاول مجدداً.";
+        finalAnswer = "تعذّر توليد إجابة كافية لهذا السؤال الآن. حاول تبسيط صياغته أو أعد المحاولة بعد قليل.";
       }
 
       return {
@@ -219,8 +280,12 @@ ${(!lang || lang === "auto")
         body: JSON.stringify({
           answer: finalAnswer,
           category,
-          mode,
-          sources: { claude: claudeRes.ok, gemini: geminiRes.ok },
+          complexity,
+          mode: usedModel,
+          sources: {
+            claude: usedModel.startsWith("claude"),
+            gemini: usedModel.startsWith("gemini"),
+          },
         }),
       };
     }
