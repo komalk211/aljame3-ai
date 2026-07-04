@@ -203,8 +203,8 @@ ${langLine}
 السؤال: ${question}`;
 
       const result = await withTimeout(
-        askGemini(prompt, "أنت مساعد صياغة دقيق. تُخرج ثلاث صياغات مرقّمة فقط دون أي نص إضافي.", GEMINI_KEY, GEMINI_MAIN, 1000),
-        8000
+        askGemini(prompt, "أنت مساعد صياغة دقيق. تُخرج ثلاث صياغات مرقّمة فقط دون أي نص إضافي.", GEMINI_KEY, GEMINI_MAIN, 1500),
+        10000
       );
 
       let suggestions = [];
