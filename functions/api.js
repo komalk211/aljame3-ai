@@ -248,8 +248,7 @@ ${langLine}
       // هل نحتاج المعالجة العميقة؟ (معقّد)
       const isComplex = complexity === "complex";
       // هل نستدعي Claude (الضرورة القصوى)؟ = معقّد + فئة حسّاسة
-      const needClaude = isComplex && SENSITIVE.includes(category);
-
+      const needClaude = isComplex; 
       // للأسئلة المعقّدة نضيف منهجية التحليل والتدقيق الداخلي
       if (isComplex) {
         expertPrompt += "\n" + DEEP_RULES;
