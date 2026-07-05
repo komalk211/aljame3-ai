@@ -223,6 +223,24 @@
     .note-icon { flex-shrink: 0; }
     .note-warn { color: #e0bc5a; }
 
+    /* أزرار القدرات الاقتراحية (تظهر بالبداية فقط) */
+    .starter-box { background: #0d0d15; border: 1px solid #c9a84c22; border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+    .starter-title { font-size: 13px; color: #c9a84c; margin-bottom: 12px; font-weight: 600; line-height: 1.6; }
+    .starter-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .starter-chip {
+      background: #ffffff05; border: 1px solid #2a2a2a; border-radius: 20px;
+      padding: 9px 14px; color: #c7bfa9; font-size: 13px; line-height: 1.5; cursor: pointer;
+      transition: all 0.2s; font-family: 'Cairo', sans-serif; text-align: right; direction: rtl;
+    }
+    body[data-dir="ltr"] .starter-chip { text-align: left; direction: ltr; }
+    .starter-chip:hover { background: #c9a84c15; border-color: #c9a84c66; color: #e8e0d0; }
+    .starter-chip .chip-ico { margin-left: 5px; }
+    body[data-dir="ltr"] .starter-chip .chip-ico { margin-left: 0; margin-right: 5px; }
+    .starter-note {
+      font-size: 12px; color: #7a745f; margin-top: 14px; padding-top: 12px;
+      border-top: 1px solid #1a1a1a; line-height: 1.7;
+    }
+
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
       background: #c9a84c; color: #0a0a0f; padding: 10px 24px; border-radius: 20px;
@@ -302,6 +320,12 @@
         <button class="btn btn-ghost" id="btn-clear" onclick="clearAll()" style="display:none" data-i18n="btn_clear">مسح</button>
         <button class="btn btn-gold" id="btn-optimize" onclick="optimizePrompt()" disabled data-i18n="btn_optimize">✨ حسّن سؤالي</button>
       </div>
+    </div>
+
+    <div class="starter-box fade-in" id="starter-box" style="display:none">
+      <div class="starter-title" data-i18n="starter_title">✨ جرّب أن تسألني — أمثلة على ما يمكنني فعله:</div>
+      <div class="starter-list" id="starter-list"></div>
+      <div class="starter-note" data-i18n="starter_note">💡 يمكنك الكتابة بأي لغة في العالم، وسأجيبك بنفس لغتك.</div>
     </div>
 
     <div class="suggestions-box fade-in" id="suggestions-box" style="display:none">
@@ -455,6 +479,22 @@
       toast_copied:"تم النسخ ✓", toast_shared:"تم نسخ الإجابة للمشاركة ✓", toast_no_tts:"المتصفح لا يدعم القراءة الصوتية",
       optimize_fail:"تعذّر التحسين، جرّب مرة أخرى", err_prefix:"⚠️ حدث خطأ: ", confirm_clear:"هل تريد مسح كل السجل؟ لا يمكن التراجع.",
       share_q:"سؤال:", share_a:"الإجابة:", share_via:"— عبر Nexara AI ✦ · nexaraapp.net",
+      starter_title:"✨ جرّب أن تسألني — أمثلة على ما يمكنني فعله:",
+      starter_note:"💡 يمكنك الكتابة بأي لغة في العالم، وسأجيبك بنفس لغتك.",
+      starters:[
+        {i:"✍️", q:"اكتب قصة قصيرة مؤثرة عن صداقة بين طفل وشجرة"},
+        {i:"📖", q:"ضع لي مخططاً تفصيلياً لكتاب عن إدارة الوقت"},
+        {i:"💻", q:"اكتب دالة بايثون تعكس ترتيب كلمات جملة مع شرحها"},
+        {i:"🔬", q:"اشرح لي نظرية النسبية بأسلوب مبسّط"},
+        {i:"🎓", q:"لخّص لي مفهوم التضخم الاقتصادي في نقاط واضحة"},
+        {i:"💼", q:"اقترح خطة تسويقية لمتجر ملابس صغير"},
+        {i:"💹", q:"اشرح استراتيجية DCA في تداول العملات الرقمية"},
+        {i:"✉️", q:"اكتب رسالة احترافية لطلب إجازة من العمل"},
+        {i:"⚕️", q:"ما فوائد شرب الماء بكميات كافية يومياً؟"},
+        {i:"🧠", q:"أعطني نصائح عملية للتغلب على التسويف"},
+        {i:"🍲", q:"اقترح وصفة عشاء صحية وسريعة التحضير"},
+        {i:"🌐", q:"ترجم عبارة \"المعرفة قوة\" إلى خمس لغات"}
+      ],
       cat:{trading:"💹 تداول",writing:"✍️ كتابة",programming:"💻 برمجة",science:"🔬 علوم",religion:"🕌 شريعة",health:"⚕️ صحة",general:"📌 عام"}
     },
     en: {
@@ -502,6 +542,22 @@
       toast_copied:"Copied ✓", toast_shared:"Answer copied for sharing ✓", toast_no_tts:"Your browser doesn't support text-to-speech",
       optimize_fail:"Couldn't improve, try again", err_prefix:"⚠️ An error occurred: ", confirm_clear:"Clear all history? This can't be undone.",
       share_q:"Question:", share_a:"Answer:", share_via:"— via Nexara AI ✦ · nexaraapp.net",
+      starter_title:"✨ Try asking me — examples of what I can do:",
+      starter_note:"💡 You can write in any language in the world, and I'll reply in the same language.",
+      starters:[
+        {i:"✍️", q:"Write a touching short story about a friendship between a child and a tree"},
+        {i:"📖", q:"Give me a detailed outline for a book about time management"},
+        {i:"💻", q:"Write a Python function that reverses the words in a sentence, with an explanation"},
+        {i:"🔬", q:"Explain the theory of relativity in simple terms"},
+        {i:"🎓", q:"Summarize the concept of inflation in clear points"},
+        {i:"💼", q:"Suggest a marketing plan for a small clothing store"},
+        {i:"💹", q:"Explain the DCA strategy in crypto trading"},
+        {i:"✉️", q:"Write a professional email to request time off from work"},
+        {i:"⚕️", q:"What are the benefits of drinking enough water daily?"},
+        {i:"🧠", q:"Give me practical tips to overcome procrastination"},
+        {i:"🍲", q:"Suggest a healthy and quick dinner recipe"},
+        {i:"🌐", q:"Translate the phrase \"Knowledge is power\" into five languages"}
+      ],
       cat:{trading:"💹 Trading",writing:"✍️ Writing",programming:"💻 Programming",science:"🔬 Science",religion:"🕌 Religion",health:"⚕️ Health",general:"📌 General"}
     },
     es: {
@@ -549,6 +605,22 @@
       toast_copied:"Copiado ✓", toast_shared:"Respuesta copiada para compartir ✓", toast_no_tts:"Tu navegador no admite lectura por voz",
       optimize_fail:"No se pudo mejorar, inténtalo de nuevo", err_prefix:"⚠️ Ocurrió un error: ", confirm_clear:"¿Borrar todo el historial? No se puede deshacer.",
       share_q:"Pregunta:", share_a:"Respuesta:", share_via:"— vía Nexara AI ✦ · nexaraapp.net",
+      starter_title:"✨ Prueba a preguntarme — ejemplos de lo que puedo hacer:",
+      starter_note:"💡 Puedes escribir en cualquier idioma del mundo y te responderé en el mismo idioma.",
+      starters:[
+        {i:"✍️", q:"Escribe un cuento corto conmovedor sobre la amistad entre un niño y un árbol"},
+        {i:"📖", q:"Dame un esquema detallado para un libro sobre gestión del tiempo"},
+        {i:"💻", q:"Escribe una función de Python que invierta las palabras de una frase, con explicación"},
+        {i:"🔬", q:"Explícame la teoría de la relatividad de forma sencilla"},
+        {i:"🎓", q:"Resume el concepto de inflación en puntos claros"},
+        {i:"💼", q:"Propón un plan de marketing para una pequeña tienda de ropa"},
+        {i:"💹", q:"Explica la estrategia DCA en el trading de criptomonedas"},
+        {i:"✉️", q:"Escribe un correo profesional para solicitar días libres en el trabajo"},
+        {i:"⚕️", q:"¿Cuáles son los beneficios de beber suficiente agua a diario?"},
+        {i:"🧠", q:"Dame consejos prácticos para superar la procrastinación"},
+        {i:"🍲", q:"Sugiere una receta de cena saludable y rápida"},
+        {i:"🌐", q:"Traduce la frase \"El conocimiento es poder\" a cinco idiomas"}
+      ],
       cat:{trading:"💹 Trading",writing:"✍️ Escritura",programming:"💻 Programación",science:"🔬 Ciencia",religion:"🕌 Religión",health:"⚕️ Salud",general:"📌 General"}
     },
     fr: {
@@ -596,6 +668,22 @@
       toast_copied:"Copié ✓", toast_shared:"Réponse copiée pour le partage ✓", toast_no_tts:"Votre navigateur ne prend pas en charge la lecture vocale",
       optimize_fail:"Amélioration impossible, réessayez", err_prefix:"⚠️ Une erreur s'est produite : ", confirm_clear:"Effacer tout l'historique ? Action irréversible.",
       share_q:"Question :", share_a:"Réponse :", share_via:"— via Nexara AI ✦ · nexaraapp.net",
+      starter_title:"✨ Essaie de me demander — exemples de ce que je peux faire :",
+      starter_note:"💡 Tu peux écrire dans n'importe quelle langue du monde, et je te répondrai dans la même langue.",
+      starters:[
+        {i:"✍️", q:"Écris une nouvelle touchante sur l'amitié entre un enfant et un arbre"},
+        {i:"📖", q:"Donne-moi un plan détaillé pour un livre sur la gestion du temps"},
+        {i:"💻", q:"Écris une fonction Python qui inverse les mots d'une phrase, avec explication"},
+        {i:"🔬", q:"Explique-moi la théorie de la relativité simplement"},
+        {i:"🎓", q:"Résume le concept d'inflation en points clairs"},
+        {i:"💼", q:"Propose un plan marketing pour une petite boutique de vêtements"},
+        {i:"💹", q:"Explique la stratégie DCA dans le trading de cryptomonnaies"},
+        {i:"✉️", q:"Rédige un e-mail professionnel pour demander un congé"},
+        {i:"⚕️", q:"Quels sont les bienfaits de boire suffisamment d'eau chaque jour ?"},
+        {i:"🧠", q:"Donne-moi des conseils pratiques pour vaincre la procrastination"},
+        {i:"🍲", q:"Propose une recette de dîner saine et rapide"},
+        {i:"🌐", q:"Traduis l'expression « Le savoir, c'est le pouvoir » en cinq langues"}
+      ],
       cat:{trading:"💹 Trading",writing:"✍️ Rédaction",programming:"💻 Programmation",science:"🔬 Science",religion:"🕌 Religion",health:"⚕️ Santé",general:"📌 Général"}
     },
     zh: {
@@ -643,6 +731,22 @@
       toast_copied:"已复制 ✓", toast_shared:"已复制答案以便分享 ✓", toast_no_tts:"您的浏览器不支持语音朗读",
       optimize_fail:"优化失败，请重试", err_prefix:"⚠️ 发生错误： ", confirm_clear:"确定清除所有历史记录吗？此操作无法撤销。",
       share_q:"问题：", share_a:"答案：", share_via:"— 来自 Nexara AI ✦ · nexaraapp.net",
+      starter_title:"✨ 试着问我 —— 我能做的一些例子：",
+      starter_note:"💡 你可以用世界上任何语言书写，我会用相同的语言回复你。",
+      starters:[
+        {i:"✍️", q:"写一个关于孩子与一棵树之间友谊的感人短篇故事"},
+        {i:"📖", q:"给我一本关于时间管理的书的详细大纲"},
+        {i:"💻", q:"写一个能反转句子中单词顺序的 Python 函数，并附解释"},
+        {i:"🔬", q:"用简单的语言解释相对论"},
+        {i:"🎓", q:"用清晰的要点总结通货膨胀的概念"},
+        {i:"💼", q:"为一家小型服装店提出一个营销方案"},
+        {i:"💹", q:"解释加密货币交易中的 DCA 策略"},
+        {i:"✉️", q:"写一封专业的请假邮件"},
+        {i:"⚕️", q:"每天喝足够的水有哪些好处？"},
+        {i:"🧠", q:"给我一些克服拖延的实用建议"},
+        {i:"🍲", q:"推荐一道健康又快手的晚餐食谱"},
+        {i:"🌐", q:"把\"知识就是力量\"这句话翻译成五种语言"}
+      ],
       cat:{trading:"💹 交易",writing:"✍️ 写作",programming:"💻 编程",science:"🔬 科学",religion:"🕌 宗教",health:"⚕️ 健康",general:"📌 综合"}
     },
     hi: {
@@ -690,6 +794,22 @@
       toast_copied:"कॉपी हो गया ✓", toast_shared:"साझा करने के लिए उत्तर कॉपी हुआ ✓", toast_no_tts:"आपका ब्राउज़र वॉइस रीडिंग का समर्थन नहीं करता",
       optimize_fail:"बेहतर नहीं कर सके, फिर से कोशिश करें", err_prefix:"⚠️ एक त्रुटि हुई: ", confirm_clear:"पूरा इतिहास साफ़ करें? इसे पूर्ववत नहीं किया जा सकता।",
       share_q:"सवाल:", share_a:"उत्तर:", share_via:"— Nexara AI ✦ · nexaraapp.net के ज़रिए",
+      starter_title:"✨ मुझसे पूछकर देखें — मैं क्या कर सकता हूँ, कुछ उदाहरण:",
+      starter_note:"💡 आप दुनिया की किसी भी भाषा में लिख सकते हैं, और मैं उसी भाषा में जवाब दूँगा।",
+      starters:[
+        {i:"✍️", q:"एक बच्चे और एक पेड़ की दोस्ती पर एक भावुक लघुकथा लिखें"},
+        {i:"📖", q:"समय प्रबंधन पर एक किताब की विस्तृत रूपरेखा दें"},
+        {i:"💻", q:"एक Python फ़ंक्शन लिखें जो वाक्य के शब्दों का क्रम उलट दे, समझाव के साथ"},
+        {i:"🔬", q:"सापेक्षता के सिद्धांत को सरल भाषा में समझाएं"},
+        {i:"🎓", q:"मुद्रास्फीति की अवधारणा को स्पष्ट बिंदुओं में सारांशित करें"},
+        {i:"💼", q:"एक छोटी कपड़ों की दुकान के लिए मार्केटिंग योजना सुझाएं"},
+        {i:"💹", q:"क्रिप्टो ट्रेडिंग में DCA रणनीति समझाएं"},
+        {i:"✉️", q:"काम से छुट्टी मांगने के लिए एक पेशेवर ईमेल लिखें"},
+        {i:"⚕️", q:"रोज़ पर्याप्त पानी पीने के क्या फायदे हैं?"},
+        {i:"🧠", q:"टालमटोल पर काबू पाने के व्यावहारिक सुझाव दें"},
+        {i:"🍲", q:"एक सेहतमंद और झटपट रात के खाने की रेसिपी सुझाएं"},
+        {i:"🌐", q:"\"ज्ञान ही शक्ति है\" वाक्यांश का पाँच भाषाओं में अनुवाद करें"}
+      ],
       cat:{trading:"💹 ट्रेडिंग",writing:"✍️ लेखन",programming:"💻 प्रोग्रामिंग",science:"🔬 विज्ञान",religion:"🕌 धर्म",health:"⚕️ स्वास्थ्य",general:"📌 सामान्य"}
     }
   };
@@ -735,6 +855,34 @@
       if (sb) sb.textContent = T.act_stop;
     }
     if (document.getElementById("tab-history").style.display !== "none") renderHistory();
+    renderStarters();
+  }
+
+  // ===== أزرار القدرات الاقتراحية =====
+  function renderStarters() {
+    const box = document.getElementById("starter-list");
+    if (!box) return;
+    box.innerHTML = "";
+    (T.starters || []).forEach(s => {
+      const b = document.createElement("button");
+      b.className = "starter-chip";
+      b.innerHTML = '<span class="chip-ico">' + s.i + '</span> ' + s.q;
+      b.onclick = () => askStarter(s.q);
+      box.appendChild(b);
+    });
+  }
+
+  function askStarter(q) {
+    stopSpeak();
+    input.value = q;
+    currentQuestion = q;
+    optimizeDone = true;
+    document.getElementById("starter-box").style.display = "none";
+    document.getElementById("suggestions-box").style.display = "none";
+    document.getElementById("send-row").style.display = "none";
+    document.getElementById("btn-clear").style.display = "inline-flex";
+    document.getElementById("btn-optimize").disabled = false;
+    askQuestion();
   }
 
   function onLangChange() {
@@ -815,6 +963,7 @@
     const btn = document.getElementById("btn-optimize");
     btn.disabled = true;
     btn.innerHTML = '<span class="spin">⟳</span> ' + T.btn_optimizing;
+    document.getElementById("starter-box").style.display = "none";
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
 
@@ -873,6 +1022,7 @@
     const lang = document.getElementById("lang-select").value;
 
     document.getElementById("send-row").style.display = "none";
+    document.getElementById("starter-box").style.display = "none";
     document.getElementById("answer-box").style.display = "none";
     document.getElementById("loading-box").style.display = "block";
     document.getElementById("hero").style.display = "none";
@@ -930,6 +1080,7 @@
     document.getElementById("btn-clear").style.display = "none";
     document.getElementById("btn-optimize").disabled = true;
     document.getElementById("hero").style.display = "block";
+    document.getElementById("starter-box").style.display = "block";
     localStorage.removeItem("aljame3_last");
     input.focus();
   }
@@ -1075,6 +1226,7 @@
     document.getElementById("sources-tag").textContent = "";
     document.getElementById("answer-box").style.display = "block";
     document.getElementById("hero").style.display = "none";
+    document.getElementById("starter-box").style.display = "none";
     document.getElementById("rate-good").classList.toggle("active", item.rating === "good");
     document.getElementById("rate-bad").classList.toggle("active", item.rating === "bad");
     document.getElementById("rate-thanks").style.display = item.rating ? "inline" : "none";
@@ -1095,6 +1247,11 @@
   loadSavedLang();
   initStats();
   restoreLastAnswer();
+
+  // إظهار أزرار القدرات فقط في شاشة البداية (لا يوجد جواب معروض)
+  if (document.getElementById("answer-box").style.display !== "block") {
+    document.getElementById("starter-box").style.display = "block";
+  }
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
