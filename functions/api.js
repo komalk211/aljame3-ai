@@ -124,14 +124,23 @@ async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, ma
       }),
     });
     const data = await res.json();
+    // كشف مؤقت للأخطاء: إذا رجّع Gemini خطأ، نعيده كنص لنراه
+    if (data.error) {
+      return { ok: false, text: "", debug: "GEMINI_ERROR: " + (data.error.message || JSON.stringify(data.error)) };
+    }
     const parts = data.candidates?.[0]?.content?.parts;
     let text = "";
     if (Array.isArray(parts)) {
       text = parts.map(p => (p && p.text) ? p.text : "").join("");
     }
+    // كشف مؤقت: إذا فاضي، نعيد سبب الإنهاء
+    if (!text) {
+      const reason = data.candidates?.[0]?.finishReason || "NO_TEXT";
+      return { ok: false, text: "", debug: "GEMINI_EMPTY: finishReason=" + reason };
+    }
     return { ok: isRealAnswer(text), text };
-  } catch {
-    return { ok: false, text: "" };
+  } catch (e) {
+    return { ok: false, text: "", debug: "GEMINI_EXCEPTION: " + (e.message || String(e)) };
   }
 }
 
@@ -278,6 +287,7 @@ ${langLine}
       // 2) الإجابة (استدعاء واحد)
       let finalAnswer = "";
       let usedModel = "gemini";
+      let debugInfo = ""; // تشخيص مؤقت
 
       if (needClaude) {
         // الضرورة القصوى: Claude
@@ -295,6 +305,7 @@ ${langLine}
             12000
           );
           finalAnswer = geminiRes.ok ? geminiRes.text : "";
+          if (geminiRes.debug) debugInfo = geminiRes.debug;
           usedModel = "gemini_fallback";
         }
       } else {
@@ -307,6 +318,7 @@ ${langLine}
           finalAnswer = geminiRes.text;
           usedModel = "gemini";
         } else {
+          if (geminiRes.debug) debugInfo = geminiRes.debug;
           // فشل جيميني → محاولة أخيرة بكلود لضمان عدم الفشل
           const claudeRes = await withTimeout(
             askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, 1800),
@@ -319,7 +331,8 @@ ${langLine}
 
       // ضمان عدم ترك الإجابة فارغة أبداً
       if (!isRealAnswer(finalAnswer)) {
-        finalAnswer = "تعذّر توليد إجابة كافية لهذا السؤال الآن. حاول تبسيط صياغته أو أعد المحاولة بعد قليل.";
+        finalAnswer = "تعذّر توليد إجابة كافية لهذا السؤال الآن. حاول تبسيط صياغته أو أعد المحاولة بعد قليل."
+          + (debugInfo ? ("\n\n[تشخيص مؤقت: " + debugInfo + "]") : "");
       }
 
       return new Response(JSON.stringify({
