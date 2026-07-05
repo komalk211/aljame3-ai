@@ -149,12 +149,12 @@ async function classifyQuestion(question, geminiKey) {
 السؤال: ${question}`;
 
   const result = await withTimeout(
-    askGemini(prompt, "أنت مصنّف دقيق تُخرج JSON فقط.", geminiKey, GEMINI_MAIN, 60),
-    4000
+    askGemini(prompt, "أنت مصنّف دقيق تُخرج JSON فقط.", geminiKey, GEMINI_MAIN, 200),
+    6000
   );
 
   let category = "general";
-  let complexity = "complex"; // الافتراض الآمن: عامله كمعقّد لضمان الجودة
+  let complexity = "simple"; // الافتراض الأوفر: عامله كبسيط ما لم يُصنّف معقّداً صراحةً
   try {
     const raw = (result.text || "").replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(raw);
@@ -163,7 +163,7 @@ async function classifyQuestion(question, geminiKey) {
       complexity = parsed.complexity;
     }
   } catch {
-    // في حال فشل التصنيف: نبقى على general + complex (الأضمن للجودة)
+    // في حال فشل التصنيف: نبقى على general + simple (الأوفر، Gemini يكفي)
   }
   return { category, complexity };
 }
@@ -205,33 +205,49 @@ export async function onRequest(context) {
       const prompt = `أنت خبير في صياغة الأسئلة. أعد صياغة السؤال التالي بثلاث طرق محسّنة وأوضح وأكثر احترافية، بحيث تعطي كل صياغة نتيجة أعمق وأدق.
 ${langLine}
 قواعد صارمة للإخراج:
-- أخرج ثلاث صياغات فقط، كل واحدة في سطر مستقل.
-- ابدأ كل سطر برقمه هكذا: 1. ثم الصياغة، 2. ثم الصياغة، 3. ثم الصياغة.
-- لا تكتب أي مقدمة أو شرح أو رموز أو أقواس أو علامات JSON. الصياغات فقط.
+- أخرج النتيجة بصيغة JSON فقط بهذا الشكل بالضبط: {"suggestions":["الصياغة الأولى","الصياغة الثانية","الصياغة الثالثة"]}
+- ثلاث صياغات فقط داخل المصفوفة.
+- لا تكتب أي مقدمة أو شرح أو نص خارج الـ JSON. الـ JSON فقط.
 السؤال: ${question}`;
 
       const result = await withTimeout(
-        askGemini(prompt, "أنت مساعد صياغة دقيق. تُخرج ثلاث صياغات مرقّمة فقط دون أي نص إضافي.", GEMINI_KEY, GEMINI_MAIN, 2500),
+        askGemini(prompt, "أنت مساعد صياغة دقيق. تُخرج JSON فقط يحتوي على مصفوفة suggestions بثلاث صياغات، دون أي نص إضافي.", GEMINI_KEY, GEMINI_MAIN, 2500),
         20000
       );
 
       let suggestions = [];
-      const text = (result.text || "").trim();
+      const raw = (result.text || "").trim();
 
-      if (text) {
-        // تقسيم على الأسطر، ثم تنظيف كل سطر من الأرقام والرموز والأقواس
-        suggestions = text
+      // المحاولة الأولى: قراءة JSON (الأوثق)
+      try {
+        const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
+        const start = cleaned.indexOf("{");
+        const end = cleaned.lastIndexOf("}");
+        if (start !== -1 && end !== -1) {
+          const parsed = JSON.parse(cleaned.slice(start, end + 1));
+          if (Array.isArray(parsed.suggestions)) {
+            suggestions = parsed.suggestions
+              .map(s => (typeof s === "string" ? s.trim() : ""))
+              .filter(s => s.length > 5)
+              .slice(0, 3);
+          }
+        }
+      } catch { /* نتجاهل ونجرّب الطريقة البديلة */ }
+
+      // المحاولة البديلة: التقسيم على الأسطر (لو فشل JSON)
+      if (suggestions.length === 0 && raw) {
+        suggestions = raw
           .split(/\n+/)
           .map(l => l
-            .replace(/[{}\[\]"]/g, "")               // إزالة أقواس وعلامات JSON
-            .replace(/suggestions\s*:?/gi, "")         // إزالة كلمة suggestions لو ظهرت
-            .replace(/^\s*[\d\u0660-\u0669]+[\.\)\-:]\s*/, "") // إزالة الترقيم في البداية
-            .replace(/^["'\s\-\*]+/, "")             // إزالة رموز البداية
-            .replace(/[,"']+$/, "")                    // إزالة رموز النهاية
+            .replace(/[{}\[\]"]/g, "")
+            .replace(/suggestions\s*:?/gi, "")
+            .replace(/^\s*[\d\u0660-\u0669]+[\.\)\-:]\s*/, "")
+            .replace(/^["'\s\-\*]+/, "")
+            .replace(/[,"']+$/, "")
             .trim()
           )
-          .filter(l => l.length > 8)                  // نتجاهل الأسطر القصيرة/الفارغة
-          .slice(0, 3);                               // أول ثلاث فقط
+          .filter(l => l.length > 8)
+          .slice(0, 3);
       }
 
       return new Response(JSON.stringify({ suggestions }), { status: 200, headers });
@@ -248,7 +264,8 @@ ${langLine}
       // هل نحتاج المعالجة العميقة؟ (معقّد)
       const isComplex = complexity === "complex";
       // هل نستدعي Claude (الضرورة القصوى)؟ = معقّد + فئة حسّاسة
-      const needClaude = isComplex; 
+      const needClaude = isComplex && SENSITIVE.includes(category);
+
       // للأسئلة المعقّدة نضيف منهجية التحليل والتدقيق الداخلي
       if (isComplex) {
         expertPrompt += "\n" + DEEP_RULES;
