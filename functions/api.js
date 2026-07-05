@@ -212,7 +212,7 @@ ${langLine}
 
       const result = await withTimeout(
         askGemini(prompt, "أنت مساعد صياغة دقيق. تُخرج ثلاث صياغات مرقّمة فقط دون أي نص إضافي.", GEMINI_KEY, GEMINI_MAIN, 2500),
-        10000
+        20000
       );
 
       let suggestions = [];
@@ -319,4 +319,3 @@ ${langLine}
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
   }
 }
-
