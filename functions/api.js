@@ -15,7 +15,7 @@
 // ========================================
 
 // النماذج
-const GEMINI_MAIN = "gemini-2.5-flash-lite";                 // الأساسي لكل شيء تقريباً
+const GEMINI_MAIN = "gemini-2.5-flash";                 // الأساسي لكل شيء تقريباً
 const CLAUDE_HEAVY = "claude-haiku-4-5-20251001";       // يُستدعى للضرورة القصوى فقط
 
 // ========================================
@@ -120,14 +120,15 @@ async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, ma
       body: JSON.stringify({
         system_instruction: { parts: [{ text: expertPrompt }] },
         contents: [{ parts: [{ text: question }] }],
-        generationConfig: {
-          maxOutputTokens: maxTokens,
-          thinkingConfig: { thinkingBudget: 0 },
-        },
+        generationConfig: { maxOutputTokens: maxTokens },
       }),
     });
     const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const parts = data.candidates?.[0]?.content?.parts;
+    let text = "";
+    if (Array.isArray(parts)) {
+      text = parts.map(p => (p && p.text) ? p.text : "").join("");
+    }
     return { ok: isRealAnswer(text), text };
   } catch {
     return { ok: false, text: "" };
