@@ -120,7 +120,10 @@ async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, ma
       body: JSON.stringify({
         system_instruction: { parts: [{ text: expertPrompt }] },
         contents: [{ parts: [{ text: question }] }],
-        generationConfig: { maxOutputTokens: maxTokens },
+        generationConfig: {
+          maxOutputTokens: maxTokens,
+          thinkingConfig: { thinkingBudget: 0 },
+        },
       }),
     });
     const data = await res.json();
