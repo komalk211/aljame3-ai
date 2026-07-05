@@ -211,7 +211,7 @@ ${langLine}
 السؤال: ${question}`;
 
       const result = await withTimeout(
-        askGemini(prompt, "أنت مساعد صياغة دقيق. تُخرج ثلاث صياغات مرقّمة فقط دون أي نص إضافي.", GEMINI_KEY, GEMINI_MAIN, 1500),
+        askGemini(prompt, "أنت مساعد صياغة دقيق. تُخرج ثلاث صياغات مرقّمة فقط دون أي نص إضافي.", GEMINI_KEY, GEMINI_MAIN, 2500),
         10000
       );
 
