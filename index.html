@@ -122,7 +122,6 @@
     .btn-send:hover:not(:disabled) { background: #ff7f3f; }
     .btn-send:disabled { background: #f0e6d8; color: #c4b8a8; }
 
-    /* ===== شبكة الأبواب ===== */
     .doors-section { margin-bottom: 16px; }
     .doors-title { font-size: 14px; color: #ff6a1f; margin-bottom: 12px; font-weight: 700; text-align: center; }
     .doors-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
@@ -178,7 +177,6 @@
     .sug-btn.original .num { color: #c4b8a8; }
     .sug-btn.original:hover { color: #6a5f50 !important; border-color: #a89a86 !important; background: transparent !important; }
 
-    /* ===== برواز الإجابة (طابع مجلة) ===== */
     .answer-box {
       background: #fffdfa;
       border: 3px solid #ff6a1f;
@@ -474,7 +472,6 @@
 
 <footer data-i18n="footer">Nexara AI ✦ nexaraapp.net</footer>
 
-<!-- نافذة الأبواب المنبثقة -->
 <div class="door-modal" id="door-modal" onclick="if(event.target===this) closeDoor()">
   <div class="door-modal-box">
     <div class="door-modal-head">
@@ -486,7 +483,6 @@
 </div>
 
 <script>
-  // ===== نظام الترجمة i18n (عربي/إنجليزي فقط) =====
   const I18N = {
     ar: {
       nav_home:"🏠 الرئيسية", nav_history:"📚 السجل", nav_about:"ℹ️ عن الموقع",
@@ -540,7 +536,23 @@
         {i:"✍️", q:"اكتب قصة قصيرة مؤثرة عن صداقة بين طفل وشجرة"},
         {i:"💻", q:"اكتب دالة بايثون تعكس ترتيب كلمات جملة مع شرحها"},
         {i:"🔬", q:"اشرح لي نظرية النسبية بأسلوب مبسّط"},
-        {i:"💼", q:"اقترح خطة تسويقية لمتجر ملابس صغير"}
+        {i:"💼", q:"اقترح خطة تسويقية لمتجر ملابس صغير"},
+        {i:"⚕️", q:"ما هي أعراض نقص فيتامين D وكيف أعالجه؟"},
+        {i:"🍎", q:"أعطني نصائح غذائية بسيطة لتقوية المناعة"},
+        {i:"🧠", q:"كيف أتعامل مع القلق قبل الامتحانات؟"},
+        {i:"🌍", q:"أعطني معلومة غريبة عن كوكب الأرض"},
+        {i:"🐙", q:"ما هي أغرب حقيقة علمية عن الأخطبوط؟"},
+        {i:"💊", q:"ما الفرق بين المسكنات والمضادات الحيوية؟"},
+        {i:"😴", q:"كيف أحسّن جودة نومي بشكل طبيعي؟"},
+        {i:"📚", q:"لخّص لي أهم أحداث الحرب العالمية الثانية"},
+        {i:"🌙", q:"ما سبب حدوث خسوف القمر بالتفصيل؟"},
+        {i:"💰", q:"كيف أبدأ بالادخار بميزانية محدودة؟"},
+        {i:"🧘", q:"أعطني تمارين تنفس بسيطة لتقليل التوتر"},
+        {i:"🦷", q:"ما هي أفضل عادات للحفاظ على صحة الأسنان؟"},
+        {i:"🐝", q:"لماذا يُعتبر النحل مهماً جداً للبيئة؟"},
+        {i:"👶", q:"ما نصائحك للعناية بطفل حديث الولادة؟"},
+        {i:"🌶️", q:"ما فوائد وأضرار الأكل الحار على الجسم؟"},
+        {i:"🎨", q:"اقترح علي هواية جديدة أجربها هذا الشهر"}
       ],
       doors:[
         {i:"✍️", n:"الكاتب الذكي", opts:["اكتب مقال عن: ","اكتب إيميل رسمي عن: ","اكتب منشور سوشيال ميديا عن: ","لخّص لي النص التالي: ","أعد صياغة النص التالي: ","اكتب قصة قصيرة عن: ","اكتب شعراً عن: ","اكتب سيرة ذاتية مختصرة عن: ","اكتب رسالة تحفيزية عن: ","اكتب وصف منتج عن: "]},
@@ -608,7 +620,23 @@
         {i:"✍️", q:"Write a touching short story about a friendship between a child and a tree"},
         {i:"💻", q:"Write a Python function that reverses the words in a sentence, with an explanation"},
         {i:"🔬", q:"Explain the theory of relativity in simple terms"},
-        {i:"💼", q:"Suggest a marketing plan for a small clothing store"}
+        {i:"💼", q:"Suggest a marketing plan for a small clothing store"},
+        {i:"⚕️", q:"What are the symptoms of vitamin D deficiency and how to treat it?"},
+        {i:"🍎", q:"Give me simple nutrition tips to boost immunity"},
+        {i:"🧠", q:"How do I deal with anxiety before exams?"},
+        {i:"🌍", q:"Give me a strange fact about planet Earth"},
+        {i:"🐙", q:"What's the strangest scientific fact about octopuses?"},
+        {i:"💊", q:"What's the difference between painkillers and antibiotics?"},
+        {i:"😴", q:"How can I naturally improve my sleep quality?"},
+        {i:"📚", q:"Summarize the key events of World War II"},
+        {i:"🌙", q:"What causes a lunar eclipse, in detail?"},
+        {i:"💰", q:"How do I start saving on a limited budget?"},
+        {i:"🧘", q:"Give me simple breathing exercises to reduce stress"},
+        {i:"🦷", q:"What are the best habits for dental health?"},
+        {i:"🐝", q:"Why are bees so important for the environment?"},
+        {i:"👶", q:"What are your tips for caring for a newborn?"},
+        {i:"🌶️", q:"What are the benefits and downsides of eating spicy food?"},
+        {i:"🎨", q:"Suggest a new hobby for me to try this month"}
       ],
       doors:[
         {i:"✍️", n:"Smart Writer", opts:["Write an article about: ","Write a formal email about: ","Write a social media post about: ","Summarize this text: ","Rewrite this text: ","Write a short story about: ","Write a poem about: ","Write a short bio about: ","Write a motivational message about: ","Write a product description for: "]},
@@ -675,7 +703,10 @@
     const box = document.getElementById("starter-list");
     if (!box) return;
     box.innerHTML = "";
-    (T.starters || []).forEach(s => {
+    const all = T.starters || [];
+    const shuffled = [...all].sort(() => Math.random() - 0.5);
+    const picked = shuffled.slice(0, 4);
+    picked.forEach(s => {
       const b = document.createElement("button");
       b.className = "starter-chip";
       b.innerHTML = '<span class="chip-ico">' + s.i + '</span> ' + s.q;
@@ -697,7 +728,6 @@
     askQuestion();
   }
 
-  // ===== الأبواب =====
   function renderDoors() {
     const grid = document.getElementById("doors-grid");
     if (!grid) return;
@@ -1115,7 +1145,6 @@
     renderHistory();
   }
 
-  // ===== التشغيل =====
   loadSavedLang();
   initStats();
   restoreLastAnswer();
