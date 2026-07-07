@@ -3,7 +3,7 @@
 // يخفي مفاتيح Claude و Gemini
 // الاستراتيجية:
 //   • Gemini Flash هو النموذج الأساسي (رخيص + يتحمّل مئات وآلاف المستخدمين)
-//   • Claude يُستدعى فقط للأسئلة المعقّدة جداً أو الحسّاسة (الضرورة القصوى)
+//   • Claude يُستدعى للأسئلة المعقّدة/الحسّاسة، وأيضاً للمهام الإبداعية (كتابة/تأليف)
 //   • استدعاءان فقط لكل سؤال: تصنيف + إجابة
 //   • التحسين (optimize) على Gemini للتوفير
 // دعم اختيار لغة الإجابة (تلقائي أو لغة محددة)
@@ -16,7 +16,7 @@
 
 // النماذج
 const GEMINI_MAIN = "gemini-2.5-flash";                 // الأساسي لكل شيء تقريباً
-const CLAUDE_HEAVY = "claude-haiku-4-5-20251001";       // يُستدعى للضرورة القصوى فقط
+const CLAUDE_HEAVY = "claude-sonnet-4-5";       // يُستدعى للضرورة القصوى + المهام الإبداعية
 
 // ========================================
 // قواعد الأسلوب — تُضاف لكل خبير
@@ -80,6 +80,9 @@ const EXPERTS = {
 // الفئات التي تُعدّ حسّاسة (يُفضّل استدعاء Claude لها عندما تكون معقّدة)
 const SENSITIVE = ["health", "religion", "law", "trading"];
 
+// الفئات الإبداعية (تستفيد من Claude دائماً، بغضّ النظر عن التعقيد، لأن الأسلوب والابتكار هما الأهم)
+const CREATIVE = ["writing"];
+
 // ========================================
 // استدعاء Claude
 // ========================================
@@ -124,7 +127,6 @@ async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, ma
       }),
     });
     const data = await res.json();
-    // كشف مؤقت للأخطاء: إذا رجّع Gemini خطأ، نعيده كنص لنراه
     if (data.error) {
       return { ok: false, text: "", debug: "GEMINI_ERROR: " + (data.error.message || JSON.stringify(data.error)) };
     }
@@ -133,7 +135,6 @@ async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, ma
     if (Array.isArray(parts)) {
       text = parts.map(p => (p && p.text) ? p.text : "").join("");
     }
-    // كشف مؤقت: إذا فاضي، نعيد سبب الإنهاء
     if (!text) {
       const reason = data.candidates?.[0]?.finishReason || "NO_TEXT";
       return { ok: false, text: "", debug: "GEMINI_EMPTY: finishReason=" + reason };
@@ -167,7 +168,7 @@ async function classifyQuestion(question, geminiKey) {
   );
 
   let category = "general";
-  let complexity = "simple"; // الافتراض الأوفر: عامله كبسيط ما لم يُصنّف معقّداً صراحةً
+  let complexity = "simple";
   try {
     const raw = (result.text || "").replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(raw);
@@ -176,14 +177,13 @@ async function classifyQuestion(question, geminiKey) {
       complexity = parsed.complexity;
     }
   } catch {
-    // في حال فشل التصنيف: نبقى على general + simple (الأوفر، Gemini يكفي)
+    // في حال فشل التصنيف: نبقى على general + simple
   }
   return { category, complexity };
 }
 
 // ========================================
 // المعالج الرئيسي — صيغة Cloudflare Pages Functions
-// (يستقبل context الذي يحوي request و env)
 // ========================================
 export async function onRequest(context) {
   const { request, env } = context;
@@ -195,7 +195,6 @@ export async function onRequest(context) {
     "Content-Type": "application/json",
   };
 
-  // طلب الفحص المبدئي (CORS preflight)
   if (request.method === "OPTIONS") {
     return new Response("", { status: 200, headers });
   }
@@ -203,7 +202,6 @@ export async function onRequest(context) {
     return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers });
   }
 
-  // المفاتيح من متغيّرات البيئة في Cloudflare
   const CLAUDE_KEY = env.ANTHROPIC_API_KEY;
   const GEMINI_KEY = env.GEMINI_API_KEY;
 
@@ -231,7 +229,6 @@ ${langLine}
       let suggestions = [];
       const raw = (result.text || "").trim();
 
-      // المحاولة الأولى: قراءة JSON (الأوثق)
       try {
         const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
         const start = cleaned.indexOf("{");
@@ -247,7 +244,6 @@ ${langLine}
         }
       } catch { /* نتجاهل ونجرّب الطريقة البديلة */ }
 
-      // المحاولة البديلة: التقسيم على الأسطر (لو فشل JSON)
       if (suggestions.length === 0 && raw) {
         suggestions = raw
           .split(/\n+/)
@@ -268,29 +264,24 @@ ${langLine}
 
     // ---------- الإجابة ----------
     if (action === "ask") {
-      // 1) التصنيف الذكي (استدعاء واحد بـ Gemini): المجال + التعقيد
       const { category, complexity } = await classifyQuestion(question, GEMINI_KEY);
 
-      // نبني تعليمة الخبير + اللغة
       let expertPrompt = EXPERTS[category] + langInstruction(lang);
 
-      // هل نحتاج المعالجة العميقة؟ (معقّد)
       const isComplex = complexity === "complex";
-      // هل نستدعي Claude (الضرورة القصوى)؟ = معقّد + فئة حسّاسة
-      const needClaude = isComplex && SENSITIVE.includes(category);
+      const isCreative = CREATIVE.includes(category);
+      // نستدعي Claude في حالتين: (معقّد + حسّاس) أو (فئة إبداعية بغضّ النظر عن التعقيد)
+      const needClaude = (isComplex && SENSITIVE.includes(category)) || isCreative;
 
-      // للأسئلة المعقّدة نضيف منهجية التحليل والتدقيق الداخلي
       if (isComplex) {
         expertPrompt += "\n" + DEEP_RULES;
       }
 
-      // 2) الإجابة (استدعاء واحد)
       let finalAnswer = "";
       let usedModel = "gemini";
-      let debugInfo = ""; // تشخيص مؤقت
+      let debugInfo = "";
 
       if (needClaude) {
-        // الضرورة القصوى: Claude
         const claudeRes = await withTimeout(
           askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, 2200),
           12000
@@ -299,7 +290,6 @@ ${langLine}
           finalAnswer = claudeRes.text;
           usedModel = "claude";
         } else {
-          // فشل كلود → نرجع لجيميني كخطة بديلة
           const geminiRes = await withTimeout(
             askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, 2200),
             12000
@@ -309,7 +299,6 @@ ${langLine}
           usedModel = "gemini_fallback";
         }
       } else {
-        // الأغلب: Gemini وحده (بسيط أو معقّد غير حسّاس)
         const geminiRes = await withTimeout(
           askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, isComplex ? 2200 : 1400),
           12000
@@ -319,7 +308,6 @@ ${langLine}
           usedModel = "gemini";
         } else {
           if (geminiRes.debug) debugInfo = geminiRes.debug;
-          // فشل جيميني → محاولة أخيرة بكلود لضمان عدم الفشل
           const claudeRes = await withTimeout(
             askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, 1800),
             10000
@@ -329,7 +317,6 @@ ${langLine}
         }
       }
 
-      // ضمان عدم ترك الإجابة فارغة أبداً
       if (!isRealAnswer(finalAnswer)) {
         finalAnswer = "تعذّر توليد إجابة كافية لهذا السؤال الآن. حاول تبسيط صياغته أو أعد المحاولة بعد قليل."
           + (debugInfo ? ("\n\n[تشخيص مؤقت: " + debugInfo + "]") : "");
