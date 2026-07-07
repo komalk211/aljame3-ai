@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-R6D4XTEHN6"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -13,19 +12,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Nexara AI</title>
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0a0a0f" />
+  <meta name="theme-color" content="#fff8f0" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Nexara AI" />
   <link rel="apple-touch-icon" href="icon-192.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; }
     body {
-      font-family: 'Cairo', 'Segoe UI', sans-serif;
-      background: linear-gradient(135deg, #0a0a0f 0%, #0d0d1a 50%, #0a0f0a 100%);
-      color: #e8e0d0; direction: rtl; min-height: 100vh;
+      font-family: 'Readex Pro', 'Segoe UI', sans-serif;
+      background: #fdf8f3;
+      color: #2b2620; direction: rtl; min-height: 100vh;
     }
     body[data-dir="ltr"] { direction: ltr; }
     body[data-dir="ltr"] textarea { direction: ltr; text-align: left; }
@@ -33,221 +32,265 @@
     body[data-dir="ltr"] .answer-text { direction: ltr; text-align: left; }
     body[data-dir="ltr"] .btn-row { justify-content: flex-start; }
     body[data-dir="ltr"] .rating-row { justify-content: flex-start; }
+    body[data-dir="ltr"] .door-opt { text-align: left; direction: ltr; }
 
     ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #0a0a0f; }
-    ::-webkit-scrollbar-thumb { background: #c9a84c55; border-radius: 3px; }
-    @keyframes orbGlow {
-      0%,100% { box-shadow: 0 0 40px #c9a84c44, 0 0 80px #c9a84c22; transform: scale(1); }
-      50% { box-shadow: 0 0 60px #c9a84c66, 0 0 120px #c9a84c33; transform: scale(1.05); }
-    }
+    ::-webkit-scrollbar-track { background: #fdf8f3; }
+    ::-webkit-scrollbar-thumb { background: #ff6a1f55; border-radius: 3px; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-    .orb { animation: orbGlow 3s ease-in-out infinite; }
     .spin { display: inline-block; animation: spin 1.2s linear infinite; }
     .fade-in { animation: fadeIn 0.4s ease forwards; }
-    .pulse { animation: pulse 1.5s ease-in-out infinite; }
 
     header {
-      padding: 14px 20px; border-bottom: 1px solid #c9a84c22;
+      padding: 14px 20px; border-bottom: 1px solid #ff6a1f22;
       display: flex; align-items: center; justify-content: space-between;
-      background: #0a0a0fdd; backdrop-filter: blur(20px);
+      background: #fffdfaee; backdrop-filter: blur(20px);
       position: sticky; top: 0; z-index: 100;
     }
     .logo-wrap { display: flex; align-items: center; gap: 12px; }
     .logo-orb {
       width: 42px; height: 42px; border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%, #f0d080, #c9a84c, #7a5f20);
-      display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+      overflow: hidden; flex-shrink: 0;
+      box-shadow: 0 2px 10px #ff6a1f33;
     }
-    .logo-title { font-size: 19px; font-weight: 900; color: #c9a84c; letter-spacing: 0.5px; }
-    .logo-sub { font-size: 10px; color: #666; }
+    .logo-img { width: 44px; height: 44px; object-fit: cover; border-radius: 50%; display: block; }
+    .logo-title { font-size: 19px; font-weight: 700; color: #ff6a1f; letter-spacing: 0.3px; }
+    .logo-sub { font-size: 10px; color: #a89a86; }
     nav { display: flex; gap: 6px; }
     .nav-btn {
-      background: transparent; color: #777; border: 1px solid transparent;
+      background: transparent; color: #a89a86; border: 1px solid transparent;
       padding: 7px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;
-      font-family: 'Cairo', sans-serif; cursor: pointer; transition: all 0.2s;
+      font-family: 'Readex Pro', sans-serif; cursor: pointer; transition: all 0.2s;
     }
-    .nav-btn.active { background: #c9a84c22; color: #c9a84c; border-color: #c9a84c44; }
-    .nav-btn:hover { color: #c9a84c; }
+    .nav-btn.active { background: #ff6a1f18; color: #ff6a1f; border-color: #ff6a1f44; }
+    .nav-btn:hover { color: #ff6a1f; }
 
     main { max-width: 800px; margin: 0 auto; padding: 28px 16px 60px; }
-    .hero { text-align: center; margin-bottom: 36px; }
+    .hero { text-align: center; margin-bottom: 30px; }
     .hero-icon { font-size: 44px; margin-bottom: 10px; }
-    .hero h1 { font-size: 28px; font-weight: 900; color: #c9a84c; margin-bottom: 6px; }
-    .hero p { color: #555; font-size: 14px; }
+    .hero h1 { font-size: 27px; font-weight: 700; color: #ff6a1f; margin-bottom: 6px; }
+    .hero p { color: #8a7f70; font-size: 14px; }
 
-    .stats-bar { display: flex; justify-content: center; gap: 22px; margin-bottom: 24px; flex-wrap: wrap; }
+    .stats-bar { display: flex; justify-content: center; gap: 22px; margin-bottom: 22px; flex-wrap: wrap; }
     .beta-banner {
-      background: linear-gradient(90deg, #c9a84c12, #c9a84c08);
-      border: 1px solid #c9a84c33; border-radius: 12px;
+      background: #fff1e2;
+      border: 1px solid #ff6a1f33; border-radius: 12px;
       padding: 12px 16px; margin-bottom: 18px; font-size: 13px; line-height: 1.7;
-      color: #c9a856; display: flex; gap: 10px; align-items: flex-start;
+      color: #b85a1e; display: flex; gap: 10px; align-items: flex-start;
     }
     .beta-banner .beta-icon { flex-shrink: 0; font-size: 16px; }
     .stat-item { text-align: center; }
-    .stat-num { font-size: 20px; font-weight: 900; color: #c9a84c; }
-    .stat-label { font-size: 11px; color: #555; }
+    .stat-num { font-size: 20px; font-weight: 700; color: #ff6a1f; }
+    .stat-label { font-size: 11px; color: #a89a86; }
 
     .input-card {
-      background: #111118; border: 1px solid #c9a84c33; border-radius: 16px;
-      padding: 18px; margin-bottom: 14px; box-shadow: 0 4px 40px #c9a84c0d;
+      background: #ffffff; border: 1px solid #ff6a1f2e; border-radius: 18px;
+      padding: 18px; margin-bottom: 16px; box-shadow: 0 6px 24px #ff6a1f14;
     }
     textarea {
-      width: 100%; background: transparent; border: none; color: #e8e0d0;
-      font-size: 15px; line-height: 1.8; resize: none; font-family: 'Cairo', sans-serif; direction: rtl;
+      width: 100%; background: transparent; border: none; color: #2b2620;
+      font-size: 15px; line-height: 1.8; resize: none; font-family: 'Readex Pro', sans-serif; direction: rtl;
     }
     textarea:focus { outline: none; }
-    textarea::placeholder { color: #444; }
+    textarea::placeholder { color: #c4b8a8; }
 
     .lang-row {
       display: flex; align-items: center; gap: 8px; margin-top: 12px;
-      padding-top: 12px; border-top: 1px solid #1a1a1a; flex-wrap: wrap;
+      padding-top: 12px; border-top: 1px solid #f0e6d8; flex-wrap: wrap;
     }
-    .lang-label { font-size: 12px; color: #888; font-weight: 600; }
+    .lang-label { font-size: 12px; color: #8a7f70; font-weight: 600; }
     .lang-select {
-      background: #0d0d15; color: #c9a84c; border: 1px solid #c9a84c33;
-      border-radius: 8px; padding: 6px 12px; font-size: 13px; font-family: 'Cairo', sans-serif;
+      background: #fff8f0; color: #ff6a1f; border: 1px solid #ff6a1f33;
+      border-radius: 8px; padding: 6px 12px; font-size: 13px; font-family: 'Readex Pro', sans-serif;
       cursor: pointer;
     }
-    .lang-select:focus { outline: none; border-color: #c9a84c; }
+    .lang-select:focus { outline: none; border-color: #ff6a1f; }
 
     .btn-row { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; flex-wrap: wrap; }
     .btn {
       border: none; border-radius: 10px; padding: 10px 20px; font-size: 14px; font-weight: 700;
-      font-family: 'Cairo', sans-serif; cursor: pointer; transition: all 0.2s;
+      font-family: 'Readex Pro', sans-serif; cursor: pointer; transition: all 0.2s;
       display: inline-flex; align-items: center; gap: 6px;
     }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-gold { background: #c9a84c; color: #0a0a0f; }
-    .btn-gold:hover:not(:disabled) { background: #e0bc5a; }
-    .btn-ghost { background: transparent; color: #666; border: 1px solid #333; }
-    .btn-ghost:hover:not(:disabled) { color: #aaa; border-color: #555; }
-    .btn-send { background: #c9a84c; color: #0a0a0f; padding: 10px 28px; font-size: 15px; }
-    .btn-send:hover:not(:disabled) { background: #e0bc5a; }
-    .btn-send:disabled { background: #222; color: #444; }
+    .btn-gold { background: #ff6a1f; color: #fff; }
+    .btn-gold:hover:not(:disabled) { background: #ff7f3f; }
+    .btn-ghost { background: transparent; color: #a89a86; border: 1px solid #e8dbc8; }
+    .btn-ghost:hover:not(:disabled) { color: #6a5f50; border-color: #c4b8a8; }
+    .btn-send { background: #ff6a1f; color: #fff; padding: 10px 28px; font-size: 15px; }
+    .btn-send:hover:not(:disabled) { background: #ff7f3f; }
+    .btn-send:disabled { background: #f0e6d8; color: #c4b8a8; }
 
-    .suggestions-box { background: #0d0d15; border: 1px solid #c9a84c22; border-radius: 12px; padding: 14px; margin-bottom: 14px; }
-    .suggestions-title { font-size: 13px; color: #c9a84c; margin-bottom: 10px; font-weight: 600; }
-    .sug-btn {
-      display: block; width: 100%; text-align: right; background: #ffffff05;
-      border: 1px solid #2a2a2a; border-radius: 8px; padding: 11px 14px; color: #bbb;
-      font-size: 14px; margin-bottom: 8px; line-height: 1.6; cursor: pointer;
-      transition: all 0.2s; font-family: 'Cairo', sans-serif; direction: rtl;
+    /* ===== شبكة الأبواب ===== */
+    .doors-section { margin-bottom: 16px; }
+    .doors-title { font-size: 14px; color: #ff6a1f; margin-bottom: 12px; font-weight: 700; text-align: center; }
+    .doors-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    @media (min-width: 640px) { .doors-grid { grid-template-columns: repeat(5, 1fr); } }
+    .door-card {
+      background: #ffffff;
+      border: 1px solid #ff6a1f22; border-radius: 14px;
+      padding: 16px 10px; text-align: center; cursor: pointer;
+      transition: all 0.25s; display: flex; flex-direction: column; align-items: center; gap: 8px;
+      box-shadow: 0 3px 10px #ff6a1f0d;
     }
-    .sug-btn:hover { background: #c9a84c15 !important; border-color: #c9a84c66 !important; }
-    .sug-btn .num { color: #c9a84c; font-weight: 700; margin-left: 6px; }
-    .sug-btn.original { background: transparent; border: 1px dashed #333; color: #555; margin-bottom: 0; }
-    .sug-btn.original .num { color: #444; }
-    .sug-btn.original:hover { color: #888 !important; border-color: #555 !important; background: transparent !important; }
+    .door-card:hover { border-color: #ff6a1f; background: #fff8f0; transform: translateY(-3px); box-shadow: 0 8px 22px #ff6a1f22; }
+    .door-ico { font-size: 26px; }
+    .door-name { font-size: 12.5px; color: #4a4038; font-weight: 600; line-height: 1.3; }
 
-    .answer-box { background: #0d0f0d; border: 1px solid #4a7c4a33; border-radius: 16px; padding: 22px; margin-bottom: 14px; }
+    .door-modal {
+      position: fixed; inset: 0; background: #2b262099; backdrop-filter: blur(6px);
+      display: none; align-items: center; justify-content: center; z-index: 500; padding: 16px;
+    }
+    .door-modal.show { display: flex; }
+    .door-modal-box {
+      background: #fffdfa;
+      border: 1px solid #ff6a1f33; border-radius: 20px;
+      max-width: 480px; width: 100%; max-height: 80vh; overflow-y: auto;
+      padding: 22px; box-shadow: 0 16px 60px #0003;
+    }
+    .door-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .door-modal-title { font-size: 18px; font-weight: 700; color: #ff6a1f; display: flex; align-items: center; gap: 8px; }
+    .door-modal-close {
+      background: #fff1e2; border: 1px solid #ff6a1f33; color: #ff6a1f;
+      width: 32px; height: 32px; border-radius: 8px; font-size: 18px; cursor: pointer; line-height: 1;
+    }
+    .door-modal-close:hover { background: #ffe4c8; }
+    .door-opt {
+      display: block; width: 100%; text-align: right; background: #fff8f0;
+      border: 1px solid #f0e0cc; border-radius: 10px; padding: 12px 14px; color: #4a4038;
+      font-size: 14px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+      font-family: 'Readex Pro', sans-serif; direction: rtl;
+    }
+    .door-opt:hover { background: #fff1e2; border-color: #ff6a1f66; color: #ff6a1f; }
+
+    .suggestions-box { background: #fff8f0; border: 1px solid #ff6a1f22; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+    .suggestions-title { font-size: 13px; color: #ff6a1f; margin-bottom: 10px; font-weight: 700; }
+    .sug-btn {
+      display: block; width: 100%; text-align: right; background: #ffffff;
+      border: 1px solid #f0e0cc; border-radius: 10px; padding: 11px 14px; color: #4a4038;
+      font-size: 14px; margin-bottom: 8px; line-height: 1.6; cursor: pointer;
+      transition: all 0.2s; font-family: 'Readex Pro', sans-serif; direction: rtl;
+    }
+    .sug-btn:hover { background: #fff1e2 !important; border-color: #ff6a1f66 !important; }
+    .sug-btn .num { color: #ff6a1f; font-weight: 700; margin-left: 6px; }
+    .sug-btn.original { background: transparent; border: 1px dashed #d8c8b0; color: #a89a86; margin-bottom: 0; }
+    .sug-btn.original .num { color: #c4b8a8; }
+    .sug-btn.original:hover { color: #6a5f50 !important; border-color: #a89a86 !important; background: transparent !important; }
+
+    /* ===== برواز الإجابة (طابع مجلة) ===== */
+    .answer-box {
+      background: #fffdfa;
+      border: 3px solid #ff6a1f;
+      border-radius: 20px; padding: 24px; margin-bottom: 14px;
+      position: relative; box-shadow: 0 10px 34px #ff6a1f22;
+    }
+    .answer-box::before, .answer-box::after {
+      content: "✦"; position: absolute; color: #ff6a1f; font-size: 16px; opacity: 0.6;
+    }
+    .answer-box::before { top: 10px; right: 14px; }
+    .answer-box::after { bottom: 10px; left: 14px; }
     .answer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
     .answer-badge { display: flex; align-items: center; gap: 8px; }
-    .green-dot { width: 8px; height: 8px; border-radius: 50%; background: #4a7c4a; box-shadow: 0 0 8px #4a7c4a; flex-shrink: 0; }
-    .answer-label { font-size: 13px; color: #4a7c4a; font-weight: 600; }
-    .category-tag { font-size: 11px; color: #c9a84c; background: #c9a84c15; padding: 3px 10px; border-radius: 10px; }
-    .sources-tag { font-size: 11px; color: #555; }
+    .green-dot { width: 8px; height: 8px; border-radius: 50%; background: #3aa15c; box-shadow: 0 0 8px #3aa15c; flex-shrink: 0; }
+    .answer-label { font-size: 13px; color: #3aa15c; font-weight: 700; }
+    .category-tag { font-size: 11px; color: #ff6a1f; background: #fff1e2; padding: 3px 10px; border-radius: 10px; }
+    .sources-tag { font-size: 11px; color: #a89a86; }
     .answer-signature {
-      margin-top: 16px; padding-top: 14px; border-top: 1px solid #1a1a1a;
-      text-align: center; font-size: 13px; font-weight: 700; color: #c9a84c;
-      letter-spacing: 0.3px; opacity: 0.75;
+      margin-top: 16px; padding-top: 14px; border-top: 1px dashed #f0e0cc;
+      text-align: center; font-size: 13px; font-weight: 700; color: #ff6a1f;
+      letter-spacing: 0.3px;
     }
     .answer-actions { display: flex; gap: 6px; flex-wrap: wrap; }
     .act-btn {
-      background: transparent; color: #555; border: 1px solid #2a2a2a; border-radius: 6px;
-      padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: 'Cairo', sans-serif; transition: all 0.2s;
+      background: #fff8f0; color: #8a7f70; border: 1px solid #f0e0cc; border-radius: 6px;
+      padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: 'Readex Pro', sans-serif; transition: all 0.2s;
       display: inline-flex; align-items: center; gap: 4px;
     }
-    .act-btn:hover { background: #ffffff11; color: #aaa; }
-    .act-btn.speaking { background: #c9a84c22; color: #c9a84c; border-color: #c9a84c; }
-    .answer-text { font-size: 15px; line-height: 2; color: #ddd; white-space: pre-wrap; direction: rtl; }
-    .rating-row { margin-top: 18px; padding-top: 14px; border-top: 1px solid #1a1a1a; display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
-    .rating-label { font-size: 13px; color: #444; }
-    .rate-btn { background: transparent; border: 1px solid #2a2a2a; border-radius: 8px; padding: 6px 14px; font-size: 17px; cursor: pointer; transition: all 0.2s; }
+    .act-btn:hover { background: #fff1e2; color: #ff6a1f; }
+    .act-btn.speaking { background: #ff6a1f22; color: #ff6a1f; border-color: #ff6a1f; }
+    .answer-text { font-size: 15px; line-height: 2; color: #3a332c; white-space: pre-wrap; direction: rtl; }
+    .rating-row { margin-top: 18px; padding-top: 14px; border-top: 1px dashed #f0e0cc; display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+    .rating-label { font-size: 13px; color: #a89a86; }
+    .rate-btn { background: #fff8f0; border: 1px solid #f0e0cc; border-radius: 8px; padding: 6px 14px; font-size: 17px; cursor: pointer; transition: all 0.2s; }
     .rate-btn:hover { transform: scale(1.1); }
-    .rate-btn.active { background: #c9a84c22; border-color: #c9a84c; }
-    .rate-thanks { font-size: 12px; color: #c9a84c; }
+    .rate-btn.active { background: #ff6a1f22; border-color: #ff6a1f; }
+    .rate-thanks { font-size: 12px; color: #ff6a1f; }
 
     .loading-box { text-align: center; padding: 36px; }
-    .loading-icon { font-size: 30px; color: #c9a84c; margin-bottom: 14px; }
-    .loading-steps { font-size: 13px; color: #666; line-height: 2.2; }
-    .loading-steps .step { transition: all 0.3s; }
-    .loading-steps .step.active { color: #c9a84c; font-weight: 600; }
-    .loading-steps .step.done { color: #4a7c4a; }
-
-    .history-title { font-size: 20px; font-weight: 700; color: #c9a84c; margin-bottom: 20px; }
-    .history-empty { text-align: center; color: #333; padding: 60px 20px; }
-    .history-empty-icon { font-size: 44px; margin-bottom: 10px; }
-    .hist-item { background: #111118; border: 1px solid #1e1e1e; border-radius: 12px; padding: 14px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
-    .hist-item:hover { background: #16161e; border-color: #c9a84c22; }
-    .hist-q { font-size: 14px; font-weight: 600; color: #c9a84c; flex: 1; }
-    .hist-time { font-size: 11px; color: #333; white-space: nowrap; }
-    .hist-preview { font-size: 13px; color: #444; line-height: 1.5; margin-top: 6px; }
-    .hist-rating { font-size: 12px; margin-top: 6px; }
-    .hist-clear {
-      background: transparent; color: #664; border: 1px solid #332; border-radius: 8px;
-      padding: 8px 16px; font-size: 12px; cursor: pointer; font-family: 'Cairo', sans-serif;
-      margin-bottom: 16px; transition: all 0.2s;
-    }
-    .hist-clear:hover { color: #a55; border-color: #a55; }
-
-    .about-title { font-size: 22px; font-weight: 900; color: #c9a84c; margin-bottom: 8px; }
-    .about-sub { font-size: 13px; color: #555; margin-bottom: 24px; }
-    .about-card { background: #111118; border: 1px solid #c9a84c22; border-radius: 14px; padding: 20px; margin-bottom: 14px; }
-    .about-card h3 { font-size: 16px; color: #c9a84c; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-    .about-card p { font-size: 14px; line-height: 1.9; color: #bbb; }
-    .about-card .highlight { color: #e0bc5a; font-weight: 600; }
-    .roadmap-item { display: flex; gap: 10px; margin-bottom: 12px; font-size: 14px; color: #bbb; line-height: 1.7; }
-    .roadmap-icon { flex-shrink: 0; }
-    .contact-email {
-      display: inline-flex; align-items: center; gap: 8px; background: #c9a84c15;
-      border: 1px solid #c9a84c44; border-radius: 10px; padding: 12px 18px;
-      color: #c9a84c; font-size: 15px; font-weight: 600; text-decoration: none;
-      margin-top: 6px; transition: all 0.2s; direction: ltr;
-    }
-    .contact-email:hover { background: #c9a84c25; }
-
-    .logo-orb { background: transparent !important; box-shadow: none !important; animation: none !important; overflow: hidden; }
-    .logo-img { width: 44px; height: 44px; object-fit: cover; border-radius: 50%; display: block; }
-    .loading-icon { perspective: 700px; }
-    .loading-img { width: 92px; height: 92px; object-fit: contain; display: inline-block; filter: drop-shadow(0 0 12px #c9a84c55); }
+    .loading-icon { perspective: 700px; margin-bottom: 14px; }
+    .loading-img { width: 92px; height: 92px; object-fit: contain; display: inline-block; filter: drop-shadow(0 0 12px #ff6a1f55); }
     @keyframes spin3d { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
     .spin-3d { animation: spin3d 2.4s linear infinite; }
+    .loading-steps { font-size: 13px; color: #a89a86; line-height: 2.2; }
+    .loading-steps .step { transition: all 0.3s; }
+    .loading-steps .step.active { color: #ff6a1f; font-weight: 600; }
+    .loading-steps .step.done { color: #3aa15c; }
 
-    .use-item { display: flex; gap: 10px; margin-bottom: 12px; font-size: 14px; color: #bbb; line-height: 1.7; }
+    .history-title { font-size: 20px; font-weight: 700; color: #ff6a1f; margin-bottom: 20px; }
+    .history-empty { text-align: center; color: #d8c8b0; padding: 60px 20px; }
+    .history-empty-icon { font-size: 44px; margin-bottom: 10px; }
+    .hist-item { background: #ffffff; border: 1px solid #f0e0cc; border-radius: 12px; padding: 14px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
+    .hist-item:hover { background: #fff8f0; border-color: #ff6a1f44; }
+    .hist-q { font-size: 14px; font-weight: 600; color: #ff6a1f; flex: 1; }
+    .hist-time { font-size: 11px; color: #c4b8a8; white-space: nowrap; }
+    .hist-preview { font-size: 13px; color: #8a7f70; line-height: 1.5; margin-top: 6px; }
+    .hist-rating { font-size: 12px; margin-top: 6px; }
+    .hist-clear {
+      background: #fff1e2; color: #b85a1e; border: 1px solid #ff6a1f33; border-radius: 8px;
+      padding: 8px 16px; font-size: 12px; cursor: pointer; font-family: 'Readex Pro', sans-serif;
+      margin-bottom: 16px; transition: all 0.2s;
+    }
+    .hist-clear:hover { background: #ffe4c8; }
+
+    .about-title { font-size: 22px; font-weight: 700; color: #ff6a1f; margin-bottom: 8px; }
+    .about-sub { font-size: 13px; color: #a89a86; margin-bottom: 24px; }
+    .about-card { background: #ffffff; border: 1px solid #ff6a1f22; border-radius: 16px; padding: 20px; margin-bottom: 14px; }
+    .about-card h3 { font-size: 16px; color: #ff6a1f; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .about-card p { font-size: 14px; line-height: 1.9; color: #4a4038; }
+    .about-card .highlight { color: #ff6a1f; font-weight: 700; }
+    .roadmap-item { display: flex; gap: 10px; margin-bottom: 12px; font-size: 14px; color: #4a4038; line-height: 1.7; }
+    .roadmap-icon { flex-shrink: 0; }
+    .contact-email {
+      display: inline-flex; align-items: center; gap: 8px; background: #fff1e2;
+      border: 1px solid #ff6a1f44; border-radius: 10px; padding: 12px 18px;
+      color: #ff6a1f; font-size: 15px; font-weight: 700; text-decoration: none;
+      margin-top: 6px; transition: all 0.2s; direction: ltr;
+    }
+    .contact-email:hover { background: #ffe4c8; }
+
+    .use-item { display: flex; gap: 10px; margin-bottom: 12px; font-size: 14px; color: #4a4038; line-height: 1.7; }
     .use-icon { flex-shrink: 0; }
-    .note-item { display: flex; gap: 10px; margin-bottom: 14px; font-size: 14px; color: #bbb; line-height: 1.8; }
+    .note-item { display: flex; gap: 10px; margin-bottom: 14px; font-size: 14px; color: #4a4038; line-height: 1.8; }
     .note-item:last-child { margin-bottom: 0; }
     .note-icon { flex-shrink: 0; }
-    .note-warn { color: #e0bc5a; }
+    .note-warn { color: #d97a1f; }
 
-    .starter-box { background: #0d0d15; border: 1px solid #c9a84c22; border-radius: 14px; padding: 16px; margin-bottom: 14px; }
-    .starter-title { font-size: 13px; color: #c9a84c; margin-bottom: 12px; font-weight: 600; line-height: 1.6; }
+    .starter-box { background: #fff8f0; border: 1px solid #ff6a1f22; border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+    .starter-title { font-size: 13px; color: #ff6a1f; margin-bottom: 12px; font-weight: 700; line-height: 1.6; }
     .starter-list { display: flex; flex-wrap: wrap; gap: 8px; }
     .starter-chip {
-      background: #ffffff05; border: 1px solid #2a2a2a; border-radius: 20px;
-      padding: 9px 14px; color: #c7bfa9; font-size: 13px; line-height: 1.5; cursor: pointer;
-      transition: all 0.2s; font-family: 'Cairo', sans-serif; text-align: right; direction: rtl;
+      background: #ffffff; border: 1px solid #f0e0cc; border-radius: 20px;
+      padding: 9px 14px; color: #4a4038; font-size: 13px; line-height: 1.5; cursor: pointer;
+      transition: all 0.2s; font-family: 'Readex Pro', sans-serif; text-align: right; direction: rtl;
     }
     body[data-dir="ltr"] .starter-chip { text-align: left; direction: ltr; }
-    .starter-chip:hover { background: #c9a84c15; border-color: #c9a84c66; color: #e8e0d0; }
+    .starter-chip:hover { background: #fff1e2; border-color: #ff6a1f66; color: #ff6a1f; }
     .starter-chip .chip-ico { margin-left: 5px; }
     body[data-dir="ltr"] .starter-chip .chip-ico { margin-left: 0; margin-right: 5px; }
     .starter-note {
-      font-size: 12px; color: #7a745f; margin-top: 14px; padding-top: 12px;
-      border-top: 1px solid #1a1a1a; line-height: 1.7;
+      font-size: 12px; color: #c4b8a8; margin-top: 14px; padding-top: 12px;
+      border-top: 1px solid #f0e0cc; line-height: 1.7;
     }
 
     .toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-      background: #c9a84c; color: #0a0a0f; padding: 10px 24px; border-radius: 20px;
+      background: #ff6a1f; color: #fff; padding: 10px 24px; border-radius: 20px;
       font-size: 13px; font-weight: 700; opacity: 0; transition: opacity 0.3s; z-index: 999; pointer-events: none;
     }
     .toast.show { opacity: 1; }
 
-    footer { text-align: center; padding: 20px; border-top: 1px solid #c9a84c11; color: #2a2a2a; font-size: 12px; }
+    footer { text-align: center; padding: 20px; border-top: 1px solid #ff6a1f18; color: #d8c8b0; font-size: 12px; }
 
     @media (max-width: 480px) {
       .logo-title { font-size: 16px; }
@@ -317,8 +360,13 @@
       </div>
     </div>
 
-    <div class="starter-box fade-in" id="starter-box" style="display:none">
-      <div class="starter-title" data-i18n="starter_title">✨ جرّب أن تسألني — أمثلة على ما يمكنني فعله:</div>
+    <div class="doors-section fade-in" id="doors-section">
+      <div class="doors-title" data-i18n="doors_title">🚪 اختر باباً لتبدأ:</div>
+      <div class="doors-grid" id="doors-grid"></div>
+    </div>
+
+    <div class="starter-box fade-in" id="starter-box">
+      <div class="starter-title" data-i18n="starter_title">✨ أو جرّب أمثلة سريعة:</div>
       <div class="starter-list" id="starter-list"></div>
       <div class="starter-note" data-i18n="starter_note">💡 يمكنك الكتابة بأي لغة في العالم، وسأجيبك بنفس لغتك.</div>
     </div>
@@ -426,6 +474,17 @@
 
 <footer data-i18n="footer">Nexara AI ✦ nexaraapp.net</footer>
 
+<!-- نافذة الأبواب المنبثقة -->
+<div class="door-modal" id="door-modal" onclick="if(event.target===this) closeDoor()">
+  <div class="door-modal-box">
+    <div class="door-modal-head">
+      <div class="door-modal-title" id="door-modal-title"></div>
+      <button class="door-modal-close" onclick="closeDoor()">✕</button>
+    </div>
+    <div id="door-modal-list"></div>
+  </div>
+</div>
+
 <script>
   // ===== نظام الترجمة i18n (عربي/إنجليزي فقط) =====
   const I18N = {
@@ -445,9 +504,9 @@
       history_title:"📚 سجل الأسئلة", hist_clear:"🗑 مسح السجل", hist_empty:"لا يوجد سجل بعد — ابدأ بطرح سؤالك الأول!",
       about_sub:"مجمّع الذكاء الاصطناعي",
       about1_h:"💡 ما هي فكرة Nexara AI؟",
-      about1_p:"Nexara AI موقع يجمع بين <span class='highlight'>أكثر من نموذج ذكاء اصطناعي</span> في مكان واحد. بدلاً من أن تسأل نموذجاً واحداً، يُوجَّه سؤالك حالياً إلى نموذجين متقدّمين (<span class='highlight'>Claude</span> و <span class='highlight'>Gemini</span>)، ثم تُدمَج إجابتاهما في إجابة واحدة أقوى وأشمل وأدق — لتحصل على أفضل ما لدى كل نموذج في ردٍّ واحد.",
+      about1_p:"Nexara AI موقع يجمع بين <span class='highlight'>أكثر من نموذج ذكاء اصطناعي</span> في مكان واحد. بدلاً من أن تسأل نموذجاً واحداً، يُوجَّه سؤالك حالياً إلى نموذجين متقدّمين (<span class='highlight'>Claude</span> و <span class='highlight'>Gemini</span>)، ثم تُدمَج إجابتاهما في إجابة واحدة أقوى وأشمل وأدق.",
       about2_h:"🎯 لماذا الدمج بين نموذجين؟",
-      about2_p:"لكل نموذج ذكاء اصطناعي نقاط قوة مختلفة. عندما نجمع بين إجاباتهما، نحصل على تغطية أوسع، ونقلّل الأخطاء، ونستفيد من وجهات نظر متعددة — فتكون الإجابة النهائية أعمق من أي نموذج بمفرده.",
+      about2_p:"لكل نموذج ذكاء اصطناعي نقاط قوة مختلفة. عندما نجمع بين إجاباتهما، نحصل على تغطية أوسع، ونقلّل الأخطاء، ونستفيد من وجهات نظر متعددة.",
       about3_h:"🚀 رؤيتنا المستقبلية",
       about3_r1:"إضافة <span class='highlight'>نماذج ذكاء اصطناعي أكثر</span> كلما زاد استخدام الموقع.",
       about3_r2:"جعل النماذج <span class='highlight'>تتناقش فيما بينها</span> للوصول إلى الإجابة الأدق.",
@@ -455,40 +514,45 @@
       about3_r4:"دعم المزيد من اللغات لخدمة مستخدمين من كل العالم.",
       about4_h:"📬 اتصل بنا", about4_p:"هل لديك اقتراح، أو ملاحظة، أو ترغب بالتواصل؟ يسعدنا أن نسمع منك:",
       footer:"Nexara AI ✦ nexaraapp.net",
-      beta_notice:"الموقع في مرحلة تجريبية. قد يتوقف مؤقتاً إذا زاد الاستخدام — إن حدث ذلك، انتظر قليلاً وحاول مجدداً. نعمل على تطويره باستمرار، وقد نضيف خطط استخدام مرنة قريباً.",
-      busy_notice:"🚀 يبدو أن الموقع يشهد إقبالاً كبيراً الآن، وقد توقّف مؤقتاً.\n\nهذا يحدث عندما يزداد عدد المستخدمين — انتظر بضع دقائق وحاول مجدداً.\n\nهل أعجبتك التجربة وتريد استخداماً غير محدود؟ يسعدنا تواصلك معنا:\n📧 Kamakoma21@gmail.com",
+      beta_notice:"الموقع في مرحلة تجريبية. قد يتوقف مؤقتاً إذا زاد الاستخدام — إن حدث ذلك، انتظر قليلاً وحاول مجدداً.",
+      busy_notice:"🚀 يبدو أن الموقع يشهد إقبالاً كبيراً الآن، وقد توقّف مؤقتاً.\n\nانتظر بضع دقائق وحاول مجدداً.\n\n📧 Kamakoma21@gmail.com",
       act_print:"🖨️ طباعة", toast_no_print:"تعذّر فتح الطباعة",
       who_h:"🎯 لمن هذا الموقع؟",
-      who_intro:"Nexara AI مفيد لأي شخص تقريباً. مهما كانت فئتك، إليك بعض ما يمكنك فعله:",
-      who_students:"<span class='highlight'>طالب أو متعلّم:</span> اطلب شرحاً مبسّطاً لأي موضوع، أو تلخيصاً، أو حلّ مسائل خطوة بخطوة.",
-      who_dev:"<span class='highlight'>مبرمج:</span> اطلب كوداً جاهزاً، أو حلّ خطأ برمجي، أو شرح مفهوم تقني.",
-      who_writer:"<span class='highlight'>كاتب أو صانع محتوى:</span> اطلب مقالاً، أو قصة، أو صياغة نص إبداعي أو تسويقي.",
-      who_business:"<span class='highlight'>صاحب عمل:</span> أفكار تسويقية، رسائل احترافية، أو خطط ومقترحات عمل.",
-      who_trading:"<span class='highlight'>مهتم بالتداول والعملات الرقمية:</span> اسأل عن التحليل والمفاهيم والاستراتيجيات (معلومات عامة، وليست نصيحة مالية).",
-      who_health:"<span class='highlight'>استشارة أو مشكلة صحية:</span> اطرح سؤالك للحصول على معلومات وإرشاد عام (مع مراجعة الطبيب المختص دائماً).",
-      who_daily:"<span class='highlight'>استخدام يومي:</span> أي سؤال يخطر ببالك — نصيحة، فكرة، معلومة، أو حتى مجرد فضول.",
+      who_intro:"Nexara AI مفيد لأي شخص تقريباً:",
+      who_students:"<span class='highlight'>طالب أو متعلّم:</span> اطلب شرحاً مبسّطاً لأي موضوع.",
+      who_dev:"<span class='highlight'>مبرمج:</span> اطلب كوداً جاهزاً أو حلّ خطأ برمجي.",
+      who_writer:"<span class='highlight'>كاتب:</span> اطلب مقالاً أو قصة أو نصاً إبداعياً.",
+      who_business:"<span class='highlight'>صاحب عمل:</span> أفكار تسويقية وخطط عمل.",
+      who_trading:"<span class='highlight'>مهتم بالتداول:</span> معلومات عامة، وليست نصيحة مالية.",
+      who_health:"<span class='highlight'>استشارة صحية:</span> معلومات عامة (راجع الطبيب دائماً).",
+      who_daily:"<span class='highlight'>استخدام يومي:</span> أي سؤال يخطر ببالك.",
       notes_h:"📌 معلومات مهمة",
-      note_verify:"تحقّق دائماً من الإجابات. الذكاء الاصطناعي قوي لكنه قد يخطئ أحياناً، خاصة في الأرقام والحقائق الدقيقة والمواضيع الحساسة.",
-      note_lang:"يمكنك الكتابة بأي لغة في العالم. اترك الخيار على \"تلقائي\" واكتب بلغتك، وستأتيك الإجابة بنفس لغتك.",
-      note_dev:"الموقع قيد التطوير المستمر. إذا توقّف فجأة أو تأخّرت الإجابة، انتظر بضع دقائق ثم أعد المحاولة.",
+      note_verify:"تحقّق دائماً من الإجابات، خاصة الأرقام والمواضيع الحساسة.",
+      note_lang:"يمكنك الكتابة بأي لغة، واترك الخيار على \"تلقائي\".",
+      note_dev:"الموقع قيد التطوير المستمر.",
       toast_copied:"تم النسخ ✓", toast_shared:"تم نسخ الإجابة للمشاركة ✓", toast_no_tts:"المتصفح لا يدعم القراءة الصوتية",
-      optimize_fail:"تعذّر التحسين، جرّب مرة أخرى", err_prefix:"⚠️ حدث خطأ: ", confirm_clear:"هل تريد مسح كل السجل؟ لا يمكن التراجع.",
+      optimize_fail:"تعذّر التحسين، جرّب مرة أخرى", err_prefix:"⚠️ حدث خطأ: ", confirm_clear:"هل تريد مسح كل السجل؟",
       share_q:"سؤال:", share_a:"الإجابة:", share_via:"— عبر Nexara AI ✦ · nexaraapp.net",
-      starter_title:"✨ جرّب أن تسألني — أمثلة على ما يمكنني فعله:",
+      starter_title:"✨ أو جرّب أمثلة سريعة:",
       starter_note:"💡 يمكنك الكتابة بأي لغة في العالم، وسأجيبك بنفس لغتك.",
+      doors_title:"🚪 اختر باباً لتبدأ:",
       starters:[
         {i:"✍️", q:"اكتب قصة قصيرة مؤثرة عن صداقة بين طفل وشجرة"},
-        {i:"📖", q:"ضع لي مخططاً تفصيلياً لكتاب عن إدارة الوقت"},
         {i:"💻", q:"اكتب دالة بايثون تعكس ترتيب كلمات جملة مع شرحها"},
         {i:"🔬", q:"اشرح لي نظرية النسبية بأسلوب مبسّط"},
-        {i:"🎓", q:"لخّص لي مفهوم التضخم الاقتصادي في نقاط واضحة"},
-        {i:"💼", q:"اقترح خطة تسويقية لمتجر ملابس صغير"},
-        {i:"💹", q:"اشرح استراتيجية DCA في تداول العملات الرقمية"},
-        {i:"✉️", q:"اكتب رسالة احترافية لطلب إجازة من العمل"},
-        {i:"⚕️", q:"ما فوائد شرب الماء بكميات كافية يومياً؟"},
-        {i:"🧠", q:"أعطني نصائح عملية للتغلب على التسويف"},
-        {i:"🍲", q:"اقترح وصفة عشاء صحية وسريعة التحضير"},
-        {i:"🌐", q:"ترجم عبارة \"المعرفة قوة\" إلى الإنجليزية"}
+        {i:"💼", q:"اقترح خطة تسويقية لمتجر ملابس صغير"}
+      ],
+      doors:[
+        {i:"✍️", n:"الكاتب الذكي", opts:["اكتب مقال عن: ","اكتب إيميل رسمي عن: ","اكتب منشور سوشيال ميديا عن: ","لخّص لي النص التالي: ","أعد صياغة النص التالي: ","اكتب قصة قصيرة عن: ","اكتب شعراً عن: ","اكتب سيرة ذاتية مختصرة عن: ","اكتب رسالة تحفيزية عن: ","اكتب وصف منتج عن: "]},
+        {i:"💻", n:"البرمجة", opts:["اكتب كود لـ: ","اشرح لي هذا الكود: ","صحّح هذا الخطأ البرمجي: ","حوّل هذا الكود من لغة إلى أخرى: ","اكتب صفحة ويب بسيطة لـ: ","اشرح لي مفهوم: ","حسّن أداء هذا الكود: ","اكتب اختبارات لهذا الكود: ","راجع هذا الكود وأعطني ملاحظات: ","اشرح لي رسالة الخطأ التالية: "]},
+        {i:"🎓", n:"التعلم", opts:["اشرح لي ببساطة مفهوم: ","لخّص لي هذا الدرس: ","أنشئ لي اختباراً عن: ","اشرح لي خطوة بخطوة كيفية: ","أعطني أمثلة على: ","قارن لي بين: ","ضع لي خطة مذاكرة لـ: ","بسّط لي هذا النص الصعب: ","اسألني أسئلة لأختبر فهمي في: ","اشرح لي بمثال واقعي مفهوم: "]},
+        {i:"💼", n:"العمل والمشاريع", opts:["أعطني فكرة مشروع في مجال: ","ضع لي خطة عمل لـ: ","اقترح خطة تسويقية لـ: ","حلّل لي منافسي في مجال: ","اكتب لي إعلاناً عن: ","اعمل دراسة جدوى مبسّطة لـ: ","اقترح لي أسماء لمشروع عن: ","اكتب رسالة لعميل بخصوص: ","ساعدني في تسعير خدمة: ","اعمل تحليل SWOT لـ: "]},
+        {i:"🌐", n:"الترجمة واللغات", opts:["ترجم لي النص التالي: ","صحّح القواعد اللغوية في: ","حسّن أسلوب هذا النص الإنجليزي: ","اشرح لي الفرق بين كلمتي: ","ترجم بأسلوب احترافي للأعمال: ","بسّط لي هذا النص الإنجليزي: ","اكتب لي بالإنجليزية الرسمية: ","علّمني عبارات مفيدة بلغة: ","دقّق إملائياً النص التالي: ","ترجم مع الحفاظ على نبرة النص: "]},
+        {i:"⚡", n:"أدوات سريعة", opts:["لخّص لي هذا النص الطويل: ","استخرج النقاط المهمة من: ","حوّل هذا النص إلى قائمة: ","أنشئ لي جدولاً عن: ","ولّد لي أفكاراً عن: ","اكتب لي عناوين جذابة عن: ","نظّم لي أفكاري حول: ","اختصر لي هذه الفقرة: ","اعمل خطة نقاط لـ: ","استخرج الأسئلة المحتملة من: "]},
+        {i:"🎭", n:"الترفيه المفيد", opts:["أجب على سؤالي شعراً: ","أجب بأسلوب قديم تراثي عن: ","أجب على شكل سجع عن: ","صف لي كمشهد سينمائي: ","حوّل هذه الفكرة لقصة قصيرة: ","اكتب لي حواراً عن: ","أجب بأسلوب ساخر عن: ","أجب على شكل نصيحة حكيم عن: ","اكتب كرسالة من المستقبل عن: ","اشرح لي بطريقة مبسّطة لطفل: "]},
+        {i:"🧠", n:"المستشار", opts:["أواجه مشكلة تقنية وهي: ","عندي موقف في العمل: ","محتار في قرار بخصوص: ","عندي مشكلة مع شخص حول: ","أريد أطوّر عادة: ","أحتاج مساعدة بإدارة وقتي في: ","عندي سؤال صحي عام حول: ","محتار بقرار مالي عن: ","أريد أحسّن إنتاجيتي في: ","أحتاج نصيحة عامة بخصوص: "]},
+        {i:"📅", n:"المحتوى اليومي", opts:["أعطني معلومة مفيدة عن اليوم","احكِ لي نكتة خفيفة","اطرح عليّ لغزاً ممتعاً","أعطني حكمة ملهمة","أعطني حقيقة علمية غريبة","أعطني اقتباساً ملهماً","اقترح عليّ تحدياً إبداعياً بسيطاً","علّمني كلمة جديدة ومعناها","احكِ لي عن حدث تاريخي مثل هذا اليوم","اقترح عليّ فكرة صغيرة لأجربها اليوم"]},
+        {i:"🎲", n:"أدهشني", opts:["فاجئني بمعلومة غريبة ومفيدة","اقترح عليّ شيئاً جديداً أتعلمه اليوم","اطرح عليّ سؤالاً يوسّع تفكيري","أعطني تحدياً بسيطاً لهذا اليوم","أعطني فكرة إبداعية عشوائية","اقترح عليّ شيئاً ممتعاً لأجربه الآن"]}
       ],
       cat:{trading:"💹 تداول",writing:"✍️ كتابة",programming:"💻 برمجة",science:"🔬 علوم",religion:"🕌 شريعة",health:"⚕️ صحة",general:"📌 عام"}
     },
@@ -508,50 +572,55 @@
       history_title:"📚 Question History", hist_clear:"🗑 Clear history", hist_empty:"No history yet — start by asking your first question!",
       about_sub:"AI Aggregator",
       about1_h:"💡 What is Nexara AI?",
-      about1_p:"Nexara AI is a platform that brings together <span class='highlight'>more than one AI model</span> in one place. Instead of asking a single model, your question currently goes to two advanced models (<span class='highlight'>Claude</span> and <span class='highlight'>Gemini</span>), then their answers are merged into one stronger, more comprehensive and more accurate answer — giving you the best of each model in a single reply.",
+      about1_p:"Nexara AI brings together <span class='highlight'>more than one AI model</span> in one place. Your question currently goes to two advanced models (<span class='highlight'>Claude</span> and <span class='highlight'>Gemini</span>), then their answers are merged into one stronger, more accurate answer.",
       about2_h:"🎯 Why merge two models?",
-      about2_p:"Each AI model has different strengths. By combining their answers, we get broader coverage, fewer errors, and multiple perspectives — so the final answer is deeper than any single model alone.",
+      about2_p:"Each AI model has different strengths. Combining their answers gives broader coverage, fewer errors, and multiple perspectives.",
       about3_h:"🚀 Our future vision",
       about3_r1:"Adding <span class='highlight'>more AI models</span> as the site grows.",
-      about3_r2:"Letting the models <span class='highlight'>debate each other</span> to reach the most accurate answer.",
-      about3_r3:"Allowing you to <span class='highlight'>attach images</span> with your question for analysis.",
-      about3_r4:"Supporting more languages to serve users worldwide.",
-      about4_h:"📬 Contact us", about4_p:"Have a suggestion, feedback, or want to get in touch? We'd love to hear from you:",
+      about3_r2:"Letting the models <span class='highlight'>debate each other</span> for the most accurate answer.",
+      about3_r3:"Allowing you to <span class='highlight'>attach images</span> for analysis.",
+      about3_r4:"Supporting more languages worldwide.",
+      about4_h:"📬 Contact us", about4_p:"Have a suggestion or feedback? We'd love to hear from you:",
       footer:"Nexara AI ✦ nexaraapp.net",
-      beta_notice:"The site is in a trial phase. It may pause temporarily if usage grows — if that happens, wait a moment and try again. We're improving it continuously, and may add flexible usage plans soon.",
-      busy_notice:"🚀 It looks like the site is very busy right now and has paused temporarily.\n\nThis happens when the number of users grows — please wait a few minutes and try again.\n\nEnjoyed the experience and want unlimited access? We'd love to hear from you:\n📧 Kamakoma21@gmail.com",
+      beta_notice:"The site is in a trial phase. It may pause temporarily if usage grows.",
+      busy_notice:"🚀 The site is very busy right now and has paused temporarily.\n\nPlease wait a few minutes and try again.\n\n📧 Kamakoma21@gmail.com",
       act_print:"🖨️ Print", toast_no_print:"Couldn't open print",
       who_h:"🎯 Who is this for?",
-      who_intro:"Nexara AI is useful for almost anyone. Whatever your field, here are some things you can do:",
-      who_students:"<span class='highlight'>Student or learner:</span> ask for a simple explanation of any topic, a summary, or step-by-step problem solving.",
-      who_dev:"<span class='highlight'>Developer:</span> ask for ready code, help fixing a bug, or an explanation of a technical concept.",
-      who_writer:"<span class='highlight'>Writer or content creator:</span> ask for an article, a story, or creative and marketing copy.",
-      who_business:"<span class='highlight'>Business owner:</span> marketing ideas, professional messages, or business plans and proposals.",
-      who_trading:"<span class='highlight'>Into trading and crypto:</span> ask about analysis, concepts and strategies (general information, not financial advice).",
-      who_health:"<span class='highlight'>Health question or concern:</span> ask your question for general information and guidance (always consult a specialist).",
-      who_daily:"<span class='highlight'>Everyday use:</span> any question on your mind — advice, an idea, a fact, or just curiosity.",
+      who_intro:"Nexara AI is useful for almost anyone:",
+      who_students:"<span class='highlight'>Student:</span> ask for a simple explanation of any topic.",
+      who_dev:"<span class='highlight'>Developer:</span> ask for ready code or bug fixes.",
+      who_writer:"<span class='highlight'>Writer:</span> ask for an article, story, or creative text.",
+      who_business:"<span class='highlight'>Business owner:</span> marketing ideas and business plans.",
+      who_trading:"<span class='highlight'>Into trading:</span> general information, not financial advice.",
+      who_health:"<span class='highlight'>Health question:</span> general info (always consult a specialist).",
+      who_daily:"<span class='highlight'>Everyday use:</span> any question on your mind.",
       notes_h:"📌 Good to know",
-      note_verify:"Always verify the answers. AI is powerful but can sometimes make mistakes, especially with numbers, precise facts and sensitive topics.",
-      note_lang:"You can write in any language in the world. Leave the option on \"Auto\" and write in your language; the answer will come in the same language.",
-      note_dev:"The site is under continuous development. If it suddenly stops or the answer is delayed, wait a few minutes and try again.",
+      note_verify:"Always verify answers, especially numbers and sensitive topics.",
+      note_lang:"You can write in any language; leave the option on \"Auto\".",
+      note_dev:"The site is under continuous development.",
       toast_copied:"Copied ✓", toast_shared:"Answer copied for sharing ✓", toast_no_tts:"Your browser doesn't support text-to-speech",
-      optimize_fail:"Couldn't improve, try again", err_prefix:"⚠️ An error occurred: ", confirm_clear:"Clear all history? This can't be undone.",
+      optimize_fail:"Couldn't improve, try again", err_prefix:"⚠️ An error occurred: ", confirm_clear:"Clear all history?",
       share_q:"Question:", share_a:"Answer:", share_via:"— via Nexara AI ✦ · nexaraapp.net",
-      starter_title:"✨ Try asking me — examples of what I can do:",
-      starter_note:"💡 You can write in any language in the world, and I'll reply in the same language.",
+      starter_title:"✨ Or try quick examples:",
+      starter_note:"💡 You can write in any language, and I'll reply in the same language.",
+      doors_title:"🚪 Choose a door to start:",
       starters:[
         {i:"✍️", q:"Write a touching short story about a friendship between a child and a tree"},
-        {i:"📖", q:"Give me a detailed outline for a book about time management"},
         {i:"💻", q:"Write a Python function that reverses the words in a sentence, with an explanation"},
         {i:"🔬", q:"Explain the theory of relativity in simple terms"},
-        {i:"🎓", q:"Summarize the concept of inflation in clear points"},
-        {i:"💼", q:"Suggest a marketing plan for a small clothing store"},
-        {i:"💹", q:"Explain the DCA strategy in crypto trading"},
-        {i:"✉️", q:"Write a professional email to request time off from work"},
-        {i:"⚕️", q:"What are the benefits of drinking enough water daily?"},
-        {i:"🧠", q:"Give me practical tips to overcome procrastination"},
-        {i:"🍲", q:"Suggest a healthy and quick dinner recipe"},
-        {i:"🌐", q:"Translate the phrase \"Knowledge is power\" into Arabic"}
+        {i:"💼", q:"Suggest a marketing plan for a small clothing store"}
+      ],
+      doors:[
+        {i:"✍️", n:"Smart Writer", opts:["Write an article about: ","Write a formal email about: ","Write a social media post about: ","Summarize this text: ","Rewrite this text: ","Write a short story about: ","Write a poem about: ","Write a short bio about: ","Write a motivational message about: ","Write a product description for: "]},
+        {i:"💻", n:"Programming", opts:["Write code for: ","Explain this code: ","Fix this bug: ","Convert this code to another language: ","Build a simple web page for: ","Explain the concept of: ","Optimize this code: ","Write tests for this code: ","Review this code and give feedback: ","Explain this error message: "]},
+        {i:"🎓", n:"Learning", opts:["Explain simply: ","Summarize this lesson: ","Create a quiz about: ","Explain step by step how to: ","Give me examples of: ","Compare between: ","Make a study plan for: ","Simplify this difficult text: ","Ask me questions to test my understanding of: ","Explain with a real-world example: "]},
+        {i:"💼", n:"Business & Projects", opts:["Give me a project idea in: ","Make a business plan for: ","Suggest a marketing plan for: ","Analyze my competitors in: ","Write an ad about: ","Do a simple feasibility study for: ","Suggest names for a project about: ","Write a message to a client about: ","Help me price a service: ","Do a SWOT analysis for: "]},
+        {i:"🌐", n:"Translation & Languages", opts:["Translate this text: ","Fix the grammar in: ","Improve the style of this English text: ","Explain the difference between: ","Translate professionally for business: ","Simplify this English text: ","Write formally in English: ","Teach me useful phrases in: ","Proofread this text: ","Translate while keeping the tone of: "]},
+        {i:"⚡", n:"Quick Tools", opts:["Summarize this long text: ","Extract the key points from: ","Turn this text into a list: ","Create a table about: ","Generate ideas about: ","Write catchy titles for: ","Organize my thoughts about: ","Shorten this paragraph: ","Make a bullet-point plan for: ","Extract possible questions from: "]},
+        {i:"🎭", n:"Fun & Creative", opts:["Answer my question as a poem: ","Answer in an old classic style about: ","Answer in rhymed prose about: ","Describe as a movie scene: ","Turn this idea into a short story: ","Write a dialogue about: ","Answer sarcastically about: ","Answer as wise advice about: ","Write as a message from the future about: ","Explain simply for a child: "]},
+        {i:"🧠", n:"Advisor", opts:["I'm facing a technical problem: ","I have a work situation: ","I'm torn on a decision about: ","I have an issue with someone about: ","I want to build a habit: ","I need help managing my time for: ","I have a general health question about: ","I'm torn on a financial decision about: ","I want to improve my productivity in: ","I need general advice about: "]},
+        {i:"📅", n:"Daily Content", opts:["Give me a useful fact for today","Tell me a light joke","Give me a fun riddle","Give me an inspiring quote of wisdom","Give me a strange scientific fact","Give me an inspiring quote","Suggest a simple creative challenge","Teach me a new word and its meaning","Tell me about a historical event on this day","Suggest a small idea to try today"]},
+        {i:"🎲", n:"Surprise Me", opts:["Surprise me with a strange useful fact","Suggest something new for me to learn today","Ask me a question that expands my thinking","Give me a simple challenge for today","Give me a random creative idea","Suggest something fun to try right now"]}
       ],
       cat:{trading:"💹 Trading",writing:"✍️ Writing",programming:"💻 Programming",science:"🔬 Science",religion:"🕌 Religion",health:"⚕️ Health",general:"📌 General"}
     }
@@ -599,6 +668,7 @@
     }
     if (document.getElementById("tab-history").style.display !== "none") renderHistory();
     renderStarters();
+    renderDoors();
   }
 
   function renderStarters() {
@@ -619,12 +689,68 @@
     input.value = q;
     currentQuestion = q;
     optimizeDone = true;
-    document.getElementById("starter-box").style.display = "none";
+    hideDoorsArea();
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
     document.getElementById("btn-clear").style.display = "inline-flex";
     document.getElementById("btn-optimize").disabled = false;
     askQuestion();
+  }
+
+  // ===== الأبواب =====
+  function renderDoors() {
+    const grid = document.getElementById("doors-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    (T.doors || []).forEach((d, idx) => {
+      const card = document.createElement("div");
+      card.className = "door-card";
+      card.innerHTML = '<div class="door-ico">' + d.i + '</div><div class="door-name">' + d.n + '</div>';
+      card.onclick = () => openDoor(idx);
+      grid.appendChild(card);
+    });
+  }
+
+  function openDoor(idx) {
+    const d = T.doors[idx];
+    if (!d) return;
+    document.getElementById("door-modal-title").innerHTML = d.i + " " + d.n;
+    const list = document.getElementById("door-modal-list");
+    list.innerHTML = "";
+    d.opts.forEach(opt => {
+      const b = document.createElement("button");
+      b.className = "door-opt";
+      b.textContent = opt;
+      b.onclick = () => selectDoorOption(opt);
+      list.appendChild(b);
+    });
+    document.getElementById("door-modal").classList.add("show");
+  }
+
+  function closeDoor() {
+    document.getElementById("door-modal").classList.remove("show");
+  }
+
+  function selectDoorOption(opt) {
+    input.value = opt;
+    currentQuestion = "";
+    optimizeDone = false;
+    closeDoor();
+    document.getElementById("btn-optimize").disabled = false;
+    document.getElementById("btn-clear").style.display = "inline-flex";
+    document.getElementById("suggestions-box").style.display = "none";
+    document.getElementById("send-row").style.display = "none";
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }
+
+  function hideDoorsArea() {
+    document.getElementById("doors-section").style.display = "none";
+    document.getElementById("starter-box").style.display = "none";
+  }
+  function showDoorsArea() {
+    document.getElementById("doors-section").style.display = "block";
+    document.getElementById("starter-box").style.display = "block";
   }
 
   function onLangChange() {
@@ -704,7 +830,7 @@
     const btn = document.getElementById("btn-optimize");
     btn.disabled = true;
     btn.innerHTML = '<span class="spin">⟳</span> ' + T.btn_optimizing;
-    document.getElementById("starter-box").style.display = "none";
+    hideDoorsArea();
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
 
@@ -763,7 +889,7 @@
     const lang = document.getElementById("lang-select").value;
 
     document.getElementById("send-row").style.display = "none";
-    document.getElementById("starter-box").style.display = "none";
+    hideDoorsArea();
     document.getElementById("answer-box").style.display = "none";
     document.getElementById("loading-box").style.display = "block";
     document.getElementById("hero").style.display = "none";
@@ -821,7 +947,7 @@
     document.getElementById("btn-clear").style.display = "none";
     document.getElementById("btn-optimize").disabled = true;
     document.getElementById("hero").style.display = "block";
-    document.getElementById("starter-box").style.display = "block";
+    showDoorsArea();
     localStorage.removeItem("aljame3_last");
     input.focus();
   }
@@ -839,8 +965,8 @@
     w.document.write(
       '<html dir="' + dir + '"><head><meta charset="utf-8"><title>Nexara AI</title>' +
       '<style>body{font-family:Arial,Helvetica,sans-serif;line-height:1.9;color:#111;padding:32px;max-width:800px;margin:auto}' +
-      'h2{color:#b58a2e}.q{background:#faf6ea;border:1px solid #e6d9b0;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-weight:bold}' +
-      '.a{white-space:pre-wrap;font-size:15px}.sig{margin-top:28px;padding-top:14px;border-top:1px solid #ddd;text-align:center;color:#b58a2e;font-weight:bold}</style>' +
+      'h2{color:#ff6a1f}.q{background:#fff3e6;border:1px solid #ffd9b8;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-weight:bold}' +
+      '.a{white-space:pre-wrap;font-size:15px}.sig{margin-top:28px;padding-top:14px;border-top:1px solid #ddd;text-align:center;color:#ff6a1f;font-weight:bold}</style>' +
       '</head><body>' +
       '<h2>Nexara AI</h2>' +
       (currentQuestion ? '<div class="q">' + esc(currentQuestion) + '</div>' : '') +
@@ -853,11 +979,11 @@
   }
 
   function shareAnswer() {
-    const maxLen = 400; // أقصى طول للإجابة داخل نص المشاركة (لضمان ظهور التوقيع دائماً)
+    const maxLen = 500;
     const shortAnswer = currentAnswer.length > maxLen
-      ? currentAnswer.slice(0, maxLen) + "..."
+      ? currentAnswer.slice(0, maxLen) + "...\n\n📖 " + (uiLang === "ar" ? "تابع باقي الإجابة كاملة على الموقع" : "Read the full answer on the site")
       : currentAnswer;
-    const shareText = T.share_q + " " + currentQuestion + "\n\n" + T.share_a + "\n" + shortAnswer + "\n\n" + T.share_via;
+    const shareText = T.share_via + "\n\n" + T.share_q + " " + currentQuestion + "\n\n" + T.share_a + "\n" + shortAnswer;
     if (navigator.share) {
       navigator.share({ title: "Nexara AI", text: shareText }).catch(() => {});
     } else {
@@ -927,6 +1053,7 @@
         document.getElementById("sources-tag").textContent = "";
         document.getElementById("answer-box").style.display = "block";
         document.getElementById("hero").style.display = "none";
+        hideDoorsArea();
         if (currentHistoryIndex >= 0 && history[currentHistoryIndex]?.rating) {
           const r = history[currentHistoryIndex].rating;
           document.getElementById("rate-good").classList.toggle("active", r === "good");
@@ -971,7 +1098,7 @@
     document.getElementById("sources-tag").textContent = "";
     document.getElementById("answer-box").style.display = "block";
     document.getElementById("hero").style.display = "none";
-    document.getElementById("starter-box").style.display = "none";
+    hideDoorsArea();
     document.getElementById("rate-good").classList.toggle("active", item.rating === "good");
     document.getElementById("rate-bad").classList.toggle("active", item.rating === "bad");
     document.getElementById("rate-thanks").style.display = item.rating ? "inline" : "none";
@@ -994,7 +1121,7 @@
   restoreLastAnswer();
 
   if (document.getElementById("answer-box").style.display !== "block") {
-    document.getElementById("starter-box").style.display = "block";
+    showDoorsArea();
   }
 
   if ("serviceWorker" in navigator) {
