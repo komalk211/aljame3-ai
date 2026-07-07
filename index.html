@@ -223,7 +223,6 @@
     .note-icon { flex-shrink: 0; }
     .note-warn { color: #e0bc5a; }
 
-    /* أزرار القدرات الاقتراحية (تظهر بالبداية فقط) */
     .starter-box { background: #0d0d15; border: 1px solid #c9a84c22; border-radius: 14px; padding: 16px; margin-bottom: 14px; }
     .starter-title { font-size: 13px; color: #c9a84c; margin-bottom: 12px; font-weight: 600; line-height: 1.6; }
     .starter-list { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -310,10 +309,6 @@
           <option value="auto">🔄 تلقائي / Auto</option>
           <option value="العربية">🇸🇦 العربية / Arabic</option>
           <option value="English">🇬🇧 English</option>
-          <option value="Español">🇪🇸 Español / Spanish</option>
-          <option value="中文">🇨🇳 中文 / Chinese</option>
-          <option value="हिन्दी">🇮🇳 हिन्दी / Hindi</option>
-          <option value="Français">🇫🇷 Français / French</option>
         </select>
       </div>
       <div class="btn-row" id="btn-row">
@@ -432,7 +427,7 @@
 <footer data-i18n="footer">Nexara AI ✦ nexaraapp.net</footer>
 
 <script>
-  // ===== نظام الترجمة i18n =====
+  // ===== نظام الترجمة i18n (عربي/إنجليزي فقط) =====
   const I18N = {
     ar: {
       nav_home:"🏠 الرئيسية", nav_history:"📚 السجل", nav_about:"ℹ️ عن الموقع",
@@ -474,7 +469,7 @@
       who_daily:"<span class='highlight'>استخدام يومي:</span> أي سؤال يخطر ببالك — نصيحة، فكرة، معلومة، أو حتى مجرد فضول.",
       notes_h:"📌 معلومات مهمة",
       note_verify:"تحقّق دائماً من الإجابات. الذكاء الاصطناعي قوي لكنه قد يخطئ أحياناً، خاصة في الأرقام والحقائق الدقيقة والمواضيع الحساسة.",
-      note_lang:"يمكنك الكتابة بأي لغة في العالم — وليس فقط اللغات الست في القائمة. اترك الخيار على \"تلقائي\" واكتب بلغتك، وستأتيك الإجابة بنفس لغتك.",
+      note_lang:"يمكنك الكتابة بأي لغة في العالم. اترك الخيار على \"تلقائي\" واكتب بلغتك، وستأتيك الإجابة بنفس لغتك.",
       note_dev:"الموقع قيد التطوير المستمر. إذا توقّف فجأة أو تأخّرت الإجابة، انتظر بضع دقائق ثم أعد المحاولة.",
       toast_copied:"تم النسخ ✓", toast_shared:"تم نسخ الإجابة للمشاركة ✓", toast_no_tts:"المتصفح لا يدعم القراءة الصوتية",
       optimize_fail:"تعذّر التحسين، جرّب مرة أخرى", err_prefix:"⚠️ حدث خطأ: ", confirm_clear:"هل تريد مسح كل السجل؟ لا يمكن التراجع.",
@@ -493,7 +488,7 @@
         {i:"⚕️", q:"ما فوائد شرب الماء بكميات كافية يومياً؟"},
         {i:"🧠", q:"أعطني نصائح عملية للتغلب على التسويف"},
         {i:"🍲", q:"اقترح وصفة عشاء صحية وسريعة التحضير"},
-        {i:"🌐", q:"ترجم عبارة \"المعرفة قوة\" إلى خمس لغات"}
+        {i:"🌐", q:"ترجم عبارة \"المعرفة قوة\" إلى الإنجليزية"}
       ],
       cat:{trading:"💹 تداول",writing:"✍️ كتابة",programming:"💻 برمجة",science:"🔬 علوم",religion:"🕌 شريعة",health:"⚕️ صحة",general:"📌 عام"}
     },
@@ -537,7 +532,7 @@
       who_daily:"<span class='highlight'>Everyday use:</span> any question on your mind — advice, an idea, a fact, or just curiosity.",
       notes_h:"📌 Good to know",
       note_verify:"Always verify the answers. AI is powerful but can sometimes make mistakes, especially with numbers, precise facts and sensitive topics.",
-      note_lang:"You can write in any language in the world — not only the six in the list. Leave the option on \"Auto\" and write in your language; the answer will come in the same language.",
+      note_lang:"You can write in any language in the world. Leave the option on \"Auto\" and write in your language; the answer will come in the same language.",
       note_dev:"The site is under continuous development. If it suddenly stops or the answer is delayed, wait a few minutes and try again.",
       toast_copied:"Copied ✓", toast_shared:"Answer copied for sharing ✓", toast_no_tts:"Your browser doesn't support text-to-speech",
       optimize_fail:"Couldn't improve, try again", err_prefix:"⚠️ An error occurred: ", confirm_clear:"Clear all history? This can't be undone.",
@@ -556,267 +551,15 @@
         {i:"⚕️", q:"What are the benefits of drinking enough water daily?"},
         {i:"🧠", q:"Give me practical tips to overcome procrastination"},
         {i:"🍲", q:"Suggest a healthy and quick dinner recipe"},
-        {i:"🌐", q:"Translate the phrase \"Knowledge is power\" into five languages"}
+        {i:"🌐", q:"Translate the phrase \"Knowledge is power\" into Arabic"}
       ],
       cat:{trading:"💹 Trading",writing:"✍️ Writing",programming:"💻 Programming",science:"🔬 Science",religion:"🕌 Religion",health:"⚕️ Health",general:"📌 General"}
-    },
-    es: {
-      nav_home:"🏠 Inicio", nav_history:"📚 Historial", nav_about:"ℹ️ Acerca de",
-      hero_h1:"Pregunta y obtén la mejor respuesta",
-      hero_p:"Tu pregunta va a expertos especializados y se combina en una sola respuesta potente",
-      stat_visits:"Visitas", stat_questions:"Tus preguntas",
-      input_ph:"Escribe tu pregunta aquí...",
-      lang_label:"🌍 Idioma:",
-      btn_clear:"Borrar", btn_optimize:"✨ Mejorar mi pregunta", btn_optimizing:"Mejorando...", btn_send:"Enviar ✦",
-      sug_title:"✨ Elige una versión mejorada de tu pregunta:", sug_original:"Enviar mi pregunta tal como está",
-      step1:"🎯 Analizando y clasificando la pregunta...", step2:"🤖 Consultando a los expertos (Claude + Gemini)...", step3:"💎 Combinando y redactando la respuesta final...",
-      answer_label:"Respuesta de Nexara AI", act_listen:"🔊 Escuchar", act_stop:"⏹ Detener", act_share:"🔗 Compartir", act_copy:"⎘ Copiar",
-      rating_label:"¿Qué te pareció la respuesta?", rate_thanks:"¡Gracias por tu valoración!",
-      sources_label:"🔗 Fuentes:", signature:"✦ Nexara AI — nexaraapp.net",
-      history_title:"📚 Historial de preguntas", hist_clear:"🗑 Borrar historial", hist_empty:"Aún no hay historial: ¡empieza haciendo tu primera pregunta!",
-      about_sub:"Agregador de IA",
-      about1_h:"💡 ¿Qué es Nexara AI?",
-      about1_p:"Nexara AI es una plataforma que reúne <span class='highlight'>más de un modelo de IA</span> en un solo lugar. En lugar de preguntar a un único modelo, tu pregunta va actualmente a dos modelos avanzados (<span class='highlight'>Claude</span> y <span class='highlight'>Gemini</span>), y luego sus respuestas se combinan en una sola respuesta más potente, completa y precisa: lo mejor de cada modelo en una única respuesta.",
-      about2_h:"🎯 ¿Por qué combinar dos modelos?",
-      about2_p:"Cada modelo de IA tiene fortalezas diferentes. Al combinar sus respuestas obtenemos una cobertura más amplia, menos errores y varias perspectivas, por lo que la respuesta final es más profunda que la de un solo modelo.",
-      about3_h:"🚀 Nuestra visión de futuro",
-      about3_r1:"Añadir <span class='highlight'>más modelos de IA</span> a medida que el sitio crezca.",
-      about3_r2:"Permitir que los modelos <span class='highlight'>debatan entre sí</span> para llegar a la respuesta más precisa.",
-      about3_r3:"Permitir <span class='highlight'>adjuntar imágenes</span> con tu pregunta para analizarlas.",
-      about3_r4:"Admitir más idiomas para servir a usuarios de todo el mundo.",
-      about4_h:"📬 Contáctanos", about4_p:"¿Tienes una sugerencia, un comentario o quieres ponerte en contacto? Nos encantaría saber de ti:",
-      footer:"Nexara AI ✦ nexaraapp.net",
-      beta_notice:"El sitio está en fase de prueba. Puede detenerse temporalmente si aumenta el uso; si ocurre, espera un momento e inténtalo de nuevo. Lo mejoramos continuamente y pronto podríamos añadir planes de uso flexibles.",
-      busy_notice:"🚀 Parece que el sitio está muy solicitado ahora mismo y se ha detenido temporalmente.\n\nEsto ocurre cuando aumenta el número de usuarios: espera unos minutos e inténtalo de nuevo.\n\n¿Te gustó la experiencia y quieres acceso ilimitado? Nos encantaría saber de ti:\n📧 Kamakoma21@gmail.com",
-      act_print:"🖨️ Imprimir", toast_no_print:"No se pudo abrir la impresión",
-      who_h:"🎯 ¿Para quién es esto?",
-      who_intro:"Nexara AI es útil para casi cualquier persona. Sea cual sea tu área, esto es algo de lo que puedes hacer:",
-      who_students:"<span class='highlight'>Estudiante o aprendiz:</span> pide una explicación sencilla de cualquier tema, un resumen o la resolución paso a paso de problemas.",
-      who_dev:"<span class='highlight'>Programador:</span> pide código listo, ayuda para corregir un error o la explicación de un concepto técnico.",
-      who_writer:"<span class='highlight'>Escritor o creador de contenido:</span> pide un artículo, una historia o textos creativos y de marketing.",
-      who_business:"<span class='highlight'>Dueño de negocio:</span> ideas de marketing, mensajes profesionales o planes y propuestas de negocio.",
-      who_trading:"<span class='highlight'>Interesado en trading y cripto:</span> pregunta sobre análisis, conceptos y estrategias (información general, no asesoramiento financiero).",
-      who_health:"<span class='highlight'>Consulta o problema de salud:</span> haz tu pregunta para obtener información y orientación general (consulta siempre a un especialista).",
-      who_daily:"<span class='highlight'>Uso diario:</span> cualquier pregunta que tengas en mente: un consejo, una idea, un dato o simple curiosidad.",
-      notes_h:"📌 Información importante",
-      note_verify:"Verifica siempre las respuestas. La IA es potente, pero a veces puede equivocarse, especialmente con números, datos precisos y temas delicados.",
-      note_lang:"Puedes escribir en cualquier idioma del mundo, no solo en los seis de la lista. Deja la opción en \"Auto\" y escribe en tu idioma; la respuesta llegará en el mismo idioma.",
-      note_dev:"El sitio está en desarrollo continuo. Si se detiene de repente o la respuesta tarda, espera unos minutos e inténtalo de nuevo.",
-      toast_copied:"Copiado ✓", toast_shared:"Respuesta copiada para compartir ✓", toast_no_tts:"Tu navegador no admite lectura por voz",
-      optimize_fail:"No se pudo mejorar, inténtalo de nuevo", err_prefix:"⚠️ Ocurrió un error: ", confirm_clear:"¿Borrar todo el historial? No se puede deshacer.",
-      share_q:"Pregunta:", share_a:"Respuesta:", share_via:"— vía Nexara AI ✦ · nexaraapp.net",
-      starter_title:"✨ Prueba a preguntarme — ejemplos de lo que puedo hacer:",
-      starter_note:"💡 Puedes escribir en cualquier idioma del mundo y te responderé en el mismo idioma.",
-      starters:[
-        {i:"✍️", q:"Escribe un cuento corto conmovedor sobre la amistad entre un niño y un árbol"},
-        {i:"📖", q:"Dame un esquema detallado para un libro sobre gestión del tiempo"},
-        {i:"💻", q:"Escribe una función de Python que invierta las palabras de una frase, con explicación"},
-        {i:"🔬", q:"Explícame la teoría de la relatividad de forma sencilla"},
-        {i:"🎓", q:"Resume el concepto de inflación en puntos claros"},
-        {i:"💼", q:"Propón un plan de marketing para una pequeña tienda de ropa"},
-        {i:"💹", q:"Explica la estrategia DCA en el trading de criptomonedas"},
-        {i:"✉️", q:"Escribe un correo profesional para solicitar días libres en el trabajo"},
-        {i:"⚕️", q:"¿Cuáles son los beneficios de beber suficiente agua a diario?"},
-        {i:"🧠", q:"Dame consejos prácticos para superar la procrastinación"},
-        {i:"🍲", q:"Sugiere una receta de cena saludable y rápida"},
-        {i:"🌐", q:"Traduce la frase \"El conocimiento es poder\" a cinco idiomas"}
-      ],
-      cat:{trading:"💹 Trading",writing:"✍️ Escritura",programming:"💻 Programación",science:"🔬 Ciencia",religion:"🕌 Religión",health:"⚕️ Salud",general:"📌 General"}
-    },
-    fr: {
-      nav_home:"🏠 Accueil", nav_history:"📚 Historique", nav_about:"ℹ️ À propos",
-      hero_h1:"Posez une question et obtenez la meilleure réponse",
-      hero_p:"Votre question est envoyée à des experts spécialisés puis fusionnée en une seule réponse puissante",
-      stat_visits:"Visites", stat_questions:"Vos questions",
-      input_ph:"Écrivez votre question ici...",
-      lang_label:"🌍 Langue :",
-      btn_clear:"Effacer", btn_optimize:"✨ Améliorer ma question", btn_optimizing:"Amélioration...", btn_send:"Envoyer ✦",
-      sug_title:"✨ Choisissez une version améliorée de votre question :", sug_original:"Envoyer ma question telle quelle",
-      step1:"🎯 Analyse et classification de la question...", step2:"🤖 Consultation des experts (Claude + Gemini)...", step3:"💎 Fusion et rédaction de la réponse finale...",
-      answer_label:"Réponse de Nexara AI", act_listen:"🔊 Écouter", act_stop:"⏹ Arrêter", act_share:"🔗 Partager", act_copy:"⎘ Copier",
-      rating_label:"Comment était la réponse ?", rate_thanks:"Merci pour votre retour !",
-      sources_label:"🔗 Sources :", signature:"✦ Nexara AI — nexaraapp.net",
-      history_title:"📚 Historique des questions", hist_clear:"🗑 Effacer l'historique", hist_empty:"Aucun historique pour l'instant — commencez par poser votre première question !",
-      about_sub:"Agrégateur d'IA",
-      about1_h:"💡 Qu'est-ce que Nexara AI ?",
-      about1_p:"Nexara AI est une plateforme qui réunit <span class='highlight'>plusieurs modèles d'IA</span> au même endroit. Au lieu d'interroger un seul modèle, votre question est actuellement envoyée à deux modèles avancés (<span class='highlight'>Claude</span> et <span class='highlight'>Gemini</span>), puis leurs réponses sont fusionnées en une seule réponse plus puissante, plus complète et plus précise — le meilleur de chaque modèle en une seule réponse.",
-      about2_h:"🎯 Pourquoi fusionner deux modèles ?",
-      about2_p:"Chaque modèle d'IA a des points forts différents. En combinant leurs réponses, on obtient une couverture plus large, moins d'erreurs et plusieurs points de vue — la réponse finale est donc plus approfondie qu'avec un seul modèle.",
-      about3_h:"🚀 Notre vision d'avenir",
-      about3_r1:"Ajouter <span class='highlight'>davantage de modèles d'IA</span> à mesure que le site se développe.",
-      about3_r2:"Permettre aux modèles de <span class='highlight'>débattre entre eux</span> pour atteindre la réponse la plus précise.",
-      about3_r3:"Permettre de <span class='highlight'>joindre des images</span> à votre question pour les analyser.",
-      about3_r4:"Prendre en charge davantage de langues pour servir des utilisateurs du monde entier.",
-      about4_h:"📬 Contactez-nous", about4_p:"Vous avez une suggestion, un commentaire ou souhaitez nous contacter ? Nous serions ravis de vous lire :",
-      footer:"Nexara AI ✦ nexaraapp.net",
-      beta_notice:"Le site est en phase d'essai. Il peut s'arrêter temporairement si l'utilisation augmente ; le cas échéant, patientez un instant et réessayez. Nous l'améliorons en continu et pourrions bientôt ajouter des formules d'utilisation flexibles.",
-      busy_notice:"🚀 Le site semble très sollicité en ce moment et s'est arrêté temporairement.\n\nCela arrive lorsque le nombre d'utilisateurs augmente — patientez quelques minutes puis réessayez.\n\nL'expérience vous a plu et vous voulez un accès illimité ? Nous serions ravis de vous lire :\n📧 Kamakoma21@gmail.com",
-      act_print:"🖨️ Imprimer", toast_no_print:"Impossible d'ouvrir l'impression",
-      who_h:"🎯 Pour qui est-ce ?",
-      who_intro:"Nexara AI est utile pour presque tout le monde. Quel que soit votre domaine, voici quelques exemples de ce que vous pouvez faire :",
-      who_students:"<span class='highlight'>Étudiant ou apprenant :</span> demandez une explication simple d'un sujet, un résumé, ou la résolution d'exercices étape par étape.",
-      who_dev:"<span class='highlight'>Développeur :</span> demandez du code prêt à l'emploi, de l'aide pour corriger un bug, ou l'explication d'un concept technique.",
-      who_writer:"<span class='highlight'>Rédacteur ou créateur de contenu :</span> demandez un article, une histoire, ou des textes créatifs et marketing.",
-      who_business:"<span class='highlight'>Chef d'entreprise :</span> des idées marketing, des messages professionnels, ou des plans et propositions.",
-      who_trading:"<span class='highlight'>Intéressé par le trading et la crypto :</span> posez des questions sur l'analyse, les concepts et les stratégies (informations générales, pas un conseil financier).",
-      who_health:"<span class='highlight'>Question ou souci de santé :</span> posez votre question pour des informations et des conseils généraux (consultez toujours un spécialiste).",
-      who_daily:"<span class='highlight'>Usage quotidien :</span> toute question qui vous vient à l'esprit — un conseil, une idée, une information, ou simplement de la curiosité.",
-      notes_h:"📌 Bon à savoir",
-      note_verify:"Vérifiez toujours les réponses. L'IA est puissante mais peut parfois se tromper, surtout pour les chiffres, les faits précis et les sujets sensibles.",
-      note_lang:"Vous pouvez écrire dans n'importe quelle langue du monde — pas seulement les six de la liste. Laissez l'option sur « Auto » et écrivez dans votre langue ; la réponse arrivera dans la même langue.",
-      note_dev:"Le site est en développement continu. S'il s'arrête soudainement ou si la réponse tarde, attendez quelques minutes puis réessayez.",
-      toast_copied:"Copié ✓", toast_shared:"Réponse copiée pour le partage ✓", toast_no_tts:"Votre navigateur ne prend pas en charge la lecture vocale",
-      optimize_fail:"Amélioration impossible, réessayez", err_prefix:"⚠️ Une erreur s'est produite : ", confirm_clear:"Effacer tout l'historique ? Action irréversible.",
-      share_q:"Question :", share_a:"Réponse :", share_via:"— via Nexara AI ✦ · nexaraapp.net",
-      starter_title:"✨ Essaie de me demander — exemples de ce que je peux faire :",
-      starter_note:"💡 Tu peux écrire dans n'importe quelle langue du monde, et je te répondrai dans la même langue.",
-      starters:[
-        {i:"✍️", q:"Écris une nouvelle touchante sur l'amitié entre un enfant et un arbre"},
-        {i:"📖", q:"Donne-moi un plan détaillé pour un livre sur la gestion du temps"},
-        {i:"💻", q:"Écris une fonction Python qui inverse les mots d'une phrase, avec explication"},
-        {i:"🔬", q:"Explique-moi la théorie de la relativité simplement"},
-        {i:"🎓", q:"Résume le concept d'inflation en points clairs"},
-        {i:"💼", q:"Propose un plan marketing pour une petite boutique de vêtements"},
-        {i:"💹", q:"Explique la stratégie DCA dans le trading de cryptomonnaies"},
-        {i:"✉️", q:"Rédige un e-mail professionnel pour demander un congé"},
-        {i:"⚕️", q:"Quels sont les bienfaits de boire suffisamment d'eau chaque jour ?"},
-        {i:"🧠", q:"Donne-moi des conseils pratiques pour vaincre la procrastination"},
-        {i:"🍲", q:"Propose une recette de dîner saine et rapide"},
-        {i:"🌐", q:"Traduis l'expression « Le savoir, c'est le pouvoir » en cinq langues"}
-      ],
-      cat:{trading:"💹 Trading",writing:"✍️ Rédaction",programming:"💻 Programmation",science:"🔬 Science",religion:"🕌 Religion",health:"⚕️ Santé",general:"📌 Général"}
-    },
-    zh: {
-      nav_home:"🏠 首页", nav_history:"📚 历史", nav_about:"ℹ️ 关于",
-      hero_h1:"提问，获得最佳答案",
-      hero_p:"您的问题将发送给专业模型，并合并为一个强大的答案",
-      stat_visits:"访问量", stat_questions:"您的提问",
-      input_ph:"在此输入您的问题…",
-      lang_label:"🌍 语言：",
-      btn_clear:"清除", btn_optimize:"✨ 优化我的问题", btn_optimizing:"优化中…", btn_send:"发送 ✦",
-      sug_title:"✨ 选择一个优化后的问题版本：", sug_original:"按原样发送我的问题",
-      step1:"🎯 正在分析并分类问题…", step2:"🤖 正在咨询专家（Claude + Gemini）…", step3:"💎 正在合并并生成最终答案…",
-      answer_label:"Nexara AI 答案", act_listen:"🔊 朗读", act_stop:"⏹ 停止", act_share:"🔗 分享", act_copy:"⎘ 复制",
-      rating_label:"这个答案怎么样？", rate_thanks:"感谢您的反馈！",
-      sources_label:"🔗 来源：", signature:"✦ Nexara AI — nexaraapp.net",
-      history_title:"📚 提问历史", hist_clear:"🗑 清除历史", hist_empty:"暂无历史记录 — 先提出您的第一个问题吧！",
-      about_sub:"AI 聚合器",
-      about1_h:"💡 什么是 Nexara AI？",
-      about1_p:"Nexara AI 是一个将<span class='highlight'>多个 AI 模型</span>汇聚在一起的平台。您无需只询问一个模型，您的问题目前会同时发送给两个先进模型（<span class='highlight'>Claude</span> 和 <span class='highlight'>Gemini</span>），然后将它们的答案合并为一个更强大、更全面、更准确的答案 —— 在一条回复中获得每个模型的精华。",
-      about2_h:"🎯 为什么要合并两个模型？",
-      about2_p:"每个 AI 模型都有不同的优势。将它们的答案结合起来，可以获得更广的覆盖、更少的错误和多种视角 —— 因此最终答案比任何单一模型都更深入。",
-      about3_h:"🚀 我们的未来愿景",
-      about3_r1:"随着网站的发展，<span class='highlight'>加入更多 AI 模型</span>。",
-      about3_r2:"让模型<span class='highlight'>相互讨论</span>，以得出最准确的答案。",
-      about3_r3:"支持在提问时<span class='highlight'>附加图片</span>并进行分析。",
-      about3_r4:"支持更多语言，服务全球用户。",
-      about4_h:"📬 联系我们", about4_p:"有建议、反馈，或想联系我们？我们很乐意听到您的声音：",
-      footer:"Nexara AI ✦ nexaraapp.net",
-      beta_notice:"本网站处于试用阶段。如果使用量增加，可能会暂时停止——若发生这种情况，请稍等片刻再试。我们在持续改进，并可能很快推出灵活的使用套餐。",
-      busy_notice:"🚀 网站目前似乎访问量很大，已暂时停止。\n\n当用户数量增加时会出现这种情况——请稍等几分钟后再试。\n\n喜欢这个体验并希望无限使用吗？欢迎联系我们：\n📧 Kamakoma21@gmail.com",
-      act_print:"🖨️ 打印", toast_no_print:"无法打开打印",
-      who_h:"🎯 这个网站适合谁？",
-      who_intro:"Nexara AI 几乎对所有人都有用。无论你属于哪一类，以下是你可以做的一些事：",
-      who_students:"<span class='highlight'>学生或学习者：</span>请求对任何主题的简单讲解、摘要，或分步解题。",
-      who_dev:"<span class='highlight'>开发者：</span>请求现成代码、帮助修复错误，或讲解技术概念。",
-      who_writer:"<span class='highlight'>写作者或内容创作者：</span>请求文章、故事，或创意与营销文案。",
-      who_business:"<span class='highlight'>企业主：</span>营销创意、专业信息，或商业计划与提案。",
-      who_trading:"<span class='highlight'>关注交易与加密货币：</span>询问分析、概念和策略（一般信息，并非投资建议）。",
-      who_health:"<span class='highlight'>健康问题或疑虑：</span>提出你的问题以获取一般信息和指导（请务必咨询专业人士）。",
-      who_daily:"<span class='highlight'>日常使用：</span>任何你想到的问题 —— 建议、想法、知识，或只是好奇。",
-      notes_h:"📌 重要提示",
-      note_verify:"请务必核实答案。AI 很强大，但有时也会出错，尤其是在数字、精确事实和敏感话题上。",
-      note_lang:"你可以用世界上任何语言书写 —— 不仅限于列表中的六种。将选项保持为\"自动\"并用你的语言书写，答案会用相同的语言返回。",
-      note_dev:"本网站持续开发中。如果突然停止或回答延迟，请稍等几分钟后重试。",
-      toast_copied:"已复制 ✓", toast_shared:"已复制答案以便分享 ✓", toast_no_tts:"您的浏览器不支持语音朗读",
-      optimize_fail:"优化失败，请重试", err_prefix:"⚠️ 发生错误： ", confirm_clear:"确定清除所有历史记录吗？此操作无法撤销。",
-      share_q:"问题：", share_a:"答案：", share_via:"— 来自 Nexara AI ✦ · nexaraapp.net",
-      starter_title:"✨ 试着问我 —— 我能做的一些例子：",
-      starter_note:"💡 你可以用世界上任何语言书写，我会用相同的语言回复你。",
-      starters:[
-        {i:"✍️", q:"写一个关于孩子与一棵树之间友谊的感人短篇故事"},
-        {i:"📖", q:"给我一本关于时间管理的书的详细大纲"},
-        {i:"💻", q:"写一个能反转句子中单词顺序的 Python 函数，并附解释"},
-        {i:"🔬", q:"用简单的语言解释相对论"},
-        {i:"🎓", q:"用清晰的要点总结通货膨胀的概念"},
-        {i:"💼", q:"为一家小型服装店提出一个营销方案"},
-        {i:"💹", q:"解释加密货币交易中的 DCA 策略"},
-        {i:"✉️", q:"写一封专业的请假邮件"},
-        {i:"⚕️", q:"每天喝足够的水有哪些好处？"},
-        {i:"🧠", q:"给我一些克服拖延的实用建议"},
-        {i:"🍲", q:"推荐一道健康又快手的晚餐食谱"},
-        {i:"🌐", q:"把\"知识就是力量\"这句话翻译成五种语言"}
-      ],
-      cat:{trading:"💹 交易",writing:"✍️ 写作",programming:"💻 编程",science:"🔬 科学",religion:"🕌 宗教",health:"⚕️ 健康",general:"📌 综合"}
-    },
-    hi: {
-      nav_home:"🏠 होम", nav_history:"📚 इतिहास", nav_about:"ℹ️ परिचय",
-      hero_h1:"पूछें, और सबसे अच्छा उत्तर पाएं",
-      hero_p:"आपका सवाल विशेषज्ञ मॉडलों को भेजा जाता है और एक सशक्त उत्तर में मिला दिया जाता है",
-      stat_visits:"विज़िट", stat_questions:"आपके सवाल",
-      input_ph:"अपना सवाल यहाँ लिखें…",
-      lang_label:"🌍 भाषा:",
-      btn_clear:"साफ़ करें", btn_optimize:"✨ मेरा सवाल बेहतर करें", btn_optimizing:"बेहतर किया जा रहा है…", btn_send:"भेजें ✦",
-      sug_title:"✨ अपने सवाल का बेहतर रूप चुनें:", sug_original:"मेरा सवाल जैसा है वैसा भेजें",
-      step1:"🎯 सवाल का विश्लेषण और वर्गीकरण…", step2:"🤖 विशेषज्ञों से परामर्श (Claude + Gemini)…", step3:"💎 अंतिम उत्तर तैयार किया जा रहा है…",
-      answer_label:"Nexara AI उत्तर", act_listen:"🔊 सुनें", act_stop:"⏹ रोकें", act_share:"🔗 साझा करें", act_copy:"⎘ कॉपी",
-      rating_label:"उत्तर कैसा रहा?", rate_thanks:"आपकी राय के लिए धन्यवाद!",
-      sources_label:"🔗 स्रोत:", signature:"✦ Nexara AI — nexaraapp.net",
-      history_title:"📚 सवालों का इतिहास", hist_clear:"🗑 इतिहास साफ़ करें", hist_empty:"अभी कोई इतिहास नहीं — अपना पहला सवाल पूछकर शुरू करें!",
-      about_sub:"AI एग्रीगेटर",
-      about1_h:"💡 Nexara AI क्या है?",
-      about1_p:"Nexara AI एक ऐसा प्लेटफ़ॉर्म है जो <span class='highlight'>एक से ज़्यादा AI मॉडल</span> को एक ही जगह लाता है। किसी एक मॉडल से पूछने के बजाय, आपका सवाल फ़िलहाल दो उन्नत मॉडलों (<span class='highlight'>Claude</span> और <span class='highlight'>Gemini</span>) को भेजा जाता है, फिर उनके उत्तरों को एक अधिक सशक्त, व्यापक और सटीक उत्तर में मिला दिया जाता है — एक ही जवाब में हर मॉडल का सर्वश्रेष्ठ।",
-      about2_h:"🎯 दो मॉडल क्यों मिलाएं?",
-      about2_p:"हर AI मॉडल की अलग खूबियाँ होती हैं। उनके उत्तरों को मिलाने से व्यापक कवरेज, कम गलतियाँ और कई दृष्टिकोण मिलते हैं — इसलिए अंतिम उत्तर किसी अकेले मॉडल से ज़्यादा गहरा होता है।",
-      about3_h:"🚀 हमारी भविष्य की सोच",
-      about3_r1:"साइट बढ़ने के साथ <span class='highlight'>और AI मॉडल जोड़ना</span>।",
-      about3_r2:"सबसे सटीक उत्तर तक पहुँचने के लिए मॉडलों को <span class='highlight'>आपस में चर्चा</span> करने देना।",
-      about3_r3:"सवाल के साथ <span class='highlight'>छवियाँ जोड़ने</span> और उनका विश्लेषण करने की सुविधा।",
-      about3_r4:"दुनिया भर के उपयोगकर्ताओं के लिए और भाषाओं का समर्थन।",
-      about4_h:"📬 संपर्क करें", about4_p:"कोई सुझाव, राय, या संपर्क करना चाहते हैं? हमें आपसे सुनकर खुशी होगी:",
-      footer:"Nexara AI ✦ nexaraapp.net",
-      beta_notice:"साइट परीक्षण चरण में है। उपयोग बढ़ने पर यह अस्थायी रूप से रुक सकती है — ऐसा होने पर थोड़ा रुककर फिर कोशिश करें। हम इसे लगातार बेहतर बना रहे हैं, और जल्द ही लचीली उपयोग योजनाएँ जोड़ सकते हैं।",
-      busy_notice:"🚀 ऐसा लगता है कि साइट पर अभी बहुत भीड़ है और यह अस्थायी रूप से रुक गई है।\n\nयह तब होता है जब उपयोगकर्ताओं की संख्या बढ़ती है — कृपया कुछ मिनट रुककर फिर कोशिश करें।\n\nअनुभव पसंद आया और असीमित उपयोग चाहते हैं? हमें आपसे सुनकर खुशी होगी:\n📧 Kamakoma21@gmail.com",
-      act_print:"🖨️ प्रिंट", toast_no_print:"प्रिंट नहीं खुल सका",
-      who_h:"🎯 यह किसके लिए है?",
-      who_intro:"Nexara AI लगभग हर किसी के लिए उपयोगी है। आप चाहे किसी भी क्षेत्र से हों, यहाँ कुछ चीज़ें हैं जो आप कर सकते हैं:",
-      who_students:"<span class='highlight'>छात्र या सीखने वाले:</span> किसी भी विषय की आसान व्याख्या, सारांश, या चरण-दर-चरण हल माँगें।",
-      who_dev:"<span class='highlight'>डेवलपर:</span> तैयार कोड, बग ठीक करने में मदद, या किसी तकनीकी अवधारणा की व्याख्या माँगें।",
-      who_writer:"<span class='highlight'>लेखक या कंटेंट क्रिएटर:</span> लेख, कहानी, या रचनात्मक और मार्केटिंग टेक्स्ट माँगें।",
-      who_business:"<span class='highlight'>व्यवसाय मालिक:</span> मार्केटिंग आइडिया, पेशेवर संदेश, या बिज़नेस प्लान और प्रस्ताव।",
-      who_trading:"<span class='highlight'>ट्रेडिंग और क्रिप्टो में रुचि:</span> विश्लेषण, अवधारणाओं और रणनीतियों के बारे में पूछें (सामान्य जानकारी, वित्तीय सलाह नहीं)।",
-      who_health:"<span class='highlight'>स्वास्थ्य सवाल या चिंता:</span> सामान्य जानकारी और मार्गदर्शन के लिए अपना सवाल पूछें (हमेशा विशेषज्ञ से सलाह लें)।",
-      who_daily:"<span class='highlight'>रोज़मर्रा का उपयोग:</span> मन में आने वाला कोई भी सवाल — सलाह, विचार, जानकारी, या बस जिज्ञासा।",
-      notes_h:"📌 ज़रूरी जानकारी",
-      note_verify:"उत्तरों को हमेशा जाँचें। AI शक्तिशाली है लेकिन कभी-कभी गलती कर सकता है, खासकर संख्याओं, सटीक तथ्यों और संवेदनशील विषयों में।",
-      note_lang:"आप दुनिया की किसी भी भाषा में लिख सकते हैं — केवल सूची की छह भाषाओं तक सीमित नहीं। विकल्प को \"ऑटो\" पर रखें और अपनी भाषा में लिखें; उत्तर उसी भाषा में आएगा।",
-      note_dev:"साइट लगातार विकसित हो रही है। अगर यह अचानक रुक जाए या उत्तर में देरी हो, तो कुछ मिनट रुककर फिर कोशिश करें।",
-      toast_copied:"कॉपी हो गया ✓", toast_shared:"साझा करने के लिए उत्तर कॉपी हुआ ✓", toast_no_tts:"आपका ब्राउज़र वॉइस रीडिंग का समर्थन नहीं करता",
-      optimize_fail:"बेहतर नहीं कर सके, फिर से कोशिश करें", err_prefix:"⚠️ एक त्रुटि हुई: ", confirm_clear:"पूरा इतिहास साफ़ करें? इसे पूर्ववत नहीं किया जा सकता।",
-      share_q:"सवाल:", share_a:"उत्तर:", share_via:"— Nexara AI ✦ · nexaraapp.net के ज़रिए",
-      starter_title:"✨ मुझसे पूछकर देखें — मैं क्या कर सकता हूँ, कुछ उदाहरण:",
-      starter_note:"💡 आप दुनिया की किसी भी भाषा में लिख सकते हैं, और मैं उसी भाषा में जवाब दूँगा।",
-      starters:[
-        {i:"✍️", q:"एक बच्चे और एक पेड़ की दोस्ती पर एक भावुक लघुकथा लिखें"},
-        {i:"📖", q:"समय प्रबंधन पर एक किताब की विस्तृत रूपरेखा दें"},
-        {i:"💻", q:"एक Python फ़ंक्शन लिखें जो वाक्य के शब्दों का क्रम उलट दे, समझाव के साथ"},
-        {i:"🔬", q:"सापेक्षता के सिद्धांत को सरल भाषा में समझाएं"},
-        {i:"🎓", q:"मुद्रास्फीति की अवधारणा को स्पष्ट बिंदुओं में सारांशित करें"},
-        {i:"💼", q:"एक छोटी कपड़ों की दुकान के लिए मार्केटिंग योजना सुझाएं"},
-        {i:"💹", q:"क्रिप्टो ट्रेडिंग में DCA रणनीति समझाएं"},
-        {i:"✉️", q:"काम से छुट्टी मांगने के लिए एक पेशेवर ईमेल लिखें"},
-        {i:"⚕️", q:"रोज़ पर्याप्त पानी पीने के क्या फायदे हैं?"},
-        {i:"🧠", q:"टालमटोल पर काबू पाने के व्यावहारिक सुझाव दें"},
-        {i:"🍲", q:"एक सेहतमंद और झटपट रात के खाने की रेसिपी सुझाएं"},
-        {i:"🌐", q:"\"ज्ञान ही शक्ति है\" वाक्यांश का पाँच भाषाओं में अनुवाद करें"}
-      ],
-      cat:{trading:"💹 ट्रेडिंग",writing:"✍️ लेखन",programming:"💻 प्रोग्रामिंग",science:"🔬 विज्ञान",religion:"🕌 धर्म",health:"⚕️ स्वास्थ्य",general:"📌 सामान्य"}
     }
   };
 
-  const UI_MAP = { "auto":"ar", "العربية":"ar", "English":"en", "Español":"es", "中文":"zh", "हिन्दी":"hi", "Français":"fr" };
-  const LOCALE = { ar:"ar-EG", en:"en-US", es:"es-ES", zh:"zh-CN", hi:"hi-IN", fr:"fr-FR" };
-  const SPEECH = { "العربية":"ar-SA", "English":"en-US", "Español":"es-ES", "中文":"zh-CN", "हिन्दी":"hi-IN", "Français":"fr-FR" };
+  const UI_MAP = { "auto":"ar", "العربية":"ar", "English":"en" };
+  const LOCALE = { ar:"ar-EG", en:"en-US" };
+  const SPEECH = { "العربية":"ar-SA", "English":"en-US" };
 
   let uiLang = "ar";
   let T = I18N.ar;
@@ -858,7 +601,6 @@
     renderStarters();
   }
 
-  // ===== أزرار القدرات الاقتراحية =====
   function renderStarters() {
     const box = document.getElementById("starter-list");
     if (!box) return;
@@ -901,7 +643,6 @@
     }
   }
 
-  // ===== منطق التطبيق =====
   let currentQuestion = "";
   let currentAnswer = "";
   let optimizeDone = false;
@@ -1112,7 +853,11 @@
   }
 
   function shareAnswer() {
-    const shareText = T.share_q + " " + currentQuestion + "\n\n" + T.share_a + "\n" + currentAnswer + "\n\n" + T.share_via;
+    const maxLen = 400; // أقصى طول للإجابة داخل نص المشاركة (لضمان ظهور التوقيع دائماً)
+    const shortAnswer = currentAnswer.length > maxLen
+      ? currentAnswer.slice(0, maxLen) + "..."
+      : currentAnswer;
+    const shareText = T.share_q + " " + currentQuestion + "\n\n" + T.share_a + "\n" + shortAnswer + "\n\n" + T.share_via;
     if (navigator.share) {
       navigator.share({ title: "Nexara AI", text: shareText }).catch(() => {});
     } else {
@@ -1248,7 +993,6 @@
   initStats();
   restoreLastAnswer();
 
-  // إظهار أزرار القدرات فقط في شاشة البداية (لا يوجد جواب معروض)
   if (document.getElementById("answer-box").style.display !== "block") {
     document.getElementById("starter-box").style.display = "block";
   }
@@ -1259,5 +1003,3 @@
 </script>
 </body>
 </html>
-
-
