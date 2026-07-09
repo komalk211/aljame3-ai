@@ -1,14 +1,20 @@
 // ========================================
-// Nexara AI — الخادم الوسيط الآمن (نسخة 9 — Cloudflare Pages)
+// Nexara AI — الخادم الوسيط الآمن (نسخة 8 — مكتبة معرفية + بحث ويب ذكي)
 // يخفي مفاتيح Claude و Gemini
-// الجديد في نسخة 9:
-//   • حقن التاريخ والوقت الحالي في كل طلب (يحل مشكلة تواريخ 2024 القديمة)
-//   • تفعيل البحث الحيّ عبر Google Search grounding في Gemini
-//   • كشف تلقائي للأسئلة التي تحتاج بحثاً (كلمات مفتاحية + حقل needs_search من المصنّف)
-//   • الأسئلة المتغيّرة (طقس/عطل/أخبار/أسعار) تُوجَّه لـ Gemini-with-search أولاً
 // -----------------------------------------
-// المسار: functions/api.js — يُستدعى عبر /api
-// المفاتيح تُقرأ من env
+// الجديد بهذه النسخة:
+//   1) مكتبة معرفية (Cloudflare KV) تُفحص أولاً قبل أي استدعاء API — توفير كامل للتكلفة عند التطابق
+//   2) التصنيف يحدد الآن ثلاث قيم: category / complexity / needs_search
+//   3) عند needs_search=true يُستدعى Gemini مع تفعيل البحث الفعلي بالويب (Grounding)
+//   4) نقطة نهاية جديدة action="rate" لتخزين الإجابات المفيدة تلقائياً بالمكتبة
+//   5) نقطة نهاية جديدة action="addLibraryEntry" لإضافة محتوى يدوي (نكت/مقالات) بمفتاح إداري
+// -----------------------------------------
+// إعداد مطلوب على Cloudflare (مرة واحدة فقط):
+//   - أنشئ KV Namespace من: Workers & Pages > KV
+//   - اربطه بمشروع Pages من: الإعدادات > Functions > KV namespace bindings
+//     باسم المتغيّر: NEXARA_KV
+//   - أضف Secret جديد باسم: ADMIN_KEY (كلمة سر من اختيارك لحماية الإضافة اليدوية)
+// ملاحظة Cloudflare: يوضع هذا الملف في المسار  functions/api.js
 // ========================================
 
 // النماذج
@@ -19,6 +25,11 @@ const CLAUDE_HEAVY = "claude-sonnet-4-5";
 const MAX_TOKENS_SIMPLE = 4000;
 const MAX_TOKENS_COMPLEX = 8192;
 const MAX_TOKENS_CLAUDE = 8192;
+
+// حد تشابه الكلمات المفتاحية لاعتبار سؤالين "نفس الشيء" (0 إلى 1)
+const LIBRARY_MATCH_THRESHOLD = 0.55;
+// أقصى عدد سجلات نبحث بينها بالفهرس
+const LIBRARY_INDEX_SCAN_LIMIT = 3000;
 
 // ========================================
 // قواعد الأسلوب
@@ -39,63 +50,6 @@ const DEEP_RULES = `
 - ادمج التحليل في إجابة واحدة عميقة ومنظّمة ودقيقة ومكتملة من أولها لآخرها.
 - لا تُظهر خطوات تفكيرك أو مراجعتك، أخرج الإجابة النهائية المصقولة فقط.`;
 
-// ========================================
-// سياق التاريخ — يُبنى من تاريخ الجهاز (client) مع fallback على السيرفر
-// هذا هو أهم إصلاح لمشكلة تواريخ 2024
-// ========================================
-function buildDateContext(clientLocal, clientTz) {
-  let dateStr = (typeof clientLocal === "string" && clientLocal.trim()) ? clientLocal.trim() : "";
-  let tz = (typeof clientTz === "string" && clientTz.trim()) ? clientTz.trim() : "";
-
-  if (!dateStr) {
-    // fallback: توقيت السيرفر (نستعمل الأردن كافتراضي معقول)
-    try {
-      dateStr = new Date().toLocaleString("ar-EG", {
-        dateStyle: "full", timeStyle: "short", timeZone: "Asia/Amman"
-      });
-      if (!tz) tz = "Asia/Amman";
-    } catch {
-      dateStr = new Date().toISOString();
-    }
-  }
-
-  return `معلومة زمنية مهمة جداً — اعتمدها دائماً كمرجع:
-التاريخ والوقت الحاليّان هما: ${dateStr}${tz ? " (المنطقة الزمنية: " + tz + ")" : ""}.
-لا تفترض أبداً أن السنة هي 2023 أو 2024. أي إشارة إلى "اليوم" أو "هذا العام" أو "القريب" أو "القادم" يجب أن تُحسب انطلاقاً من هذا التاريخ.
-إذا كان السؤال عن معلومة قابلة للتغيّر (طقس، عطلة رسمية، عيد، أخبار، أسعار، مواعيد، نتائج) فاعتمد على نتائج البحث إن كانت متاحة، ولا تعطِ أبداً تواريخ أو أرقاماً قديمة من ذاكرتك.`;
-}
-
-// ========================================
-// كشف الأسئلة التي تحتاج بحثاً حيّاً
-// ========================================
-function detectNeedsSearch(q) {
-  if (!q || typeof q !== "string") return false;
-  const t = q.toLowerCase();
-  const patterns = [
-    // زمن حالي
-    "اليوم","الآن","الان","حاليا","حالياً","الحين","هاليومين","هالأيام","هالايام","هذه اللحظة",
-    // طقس
-    "طقس","الطقس","حرارة","الحرارة","درجة الحرارة","أمطار","امطار","رياح","مطر","الجو","مناخ",
-    // عطل ومناسبات
-    "عطلة","عطل","العطل","إجازة","اجازة","عيد","العيد","أعياد","اعياد","مناسبة","المولد","رأس السنة","راس السنة","رمضان",
-    // أخبار
-    "أخبار","اخبار","خبر","آخر","اخر","أحدث","احدث","جديد","مستجدات","حصل","صار",
-    // أسعار
-    "سعر","أسعار","اسعار","تكلفة","كم يكلف","كم سعر","بكم","صرف الدولار","سعر الصرف",
-    // مواعيد
-    "متى","موعد","مواعيد","هذا الأسبوع","هذا الاسبوع","هذا الشهر","هذه السنة","هذا العام","القادم","القادمة","المقبل","القريب",
-    // رياضة
-    "مباراة","نتيجة","من فاز","الدوري","تشكيلة","سجّل",
-    // سنوات
-    "2024","2025","2026","2027","٢٠٢٤","٢٠٢٥","٢٠٢٦",
-    // English
-    "weather","temperature","forecast","rain","wind","today","tonight","now","current","currently",
-    "latest","news","recent","this week","this month","this year","upcoming","holiday","holidays",
-    "price","cost","how much","exchange rate","when is","when does","score","who won","standings"
-  ];
-  return patterns.some(p => t.includes(p));
-}
-
 function langInstruction(lang) {
   if (!lang || lang === "auto") {
     return `\n- مهم جداً: اكتب إجابتك بنفس لغة سؤال المستخدم تماماً. إذا سأل بالعربية أجب بالعربية، وإذا سأل بأي لغة أخرى أجب بنفس تلك اللغة.`;
@@ -115,7 +69,7 @@ function isRealAnswer(text) {
 }
 
 // ========================================
-// الخبراء
+// الشخصيات (الخبراء)
 // ========================================
 const EXPERTS = {
   trading: "أنت خبير تداول ومحلل أسواق مالية محترف. حلّل بدقة مع ذكر المخاطر. لا تقدّم نصيحة مالية قاطعة بل معلومات يبني عليها المستخدم قراره." + STYLE_RULES,
@@ -129,11 +83,148 @@ const EXPERTS = {
   translation: "أنت مترجم محترف دقيق. ترجم بأمانة مع مراعاة السياق والمعنى والأسلوب الطبيعي في اللغة الهدف." + STYLE_RULES,
   law: "أنت مستشار قانوني يقدّم معلومات قانونية عامة للتوعية، مع التنبيه دائماً لمراجعة محامٍ مختص لكل حالة." + STYLE_RULES,
   psychology: "أنت مختص في علم النفس والتطوير الذاتي، تقدّم إرشاداً عاماً داعماً، مع التنبيه لمراجعة مختص عند الحاجة." + STYLE_RULES,
+  daily: "أنت مساعد يومي عملي يجاوب عن الطقس والأخبار والمناسبات والرسائل الصباحية بإيجاز ودقة، معتمداً على أحدث معلومة متاحة لك." + STYLE_RULES,
   general: "أنت مساعد ذكاء اصطناعي خبير وموسوعي. قدّم إجابة شاملة ودقيقة ومنظّمة بالعربية الواضحة." + STYLE_RULES
 };
 
 const SENSITIVE = ["health", "religion", "law", "trading"];
 const CREATIVE = ["writing"];
+const USUALLY_NEEDS_SEARCH = ["daily"];
+
+// ========================================
+// تصنيف نوع المحتوى (لتنظيم المكتبة: نكتة/قصة/شعر/حكمة/لغز/علوم/تاريخ/مقال/معلومة عامة)
+// ========================================
+const CONTENT_TYPE_TESTS = [
+  ["joke", /نكتة|نكته|joke/i],
+  ["riddle", /لغز|riddle/i],
+  ["poem", /شعرا|شعراً|قصيدة|\bpoem\b/i],
+  ["quote", /حكمة|اقتباس|\bquote\b|wisdom/i],
+  ["science", /حقيقة علمية|scientific fact/i],
+  ["historical", /حدث تاريخي|historical event/i],
+  ["story", /قصة قصيرة|قصة|short story/i],
+  ["article", /اكتب مقال|مقال عن|write an article/i]
+];
+function classifyContentType(question) {
+  const s = question || "";
+  for (const [name, re] of CONTENT_TYPE_TESTS) if (re.test(s)) return name;
+  return "general_info";
+}
+
+// ========================================
+// أدوات الكلمات المفتاحية (لمطابقة المكتبة)
+// ========================================
+const STOPWORDS = new Set([
+  "من","إلى","على","في","عن","مع","هل","ما","ماذا","كيف","لماذا","متى","أين","الذي","التي","هذا","هذه","ذلك",
+  "و","أو","ثم","بعد","قبل","عند","كل","بعض","لا","لم","لن","إن","أن","كان","كانت","يكون","تكون","هو","هي","انا","أنا","انت","أنت",
+  "لي","له","لها","لهم","بها","به","فيه","فيها","اللي","حتى","أيضا","أيضاً","the","a","an","is","are","of","to","in","on","for","and","or"
+]);
+
+function extractKeywords(text) {
+  if (!text) return [];
+  const cleaned = text
+    .toLowerCase()
+    .replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g, " ")
+    .split(/\s+/)
+    .map(w => w.trim())
+    .filter(w => w.length >= 2 && !STOPWORDS.has(w));
+  return [...new Set(cleaned)];
+}
+
+function jaccardSimilarity(setA, setB) {
+  if (setA.length === 0 || setB.length === 0) return 0;
+  const a = new Set(setA);
+  const b = new Set(setB);
+  let intersection = 0;
+  for (const w of a) if (b.has(w)) intersection++;
+  const union = new Set([...a, ...b]).size;
+  return union === 0 ? 0 : intersection / union;
+}
+
+// ========================================
+// المكتبة المعرفية (Cloudflare KV)
+// بنية التخزين:
+//   "lib:index"     -> JSON array خفيف: [{id, keywords, category}, ...]
+//   "lib:item:<id>" -> JSON كامل: {question, answer, category, keywords, source, rating, date_added}
+// ========================================
+async function getLibraryIndex(kv) {
+  if (!kv) return [];
+  try {
+    const raw = await kv.get("lib:index");
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveLibraryIndex(kv, index) {
+  if (!kv) return;
+  try {
+    await kv.put("lib:index", JSON.stringify(index));
+  } catch { /* تجاهل أي خطأ تخزين مؤقت */ }
+}
+
+async function searchLibrary(kv, question, category) {
+  if (!kv) return null;
+  const index = await getLibraryIndex(kv);
+  if (index.length === 0) return null;
+
+  const qKeywords = extractKeywords(question);
+  if (qKeywords.length === 0) return null;
+
+  let best = null;
+  let bestScore = 0;
+  const scanList = index.slice(0, LIBRARY_INDEX_SCAN_LIMIT);
+
+  for (const entry of scanList) {
+    const score = jaccardSimilarity(qKeywords, entry.keywords || []);
+    const boosted = (category && entry.category === category) ? score + 0.05 : score;
+    if (boosted > bestScore) {
+      bestScore = boosted;
+      best = entry;
+    }
+  }
+
+  if (!best || bestScore < LIBRARY_MATCH_THRESHOLD) return null;
+
+  try {
+    const raw = await kv.get("lib:item:" + best.id);
+    if (!raw) return null;
+    const full = JSON.parse(raw);
+    return { ...full, matchScore: bestScore };
+  } catch {
+    return null;
+  }
+}
+
+async function addLibraryEntry(kv, { question, answer, category, source }) {
+  if (!kv) return { ok: false };
+  try {
+    const id = crypto.randomUUID();
+    const keywords = extractKeywords(question);
+    const contentType = classifyContentType(question);
+    const entry = {
+      question,
+      answer,
+      category: category || "general",
+      contentType,
+      keywords,
+      source: source || "manual",
+      rating: 1,
+      date_added: new Date().toISOString(),
+    };
+    await kv.put("lib:item:" + id, JSON.stringify(entry));
+
+    const index = await getLibraryIndex(kv);
+    index.push({ id, keywords, category: entry.category, contentType });
+    await saveLibraryIndex(kv, index);
+
+    return { ok: true, id };
+  } catch (e) {
+    return { ok: false, error: e.message || String(e) };
+  }
+}
 
 // ========================================
 // استدعاء Claude
@@ -164,7 +255,7 @@ async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_HEAVY, m
 }
 
 // ========================================
-// استدعاء Gemini — مع دعم البحث (useSearch)
+// استدعاء Gemini (مع دعم اختياري للبحث الفعلي بالويب)
 // ========================================
 async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, maxTokens = MAX_TOKENS_COMPLEX, useSearch = false) {
   try {
@@ -174,11 +265,9 @@ async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, ma
       contents: [{ parts: [{ text: question }] }],
       generationConfig: { maxOutputTokens: maxTokens },
     };
-    // تفعيل البحث الحيّ عبر Google Search grounding
     if (useSearch) {
       body.tools = [{ google_search: {} }];
     }
-
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -197,25 +286,19 @@ async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, ma
       const reason = data.candidates?.[0]?.finishReason || "NO_TEXT";
       return { ok: false, text: "", debug: "GEMINI_EMPTY: finishReason=" + reason };
     }
-
-    // استخراج مصادر البحث (اختياري)
-    let searchSources = [];
+    let sources = [];
     try {
       const chunks = data.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-      searchSources = chunks
-        .map(c => c?.web?.uri || c?.web?.title || "")
-        .filter(Boolean)
-        .slice(0, 5);
+      sources = chunks.map(c => c.web?.uri).filter(Boolean);
     } catch { /* تجاهل */ }
-
-    return { ok: isRealAnswer(text), text, searchSources };
+    return { ok: isRealAnswer(text), text, searchSources: sources };
   } catch (e) {
     return { ok: false, text: "", debug: "GEMINI_EXCEPTION: " + (e.message || String(e)) };
   }
 }
 
 // ========================================
-// التصنيف الذكي — يُرجِع: { category, complexity, needsSearch }
+// التصنيف الذكي — الآن يحدد أيضاً needs_search
 // ========================================
 async function classifyQuestion(question, geminiKey) {
   const cats = Object.keys(EXPERTS).join("، ");
@@ -223,14 +306,14 @@ async function classifyQuestion(question, geminiKey) {
 {"category":"<إحدى الفئات>","complexity":"simple أو complex","needs_search":true أو false}
 
 الفئات المتاحة: ${cats}.
-- "category": اختر الفئة الأنسب لموضوع السؤال.
-- "complexity": ضع "simple" للأسئلة البسيطة المباشرة، و"complex" لما يحتاج تحليلاً أو شرحاً معمّقاً أو موضوعاً حسّاساً.
-- "needs_search": ضع true إذا كان السؤال يحتاج معلومة حديثة أو متغيّرة (طقس، أخبار، عطل رسمية، أسعار، مواعيد، نتائج، أي شيء يتعلق بـ"اليوم" أو "الآن" أو "الأحدث")، وإلا ضع false.
+- اختر الفئة الأنسب لموضوع السؤال. فئة "daily" تشمل: الطقس، الأخبار، العطل الرسمية، المناسبات، الرسائل الصباحية.
+- "complexity": "simple" لسؤال بسيط ومباشر، "complex" لسؤال يحتاج تحليلاً معمّقاً أو متشعباً أو حسّاساً.
+- "needs_search": ضع true إذا كان السؤال يحتاج معلومة لحظية أو حديثة (طقس اليوم، خبر عاجل، سعر حالي، حدث جارٍ، أحدث إصدار، آخر تحديث). ضع false إذا كان السؤال عن معرفة أو مفهوم ثابت لا يتغير بمرور الوقت (شرح، تعريف، مبدأ عام، مهارة).
 أجب بالـ JSON فقط دون أي نص إضافي.
 السؤال: ${question}`;
 
   const result = await withTimeout(
-    askGemini(prompt, "أنت مصنّف دقيق تُخرج JSON فقط.", geminiKey, GEMINI_MAIN, 200),
+    askGemini(prompt, "أنت مصنّف دقيق تُخرج JSON فقط.", geminiKey, GEMINI_MAIN, 250, false),
     6000
   );
 
@@ -241,10 +324,17 @@ async function classifyQuestion(question, geminiKey) {
     const raw = (result.text || "").replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(raw);
     if (EXPERTS[parsed.category]) category = parsed.category;
-    if (parsed.complexity === "simple" || parsed.complexity === "complex") complexity = parsed.complexity;
-    if (parsed.needs_search === true || parsed.needs_search === "true") needsSearch = true;
+    if (parsed.complexity === "simple" || parsed.complexity === "complex") {
+      complexity = parsed.complexity;
+    }
+    if (typeof parsed.needs_search === "boolean") {
+      needsSearch = parsed.needs_search;
+    }
   } catch {
-    // نبقى على القيم الافتراضية
+    // فشل التصنيف: نبقى على القيم الافتراضية
+  }
+  if (!needsSearch && USUALLY_NEEDS_SEARCH.includes(category)) {
+    needsSearch = true;
   }
   return { category, complexity, needsSearch };
 }
@@ -271,9 +361,12 @@ export async function onRequest(context) {
 
   const CLAUDE_KEY = env.ANTHROPIC_API_KEY;
   const GEMINI_KEY = env.GEMINI_API_KEY;
+  const ADMIN_KEY = env.ADMIN_KEY;
+  const KV = env.NEXARA_KV; // يجب ربطه من إعدادات Pages > Functions > KV bindings
 
   try {
-    const { action, question, lang, client_date_local, client_tz } = await request.json();
+    const body = await request.json();
+    const { action, question, lang } = body;
 
     // ---------- تحسين السؤال ----------
     if (action === "optimize") {
@@ -289,13 +382,12 @@ ${langLine}
 السؤال: ${question}`;
 
       const result = await withTimeout(
-        askGemini(prompt, "أنت مساعد صياغة دقيق. تُخرج JSON فقط يحتوي على مصفوفة suggestions بثلاث صياغات، دون أي نص إضافي.", GEMINI_KEY, GEMINI_MAIN, 2500),
+        askGemini(prompt, "أنت مساعد صياغة دقيق. تُخرج JSON فقط يحتوي على مصفوفة suggestions بثلاث صياغات، دون أي نص إضافي.", GEMINI_KEY, GEMINI_MAIN, 2500, false),
         20000
       );
 
       let suggestions = [];
       const raw = (result.text || "").trim();
-
       try {
         const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
         const start = cleaned.indexOf("{");
@@ -309,7 +401,7 @@ ${langLine}
               .slice(0, 3);
           }
         }
-      } catch { /* الطريقة البديلة */ }
+      } catch { /* نتجاهل ونجرّب الطريقة البديلة */ }
 
       if (suggestions.length === 0 && raw) {
         suggestions = raw
@@ -329,21 +421,64 @@ ${langLine}
       return new Response(JSON.stringify({ suggestions }), { status: 200, headers });
     }
 
-    // ---------- الإجابة ----------
+    // ---------- تقييم إجابة وتخزينها بالمكتبة عند الإيجاب ----------
+    if (action === "rate") {
+      const { answer, category, positive } = body;
+      if (!positive) {
+        return new Response(JSON.stringify({ ok: true, stored: false }), { status: 200, headers });
+      }
+      if (!isRealAnswer(answer) || !question) {
+        return new Response(JSON.stringify({ ok: false, error: "بيانات ناقصة" }), { status: 400, headers });
+      }
+      const result = await addLibraryEntry(KV, {
+        question,
+        answer,
+        category: category || "general",
+        source: "user_generated",
+      });
+      return new Response(JSON.stringify({ ok: result.ok, stored: !!result.ok }), { status: 200, headers });
+    }
+
+    // ---------- إضافة يدوية للمكتبة (محمية بمفتاح إداري) ----------
+    if (action === "addLibraryEntry") {
+      const { adminKey, answer, category } = body;
+      if (!ADMIN_KEY || adminKey !== ADMIN_KEY) {
+        return new Response(JSON.stringify({ error: "غير مصرّح" }), { status: 401, headers });
+      }
+      if (!question || !isRealAnswer(answer)) {
+        return new Response(JSON.stringify({ error: "بيانات ناقصة" }), { status: 400, headers });
+      }
+      const result = await addLibraryEntry(KV, {
+        question,
+        answer,
+        category: category || "general",
+        source: "manual",
+      });
+      return new Response(JSON.stringify(result), { status: result.ok ? 200 : 500, headers });
+    }
+
+    // ---------- الإجابة الرئيسية ----------
     if (action === "ask") {
-      const { category, complexity, needsSearch: classifierSearch } =
-        await classifyQuestion(question, GEMINI_KEY);
+      // الخطوة 1: فحص المكتبة أولاً — صفر تكلفة API عند التطابق
+      const libraryHit = await searchLibrary(KV, question, null);
+      if (libraryHit) {
+        return new Response(JSON.stringify({
+          answer: libraryHit.answer,
+          category: libraryHit.category,
+          complexity: "simple",
+          mode: "library",
+          matchScore: libraryHit.matchScore,
+          sources: { claude: false, gemini: false, library: true },
+        }), { status: 200, headers });
+      }
 
-      // البحث يتفعّل لو الكلمات المفتاحية أو المصنّف طلبه
-      const needsSearch = detectNeedsSearch(question) || classifierSearch;
+      // الخطوة 2: التصنيف الذكي (يحدد أيضاً الحاجة لبحث فعلي بالويب)
+      const { category, complexity, needsSearch } = await classifyQuestion(question, GEMINI_KEY);
 
-      // سياق التاريخ يُحقن في كل إجابة
-      const dateContext = buildDateContext(client_date_local, client_tz);
-
-      let expertPrompt = dateContext + "\n\n" + EXPERTS[category] + langInstruction(lang);
-
+      let expertPrompt = EXPERTS[category] + langInstruction(lang);
       const isComplex = complexity === "complex";
       const isCreative = CREATIVE.includes(category);
+      const needClaude = (isComplex && SENSITIVE.includes(category)) || isCreative;
 
       if (isComplex) {
         expertPrompt += "\n" + DEEP_RULES;
@@ -351,70 +486,60 @@ ${langLine}
 
       let finalAnswer = "";
       let usedModel = "gemini";
-      let usedSearch = false;
-      let searchSources = [];
       let debugInfo = "";
+      let searchSources = [];
 
       if (needsSearch) {
-        // ===== سؤال يحتاج بحثاً: Gemini مع Google Search أولاً =====
-        // (Claude هنا لا يملك أداة بحث، لذلك نبدأ بـ Gemini)
-        const geminiRes = await withTimeout(
+        const searchRes = await withTimeout(
           askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, true),
-          28000
+          25000
+        );
+        if (searchRes.ok) {
+          finalAnswer = searchRes.text;
+          usedModel = "gemini_search";
+          searchSources = searchRes.searchSources || [];
+        } else {
+          if (searchRes.debug) debugInfo = searchRes.debug;
+          const fallbackRes = await withTimeout(
+            askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, false),
+            15000
+          );
+          finalAnswer = fallbackRes.ok ? fallbackRes.text : "";
+          usedModel = "gemini_search_fallback";
+        }
+      } else if (needClaude) {
+        const claudeRes = await withTimeout(
+          askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
+          25000
+        );
+        if (claudeRes.ok) {
+          finalAnswer = claudeRes.text;
+          usedModel = "claude";
+        } else {
+          const geminiRes = await withTimeout(
+            askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, false),
+            25000
+          );
+          finalAnswer = geminiRes.ok ? geminiRes.text : "";
+          if (geminiRes.debug) debugInfo = geminiRes.debug;
+          usedModel = "gemini_fallback";
+        }
+      } else {
+        const geminiRes = await withTimeout(
+          askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, isComplex ? MAX_TOKENS_COMPLEX : MAX_TOKENS_SIMPLE, false),
+          25000
         );
         if (geminiRes.ok) {
           finalAnswer = geminiRes.text;
           usedModel = "gemini";
-          usedSearch = true;
-          searchSources = geminiRes.searchSources || [];
         } else {
           if (geminiRes.debug) debugInfo = geminiRes.debug;
-          // fallback: Claude (بدون بحث) — أفضل من لا شيء
           const claudeRes = await withTimeout(
             askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
-            22000
+            20000
           );
           finalAnswer = claudeRes.ok ? claudeRes.text : "";
           usedModel = "claude_fallback";
-        }
-      } else {
-        // ===== المسار العادي =====
-        const needClaude = (isComplex && SENSITIVE.includes(category)) || isCreative;
-
-        if (needClaude) {
-          const claudeRes = await withTimeout(
-            askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
-            25000
-          );
-          if (claudeRes.ok) {
-            finalAnswer = claudeRes.text;
-            usedModel = "claude";
-          } else {
-            const geminiRes = await withTimeout(
-              askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX),
-              25000
-            );
-            finalAnswer = geminiRes.ok ? geminiRes.text : "";
-            if (geminiRes.debug) debugInfo = geminiRes.debug;
-            usedModel = "gemini_fallback";
-          }
-        } else {
-          const geminiRes = await withTimeout(
-            askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, isComplex ? MAX_TOKENS_COMPLEX : MAX_TOKENS_SIMPLE),
-            25000
-          );
-          if (geminiRes.ok) {
-            finalAnswer = geminiRes.text;
-            usedModel = "gemini";
-          } else {
-            if (geminiRes.debug) debugInfo = geminiRes.debug;
-            const claudeRes = await withTimeout(
-              askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
-              20000
-            );
-            finalAnswer = claudeRes.ok ? claudeRes.text : "";
-            usedModel = "claude_fallback";
-          }
         }
       }
 
@@ -423,18 +548,29 @@ ${langLine}
           + (debugInfo ? ("\n\n[تشخيص مؤقت: " + debugInfo + "]") : "");
       }
 
+      // تخزين تلقائي بالمكتبة — فقط للأبواب العادية غير الحساسة وغير المعتمدة على بحث لحظي
+      // (الفئات الحساسة SENSITIVE تبقى تحتاج تقييم يدوي 👍 عبر action=rate كطبقة حماية إضافية)
+      const autoStoreEligible = isRealAnswer(finalAnswer) && !needsSearch && !SENSITIVE.includes(category);
+      if (autoStoreEligible) {
+        await addLibraryEntry(KV, {
+          question,
+          answer: finalAnswer,
+          category,
+          source: "auto_generated",
+        });
+      }
+
       return new Response(JSON.stringify({
         answer: finalAnswer,
         category,
         complexity,
         mode: usedModel,
-        needs_search: needsSearch,
-        used_search: usedSearch,
-        search_sources: searchSources,
+        usedSearch: needsSearch,
+        searchSources,
         sources: {
           claude: usedModel.startsWith("claude"),
           gemini: usedModel.startsWith("gemini"),
-          search: usedSearch,
+          library: false,
         },
       }), { status: 200, headers });
     }
@@ -444,7 +580,3 @@ ${langLine}
     return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
   }
 }
-
-
-
-
