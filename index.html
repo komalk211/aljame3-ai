@@ -1,729 +1,1372 @@
-// ========================================
-// Nexara AI — الخادم الوسيط الآمن (نسخة 8 — مكتبة معرفية + بحث ويب ذكي)
-// يخفي مفاتيح Claude و Gemini
-// -----------------------------------------
-// الجديد بهذه النسخة:
-//   1) مكتبة معرفية (Cloudflare KV) تُفحص أولاً قبل أي استدعاء API — توفير كامل للتكلفة عند التطابق
-//   2) التصنيف يحدد الآن ثلاث قيم: category / complexity / needs_search
-//   3) عند needs_search=true يُستدعى Gemini مع تفعيل البحث الفعلي بالويب (Grounding)
-//   4) نقطة نهاية جديدة action="rate" لتخزين الإجابات المفيدة تلقائياً بالمكتبة
-//   5) نقطة نهاية جديدة action="addLibraryEntry" لإضافة محتوى يدوي (نكت/مقالات) بمفتاح إداري
-// -----------------------------------------
-// إعداد مطلوب على Cloudflare (مرة واحدة فقط):
-//   - أنشئ KV Namespace من: Workers & Pages > KV
-//   - اربطه بمشروع Pages من: الإعدادات > Functions > KV namespace bindings
-//     باسم المتغيّر: NEXARA_KV
-//   - أضف Secret جديد باسم: ADMIN_KEY (كلمة سر من اختيارك لحماية الإضافة اليدوية)
-// ملاحظة Cloudflare: يوضع هذا الملف في المسار  functions/api.js
-// ========================================
-
-// النماذج
-const GEMINI_MAIN = "gemini-2.5-flash";
-const CLAUDE_HEAVY = "claude-sonnet-4-5";
-
-// حدود التوكنز
-const MAX_TOKENS_SIMPLE = 4000;
-const MAX_TOKENS_COMPLEX = 8192;
-const MAX_TOKENS_CLAUDE = 8192;
-
-// حد تشابه الكلمات المفتاحية لاعتبار سؤالين "نفس الشيء" (0 إلى 1)
-const LIBRARY_MATCH_THRESHOLD = 0.55;
-// أقصى عدد سجلات نبحث بينها بالفهرس
-const LIBRARY_INDEX_SCAN_LIMIT = 3000;
-
-// ========================================
-// قواعد الأسلوب
-// ========================================
-const STYLE_RULES = `
-قواعد إلزامية للإخراج:
-- ابدأ مباشرة بالإجابة دون أي مقدمة مثل "بصفتي" أو "كمساعد" أو "بكل سرور" أو "بالطبع".
-- لا تستخدم رموز Markdown إطلاقاً: لا # للعناوين، ولا --- للفواصل، ولا ** للتغميق، ولا * أو - في بداية النقاط.
-- عند تعداد النقاط اكتبها كجُمل عادية أو مسبوقة بأرقام عربية (١، ٢، ٣)، وللعناوين اكتبها كجملة عادية متبوعة بنقطتين.
-- استخدم نصاً عربياً عادياً منظّماً بفقرات واضحة.
-- إذا لم تكن متأكداً، قدّم أفضل تحليل ممكن مع توضيح حدود المعرفة، ولا تترك الإجابة فارغة أبداً.
-- أكمل إجابتك دائماً حتى نهايتها الطبيعية، ولا تتوقف في منتصف فكرة أو جملة.`;
-
-const DEEP_RULES = `
-منهجية الإجابة (طبّقها داخلياً ثم أخرج النتيجة النهائية فقط):
-- حلّل السؤال من أكثر من زاوية، وفكّر في الجوانب التي قد تغيب عن إجابة سطحية.
-- بعد صياغة إجابتك، راجعها ذاتياً: صحّح أي خطأ، واحذف أي تكرار، وتأكّد من دقّة الأرقام والحقائق.
-- ادمج التحليل في إجابة واحدة عميقة ومنظّمة ودقيقة ومكتملة من أولها لآخرها.
-- لا تُظهر خطوات تفكيرك أو مراجعتك، أخرج الإجابة النهائية المصقولة فقط.`;
-
-function langInstruction(lang) {
-  if (!lang || lang === "auto") {
-    return `\n- مهم جداً: اكتب إجابتك بنفس لغة سؤال المستخدم تماماً. إذا سأل بالعربية أجب بالعربية، وإذا سأل بأي لغة أخرى أجب بنفس تلك اللغة.`;
-  }
-  return `\n- مهم جداً: اكتب إجابتك بالكامل بلغة: ${lang} فقط، بغضّ النظر عن لغة السؤال. يجب أن تكون الإجابة كلها بلغة ${lang}.`;
-}
-
-// ========================================
-// خيارات أسلوب الإجابة (يختارها المستخدم اختيارياً قبل الإرسال)
-// ========================================
-const STYLE_OPTION_INSTRUCTIONS = {
-  practical: "ركّز إجابتك على الجانب العملي القابل للتطبيق مباشرة، وتجنّب الحشو النظري.",
-  concise: "اختصر إجابتك قدر الإمكان مع الحفاظ على المعنى الكامل والدقة.",
-  beginner: "اشرح بأسلوب مبسّط يناسب المبتدئين تمامًا، وتجنّب المصطلحات المعقدة غير المشروحة.",
-  steps: "قدّم إجابتك على شكل خطوات تنفيذية واضحة ومرقّمة يمكن تطبيقها مباشرة.",
-  expert: "أجب بأسلوب خبير متخصص عميق المعرفة بالمجال، بمستوى تفصيل احترافي.",
-  risks: "اذكر أهم المخاطر والقيود والاستثناءات المرتبطة بالموضوع ضمن الإجابة."
-};
-function styleOptionsInstruction(options) {
-  if (!Array.isArray(options) || options.length === 0) return "";
-  const lines = options
-    .filter(o => STYLE_OPTION_INSTRUCTIONS[o])
-    .map(o => "- " + STYLE_OPTION_INSTRUCTIONS[o]);
-  if (lines.length === 0) return "";
-  return "\n" + lines.join("\n");
-}
-
-function withTimeout(promise, ms) {
-  return Promise.race([
-    promise,
-    new Promise((resolve) => setTimeout(() => resolve({ ok: false, text: "", timedOut: true }), ms)),
-  ]);
-}
-
-function isRealAnswer(text) {
-  return typeof text === "string" && text.trim().length > 15;
-}
-
-// ========================================
-// الشخصيات (الخبراء)
-// ========================================
-const EXPERTS = {
-  trading: "أنت خبير تداول ومحلل أسواق مالية محترف. حلّل بدقة مع ذكر المخاطر. لا تقدّم نصيحة مالية قاطعة بل معلومات يبني عليها المستخدم قراره." + STYLE_RULES,
-  writing: "أنت كاتب وأديب عربي بارع، متمكّن من الأساليب البلاغية والإبداعية والصياغة الراقية. عند كتابة قصة أو نص سردي، اكتبه كاملاً بكل تفاصيله وأحداثه الطبيعية دون اختصار أو تلخيص أو استعجال النهاية، حتى لو كان طويلاً — الطول ليس مشكلة، والأولوية لاكتمال القصة." + STYLE_RULES,
-  programming: "أنت مهندس برمجيات خبير. قدّم حلولاً عملية ودقيقة مع شرح واضح وأمثلة كود نظيفة." + STYLE_RULES,
-  science: "أنت عالم وباحث متخصص. قدّم معلومات دقيقة مبنية على الأدلة العلمية بلغة واضحة." + STYLE_RULES,
-  religion: "أنت باحث متخصص في العلوم الشرعية، دقيق وموضوعي، تذكر الآراء المختلفة باحترام." + STYLE_RULES,
-  health: "أنت مختص صحي يقدّم معلومات طبية عامة موثوقة، مع التنبيه دائماً لمراجعة الطبيب المختص." + STYLE_RULES,
-  education: "أنت معلّم خبير بارع في التبسيط. اشرح المفاهيم خطوة بخطوة بأسلوب سهل مع أمثلة توضيحية." + STYLE_RULES,
-  business: "أنت مستشار أعمال وتسويق محترف. قدّم أفكاراً عملية وخططاً واقعية قابلة للتنفيذ." + STYLE_RULES,
-  translation: "أنت مترجم محترف دقيق. ترجم بأمانة مع مراعاة السياق والمعنى والأسلوب الطبيعي في اللغة الهدف." + STYLE_RULES,
-  law: "أنت مستشار قانوني يقدّم معلومات قانونية عامة للتوعية، مع التنبيه دائماً لمراجعة محامٍ مختص لكل حالة." + STYLE_RULES,
-  psychology: "أنت مختص في علم النفس والتطوير الذاتي، تقدّم إرشاداً عاماً داعماً، مع التنبيه لمراجعة مختص عند الحاجة." + STYLE_RULES,
-  daily: "أنت مساعد يومي عملي يجاوب عن الطقس والأخبار والمناسبات والرسائل الصباحية بإيجاز ودقة، معتمداً على أحدث معلومة متاحة لك." + STYLE_RULES,
-  general: "أنت مساعد ذكاء اصطناعي خبير وموسوعي. قدّم إجابة شاملة ودقيقة ومنظّمة بالعربية الواضحة." + STYLE_RULES
-};
-
-const SENSITIVE = ["health", "religion", "law", "trading"];
-const CREATIVE = ["writing"];
-const USUALLY_NEEDS_SEARCH = ["daily"];
-
-// ========================================
-// تصنيف نوع المحتوى (لتنظيم المكتبة: نكتة/قصة/شعر/حكمة/لغز/علوم/تاريخ/مقال/معلومة عامة)
-// ========================================
-const CONTENT_TYPE_TESTS = [
-  ["joke", /نكتة|نكته|joke/i],
-  ["riddle", /لغز|riddle/i],
-  ["poem", /شعرا|شعراً|قصيدة|\bpoem\b/i],
-  ["quote", /حكمة|اقتباس|\bquote\b|wisdom/i],
-  ["science", /حقيقة علمية|scientific fact/i],
-  ["historical", /حدث تاريخي|historical event/i],
-  ["story", /قصة قصيرة|قصة|short story/i],
-  ["article", /اكتب مقال|مقال عن|write an article/i]
-];
-function classifyContentType(question) {
-  const s = question || "";
-  for (const [name, re] of CONTENT_TYPE_TESTS) if (re.test(s)) return name;
-  return "general_info";
-}
-
-// ========================================
-// أدوات الكلمات المفتاحية (لمطابقة المكتبة)
-// ========================================
-const STOPWORDS = new Set([
-  "من","إلى","على","في","عن","مع","هل","ما","ماذا","كيف","لماذا","متى","أين","الذي","التي","هذا","هذه","ذلك",
-  "و","أو","ثم","بعد","قبل","عند","كل","بعض","لا","لم","لن","إن","أن","كان","كانت","يكون","تكون","هو","هي","انا","أنا","انت","أنت",
-  "لي","له","لها","لهم","بها","به","فيه","فيها","اللي","حتى","أيضا","أيضاً","the","a","an","is","are","of","to","in","on","for","and","or"
-]);
-
-function extractKeywords(text) {
-  if (!text) return [];
-  const cleaned = text
-    .toLowerCase()
-    .replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g, " ")
-    .split(/\s+/)
-    .map(w => w.trim())
-    .filter(w => w.length >= 2 && !STOPWORDS.has(w));
-  return [...new Set(cleaned)];
-}
-
-function jaccardSimilarity(setA, setB) {
-  if (setA.length === 0 || setB.length === 0) return 0;
-  const a = new Set(setA);
-  const b = new Set(setB);
-  let intersection = 0;
-  for (const w of a) if (b.has(w)) intersection++;
-  const union = new Set([...a, ...b]).size;
-  return union === 0 ? 0 : intersection / union;
-}
-
-// ========================================
-// المكتبة المعرفية (Cloudflare KV)
-// بنية التخزين:
-//   "lib:index"     -> JSON array خفيف: [{id, keywords, category}, ...]
-//   "lib:item:<id>" -> JSON كامل: {question, answer, category, keywords, source, rating, date_added}
-// ========================================
-async function getLibraryIndex(kv) {
-  if (!kv) return [];
-  try {
-    const raw = await kv.get("lib:index");
-    if (!raw) return [];
-    const arr = JSON.parse(raw);
-    return Array.isArray(arr) ? arr : [];
-  } catch {
-    return [];
-  }
-}
-
-async function saveLibraryIndex(kv, index) {
-  if (!kv) return;
-  try {
-    await kv.put("lib:index", JSON.stringify(index));
-  } catch { /* تجاهل أي خطأ تخزين مؤقت */ }
-}
-
-async function searchLibrary(kv, question, category) {
-  if (!kv) return null;
-  const index = await getLibraryIndex(kv);
-  if (index.length === 0) return null;
-
-  const qKeywords = extractKeywords(question);
-  if (qKeywords.length === 0) return null;
-
-  let best = null;
-  let bestScore = 0;
-  const scanList = index.slice(0, LIBRARY_INDEX_SCAN_LIMIT);
-
-  for (const entry of scanList) {
-    const score = jaccardSimilarity(qKeywords, entry.keywords || []);
-    const boosted = (category && entry.category === category) ? score + 0.05 : score;
-    if (boosted > bestScore) {
-      bestScore = boosted;
-      best = entry;
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-R6D4XTEHN6"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-R6D4XTEHN6');
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Nexara AI</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#fff8f0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Nexara AI" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Readex Pro', 'Segoe UI', sans-serif;
+      background: #fdf8f3;
+      color: #2b2620; direction: rtl; min-height: 100vh;
     }
-  }
+    body[data-dir="ltr"] { direction: ltr; }
+    body[data-dir="ltr"] textarea { direction: ltr; text-align: left; }
+    body[data-dir="ltr"] .sug-btn { direction: ltr; text-align: left; }
+    body[data-dir="ltr"] .answer-text { direction: ltr; text-align: left; }
+    body[data-dir="ltr"] .btn-row { justify-content: flex-start; }
+    body[data-dir="ltr"] .rating-row { justify-content: flex-start; }
+    body[data-dir="ltr"] .door-opt { text-align: left; direction: ltr; }
 
-  if (!best || bestScore < LIBRARY_MATCH_THRESHOLD) return null;
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #fdf8f3; }
+    ::-webkit-scrollbar-thumb { background: #ff6a1f55; border-radius: 3px; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .spin { display: inline-block; animation: spin 1.2s linear infinite; }
+    .fade-in { animation: fadeIn 0.4s ease forwards; }
 
-  try {
-    const raw = await kv.get("lib:item:" + best.id);
-    if (!raw) return null;
-    const full = JSON.parse(raw);
-    return { ...full, matchScore: bestScore };
-  } catch {
-    return null;
-  }
-}
-
-async function addLibraryEntry(kv, { question, answer, category, source }) {
-  if (!kv) return { ok: false };
-  try {
-    const id = crypto.randomUUID();
-    const keywords = extractKeywords(question);
-    const contentType = classifyContentType(question);
-    const entry = {
-      question,
-      answer,
-      category: category || "general",
-      contentType,
-      keywords,
-      source: source || "manual",
-      rating: 1,
-      date_added: new Date().toISOString(),
-    };
-    await kv.put("lib:item:" + id, JSON.stringify(entry));
-
-    const index = await getLibraryIndex(kv);
-    index.push({ id, keywords, category: entry.category, contentType });
-    await saveLibraryIndex(kv, index);
-
-    return { ok: true, id };
-  } catch (e) {
-    return { ok: false, error: e.message || String(e) };
-  }
-}
-
-// ========================================
-// "صفحة المجلة" — طلب دفعة عناصر من نوع واحد (نكت/ألغاز/اقتباسات) دفعة وحدة
-// ========================================
-const BATCH_CONTENT_TYPES = {
-  joke: { triggerRegex: /نكتة|نكته|joke/i, pickCount: () => 7, itemsWord: "نكتة", itemsWordPlural: "نكت" },
-  riddle: { triggerRegex: /لغز|riddle/i, pickCount: () => (Math.random() < 0.5 ? 6 : 7), itemsWord: "لغز", itemsWordPlural: "ألغاز" },
-  quote: { triggerRegex: /حكمة|اقتباس|\bquote\b|wisdom/i, pickCount: () => (Math.random() < 0.5 ? 2 : 3), itemsWord: "حكمة أو اقتباس", itemsWordPlural: "حكم واقتباسات" },
-};
-function detectBatchType(question) {
-  const s = question || "";
-  for (const [type, cfg] of Object.entries(BATCH_CONTENT_TYPES)) {
-    if (cfg.triggerRegex.test(s)) return type;
-  }
-  return null;
-}
-
-function shuffleArray(arr) {
-  const a = arr.slice();
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-async function getLibraryBatchByType(kv, contentType, count) {
-  if (!kv) return [];
-  const index = await getLibraryIndex(kv);
-  const matching = index.filter(e => e.contentType === contentType);
-  const picked = shuffleArray(matching).slice(0, count);
-  const items = [];
-  for (const entry of picked) {
-    try {
-      const raw = await kv.get("lib:item:" + entry.id);
-      if (raw) {
-        const full = JSON.parse(raw);
-        items.push(full.answer);
-      }
-    } catch { /* تجاهل عنصر تالف */ }
-  }
-  return items;
-}
-
-const ARABIC_NUMS = ["١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "١٠"];
-function formatNumberedList(items) {
-  return items.map((t, i) => (ARABIC_NUMS[i] || String(i + 1)) + ". " + t).join("\n\n");
-}
-
-async function generateBatchFiller(contentType, count, existingTexts, geminiKey) {
-  const cfg = BATCH_CONTENT_TYPES[contentType];
-  const avoidList = existingTexts.length
-    ? "\nتجنّب تكرار أو مشابهة هذه العناصر الموجودة أصلاً:\n" + existingTexts.map(t => "- " + t.slice(0, 80)).join("\n")
-    : "";
-  const prompt = `أنت مصدر محتوى عربي خفيف ومتنوع. أعطني بالضبط ${count} عنصر من نوع "${cfg.itemsWordPlural}" جديدة ومختلفة تمامًا عن بعضها.${avoidList}
-قواعد الإخراج:
-- أرجع النتيجة بصيغة JSON فقط بهذا الشكل: {"items":["العنصر الأول","العنصر الثاني", ...]}
-- بالضبط ${count} عنصر داخل المصفوفة، لا أكثر ولا أقل.
-- كل عنصر جملة أو جملتين قصيرتين واضحتين، بدون ترقيم داخل النص نفسه.
-- لا تكتب أي نص أو شرح خارج الـ JSON.`;
-
-  const result = await withTimeout(
-    askGemini(prompt, "أنت مولّد محتوى دقيق تُخرج JSON فقط.", geminiKey, GEMINI_MAIN, 2000, false),
-    15000
-  );
-
-  try {
-    const raw = (result.text || "").replace(/```json|```/g, "").trim();
-    const start = raw.indexOf("{");
-    const end = raw.lastIndexOf("}");
-    const parsed = JSON.parse(raw.slice(start, end + 1));
-    if (Array.isArray(parsed.items)) {
-      return parsed.items.map(s => (typeof s === "string" ? s.trim() : "")).filter(Boolean).slice(0, count);
+    header {
+      padding: 14px 20px; border-bottom: 1px solid #ff6a1f22;
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fffdfaee; backdrop-filter: blur(20px);
+      position: sticky; top: 0; z-index: 100;
     }
-  } catch { /* فشل التوليد، نرجع مصفوفة فاضية */ }
-  return [];
-}
-
-// ========================================
-// استدعاء Claude
-// ========================================
-async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_HEAVY, maxTokens = MAX_TOKENS_CLAUDE) {
-  try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: model,
-        max_tokens: maxTokens,
-        system: expertPrompt,
-        messages: [{ role: "user", content: question }],
-      }),
-    });
-    const data = await res.json();
-    if (data.error) return { ok: false, text: "" };
-    const text = (data.content || []).map(b => b.text || "").join("");
-    return { ok: isRealAnswer(text), text };
-  } catch {
-    return { ok: false, text: "" };
-  }
-}
-
-// ========================================
-// استدعاء Gemini (مع دعم اختياري للبحث الفعلي بالويب)
-// ========================================
-async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, maxTokens = MAX_TOKENS_COMPLEX, useSearch = false) {
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    const body = {
-      system_instruction: { parts: [{ text: expertPrompt }] },
-      contents: [{ parts: [{ text: question }] }],
-      generationConfig: { maxOutputTokens: maxTokens },
-    };
-    if (useSearch) {
-      body.tools = [{ google_search: {} }];
+    .logo-wrap { display: flex; align-items: center; gap: 12px; }
+    .logo-orb {
+      width: 42px; height: 42px; border-radius: 50%;
+      overflow: hidden; flex-shrink: 0;
+      box-shadow: 0 2px 10px #ff6a1f33;
     }
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (data.error) {
-      return { ok: false, text: "", debug: "GEMINI_ERROR: " + (data.error.message || JSON.stringify(data.error)) };
+    .logo-img { width: 44px; height: 44px; object-fit: cover; border-radius: 50%; display: block; }
+    .logo-title { font-size: 19px; font-weight: 700; color: #ff6a1f; letter-spacing: 0.3px; }
+    .logo-sub { font-size: 10px; color: #a89a86; }
+    nav { display: flex; gap: 6px; }
+    .nav-btn {
+      background: transparent; color: #a89a86; border: 1px solid transparent;
+      padding: 7px 12px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      font-family: 'Readex Pro', sans-serif; cursor: pointer; transition: all 0.2s;
     }
-    const parts = data.candidates?.[0]?.content?.parts;
-    let text = "";
-    if (Array.isArray(parts)) {
-      text = parts.map(p => (p && p.text) ? p.text : "").join("");
+    .nav-btn.active { background: #ff6a1f18; color: #ff6a1f; border-color: #ff6a1f44; }
+    .nav-btn:hover { color: #ff6a1f; }
+
+    main { max-width: 800px; margin: 0 auto; padding: 28px 16px 60px; }
+    .hero { text-align: center; margin-bottom: 30px; }
+    .hero-icon { font-size: 44px; margin-bottom: 10px; }
+    .hero h1 { font-size: 27px; font-weight: 700; color: #ff6a1f; margin-bottom: 6px; }
+    .hero p { color: #8a7f70; font-size: 14px; }
+
+    .stats-bar { display: flex; justify-content: center; gap: 22px; margin-bottom: 22px; flex-wrap: wrap; }
+    .beta-banner {
+      background: #fff1e2;
+      border: 1px solid #ff6a1f33; border-radius: 12px;
+      padding: 12px 16px; margin-bottom: 18px; font-size: 13px; line-height: 1.7;
+      color: #b85a1e; display: flex; gap: 10px; align-items: flex-start;
     }
-    if (!text) {
-      const reason = data.candidates?.[0]?.finishReason || "NO_TEXT";
-      return { ok: false, text: "", debug: "GEMINI_EMPTY: finishReason=" + reason };
+    .beta-banner .beta-icon { flex-shrink: 0; font-size: 16px; }
+    .stat-item { text-align: center; }
+    .stat-num { font-size: 20px; font-weight: 700; color: #ff6a1f; }
+    .stat-label { font-size: 11px; color: #a89a86; }
+
+    .input-card {
+      background: #ffffff; border: 1px solid #ff6a1f2e; border-radius: 18px;
+      padding: 18px; margin-bottom: 16px; box-shadow: 0 6px 24px #ff6a1f14;
     }
-    let sources = [];
-    try {
-      const chunks = data.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-      sources = chunks.map(c => c.web?.uri).filter(Boolean);
-    } catch { /* تجاهل */ }
-    return { ok: isRealAnswer(text), text, searchSources: sources };
-  } catch (e) {
-    return { ok: false, text: "", debug: "GEMINI_EXCEPTION: " + (e.message || String(e)) };
-  }
-}
-
-// ========================================
-// التصنيف الذكي — الآن يحدد أيضاً needs_search
-// ========================================
-async function classifyQuestion(question, geminiKey) {
-  const cats = Object.keys(EXPERTS).join("، ");
-  const prompt = `صنّف السؤال التالي وأرجع JSON فقط بهذا الشكل بالضبط:
-{"category":"<إحدى الفئات>","complexity":"simple أو complex","needs_search":true أو false}
-
-الفئات المتاحة: ${cats}.
-- اختر الفئة الأنسب لموضوع السؤال. فئة "daily" تشمل: الطقس، الأخبار، العطل الرسمية، المناسبات، الرسائل الصباحية.
-- "complexity": "simple" لسؤال بسيط ومباشر، "complex" لسؤال يحتاج تحليلاً معمّقاً أو متشعباً أو حسّاساً.
-- "needs_search": ضع true إذا كان السؤال يحتاج معلومة لحظية أو حديثة (طقس اليوم، خبر عاجل، سعر حالي، حدث جارٍ، أحدث إصدار، آخر تحديث). ضع false إذا كان السؤال عن معرفة أو مفهوم ثابت لا يتغير بمرور الوقت (شرح، تعريف، مبدأ عام، مهارة).
-أجب بالـ JSON فقط دون أي نص إضافي.
-السؤال: ${question}`;
-
-  const result = await withTimeout(
-    askGemini(prompt, "أنت مصنّف دقيق تُخرج JSON فقط.", geminiKey, GEMINI_MAIN, 250, false),
-    6000
-  );
-
-  let category = "general";
-  let complexity = "simple";
-  let needsSearch = false;
-  try {
-    const raw = (result.text || "").replace(/```json|```/g, "").trim();
-    const parsed = JSON.parse(raw);
-    if (EXPERTS[parsed.category]) category = parsed.category;
-    if (parsed.complexity === "simple" || parsed.complexity === "complex") {
-      complexity = parsed.complexity;
+    textarea {
+      width: 100%; background: transparent; border: none; color: #2b2620;
+      font-size: 15px; line-height: 1.8; resize: none; font-family: 'Readex Pro', sans-serif; direction: rtl;
     }
-    if (typeof parsed.needs_search === "boolean") {
-      needsSearch = parsed.needs_search;
+    textarea:focus { outline: none; }
+    textarea::placeholder { color: #c4b8a8; }
+
+    .lang-row {
+      display: flex; align-items: center; gap: 8px; margin-top: 12px;
+      padding-top: 12px; border-top: 1px solid #f0e6d8; flex-wrap: wrap;
     }
-  } catch {
-    // فشل التصنيف: نبقى على القيم الافتراضية
-  }
-  if (!needsSearch && USUALLY_NEEDS_SEARCH.includes(category)) {
-    needsSearch = true;
-  }
-  return { category, complexity, needsSearch };
-}
+    .lang-label { font-size: 12px; color: #8a7f70; font-weight: 600; }
+    .lang-select {
+      background: #fff8f0; color: #ff6a1f; border: 1px solid #ff6a1f33;
+      border-radius: 8px; padding: 6px 12px; font-size: 13px; font-family: 'Readex Pro', sans-serif;
+      cursor: pointer;
+    }
+    .lang-select:focus { outline: none; border-color: #ff6a1f; }
 
-// ========================================
-// المعالج الرئيسي
-// ========================================
-export async function onRequest(context) {
-  const { request, env } = context;
+    .btn-row { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; flex-wrap: wrap; }
 
-  const headers = {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Content-Type": "application/json",
+    .adv-toggle-row { margin-top: 10px; }
+    .adv-toggle-btn {
+      background: transparent; color: #a89a86; border: 1px dashed #d8c8b0; border-radius: 8px;
+      padding: 6px 12px; font-size: 12.5px; cursor: pointer; font-family: 'Readex Pro', sans-serif;
+      transition: all 0.2s;
+    }
+    .adv-toggle-btn:hover, .adv-toggle-btn.open { color: #ff6a1f; border-color: #ff6a1f66; background: #fff8f0; }
+    .adv-options-box { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #f0e0cc; }
+    .adv-options-list { display: flex; flex-wrap: wrap; gap: 7px; }
+    .adv-chip {
+      background: #fff8f0; border: 1px solid #f0e0cc; border-radius: 16px;
+      padding: 6px 13px; color: #6a5f50; font-size: 12.5px; cursor: pointer;
+      transition: all 0.2s; font-family: 'Readex Pro', sans-serif;
+    }
+    .adv-chip.active { background: #ff6a1f; border-color: #ff6a1f; color: #fff; font-weight: 700; }
+    .adv-chip:hover:not(.active) { border-color: #ff6a1f66; color: #ff6a1f; }
+    .btn {
+      border: none; border-radius: 10px; padding: 10px 20px; font-size: 14px; font-weight: 700;
+      font-family: 'Readex Pro', sans-serif; cursor: pointer; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-gold { background: #ff6a1f; color: #fff; }
+    .btn-gold:hover:not(:disabled) { background: #ff7f3f; }
+    .btn-ghost { background: transparent; color: #a89a86; border: 1px solid #e8dbc8; }
+    .btn-ghost:hover:not(:disabled) { color: #6a5f50; border-color: #c4b8a8; }
+    .btn-send { background: #ff6a1f; color: #fff; padding: 10px 28px; font-size: 15px; }
+    .btn-send:hover:not(:disabled) { background: #ff7f3f; }
+    .btn-send:disabled { background: #f0e6d8; color: #c4b8a8; }
+
+    .doors-section { margin-bottom: 16px; }
+    .doors-title { font-size: 14px; color: #ff6a1f; margin-bottom: 12px; font-weight: 700; text-align: center; }
+    .doors-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    @media (min-width: 640px) { .doors-grid { grid-template-columns: repeat(5, 1fr); } }
+    .door-card {
+      background: #ffffff;
+      border: 1px solid #ff6a1f22; border-radius: 14px;
+      padding: 16px 10px; text-align: center; cursor: pointer;
+      transition: all 0.25s; display: flex; flex-direction: column; align-items: center; gap: 8px;
+      box-shadow: 0 3px 10px #ff6a1f0d;
+    }
+    .door-card:hover { border-color: #ff6a1f; background: #fff8f0; transform: translateY(-3px); box-shadow: 0 8px 22px #ff6a1f22; }
+    .door-ico { font-size: 26px; }
+    .door-name { font-size: 12.5px; color: #4a4038; font-weight: 600; line-height: 1.3; }
+
+    .door-modal {
+      position: fixed; inset: 0; background: #2b262099; backdrop-filter: blur(6px);
+      display: none; align-items: center; justify-content: center; z-index: 500; padding: 16px;
+    }
+    .door-modal.show { display: flex; }
+    .door-modal-box {
+      background: #fffdfa;
+      border: 1px solid #ff6a1f33; border-radius: 20px;
+      max-width: 480px; width: 100%; max-height: 80vh; overflow-y: auto;
+      padding: 22px; box-shadow: 0 16px 60px #0003;
+    }
+    .door-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .door-modal-title { font-size: 18px; font-weight: 700; color: #ff6a1f; display: flex; align-items: center; gap: 8px; }
+    .door-modal-close {
+      background: #fff1e2; border: 1px solid #ff6a1f33; color: #ff6a1f;
+      width: 32px; height: 32px; border-radius: 8px; font-size: 18px; cursor: pointer; line-height: 1;
+    }
+    .door-modal-close:hover { background: #ffe4c8; }
+    .door-opt {
+      display: block; width: 100%; text-align: right; background: #fff8f0;
+      border: 1px solid #f0e0cc; border-radius: 10px; padding: 12px 14px; color: #4a4038;
+      font-size: 14px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;
+      font-family: 'Readex Pro', sans-serif; direction: rtl;
+    }
+    .door-opt:hover { background: #fff1e2; border-color: #ff6a1f66; color: #ff6a1f; }
+
+    .suggestions-box { background: #fff8f0; border: 1px solid #ff6a1f22; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+    .suggestions-title { font-size: 13px; color: #ff6a1f; margin-bottom: 10px; font-weight: 700; }
+    .sug-btn {
+      display: block; width: 100%; text-align: right; background: #ffffff;
+      border: 1px solid #f0e0cc; border-radius: 10px; padding: 11px 14px; color: #4a4038;
+      font-size: 14px; margin-bottom: 8px; line-height: 1.6; cursor: pointer;
+      transition: all 0.2s; font-family: 'Readex Pro', sans-serif; direction: rtl;
+    }
+    .sug-btn:hover { background: #fff1e2 !important; border-color: #ff6a1f66 !important; }
+    .sug-btn .num { color: #ff6a1f; font-weight: 700; margin-left: 6px; }
+    .sug-btn.original { background: transparent; border: 1px dashed #d8c8b0; color: #a89a86; margin-bottom: 0; }
+    .sug-btn.original .num { color: #c4b8a8; }
+    .sug-btn.original:hover { color: #6a5f50 !important; border-color: #a89a86 !important; background: transparent !important; }
+
+    .answer-box {
+      background: #fffdfa;
+      border: 3px solid #ff6a1f;
+      border-radius: 20px; padding: 24px; margin-bottom: 14px;
+      position: relative; box-shadow: 0 10px 34px #ff6a1f22;
+    }
+    .answer-box::before, .answer-box::after {
+      content: "✦"; position: absolute; color: #ff6a1f; font-size: 16px; opacity: 0.6;
+    }
+    .answer-box::before { top: 10px; right: 14px; }
+    .answer-box::after { bottom: 10px; left: 14px; }
+
+    /* شكل النكتة — صفحة مجلة قديمة */
+    .answer-box.style-joke {
+      background: #fdf3d9; border-color: #e8a33d;
+    }
+    .answer-box.style-joke::before {
+      content: ""; top: -3px; left: -3px; right: -3px; bottom: auto;
+      height: 10px; font-size: 0; opacity: 1;
+      background: repeating-linear-gradient(90deg, #ff6a1f 0 14px, #ffd23f 14px 28px, #3aa15c 28px 42px, #4fa8d8 42px 56px, #d8447a 56px 70px);
+      border-radius: 17px 17px 0 0;
+    }
+    .answer-box.style-joke::after { content: "😂"; font-size: 20px; opacity: 1; bottom: 8px; left: 16px; }
+    .answer-box.style-joke .answer-text { color: #6a4a1e; }
+    .answer-box.style-joke .answer-signature { color: #d97a1f; }
+
+    /* شكل رسالة الصباح — ورد */
+    .answer-box.style-morning {
+      background: linear-gradient(160deg, #fff0f5, #ffe0ec 60%, #ffd9e8);
+      border-color: #e8639f;
+    }
+    .answer-box.style-morning::before { content: "🌹"; font-size: 20px; opacity: 1; top: 10px; right: 14px; }
+    .answer-box.style-morning::after { content: "🌸"; font-size: 20px; opacity: 1; bottom: 8px; left: 16px; }
+    .answer-box.style-morning .answer-text { color: #7a3352; }
+    .answer-box.style-morning .answer-signature { color: #d8447a; }
+
+    /* أنماط عامة إضافية (تُبنى على متغيرات CSS لكل نوع محتوى) */
+    .answer-box.style-poem, .answer-box.style-story, .answer-box.style-quote,
+    .answer-box.style-riddle, .answer-box.style-science, .answer-box.style-historical,
+    .answer-box.style-news, .answer-box.style-weather, .answer-box.style-recipe,
+    .answer-box.style-newword {
+      background: var(--style-bg); border-color: var(--style-border);
+    }
+    .answer-box.style-poem::before, .answer-box.style-story::before, .answer-box.style-quote::before,
+    .answer-box.style-riddle::before, .answer-box.style-science::before, .answer-box.style-historical::before,
+    .answer-box.style-news::before, .answer-box.style-weather::before, .answer-box.style-recipe::before,
+    .answer-box.style-newword::before {
+      content: var(--style-icon1); opacity: 1; color: var(--style-border); font-size: 18px;
+    }
+    .answer-box.style-poem::after, .answer-box.style-story::after, .answer-box.style-quote::after,
+    .answer-box.style-riddle::after, .answer-box.style-science::after, .answer-box.style-historical::after,
+    .answer-box.style-news::after, .answer-box.style-weather::after, .answer-box.style-recipe::after,
+    .answer-box.style-newword::after {
+      content: var(--style-icon2); opacity: 1; color: var(--style-border); font-size: 18px;
+    }
+    .answer-box.style-poem .answer-text, .answer-box.style-story .answer-text, .answer-box.style-quote .answer-text,
+    .answer-box.style-riddle .answer-text, .answer-box.style-science .answer-text, .answer-box.style-historical .answer-text,
+    .answer-box.style-news .answer-text, .answer-box.style-weather .answer-text, .answer-box.style-recipe .answer-text,
+    .answer-box.style-newword .answer-text { color: var(--style-text); }
+    .answer-box.style-poem .answer-signature, .answer-box.style-story .answer-signature, .answer-box.style-quote .answer-signature,
+    .answer-box.style-riddle .answer-signature, .answer-box.style-science .answer-signature, .answer-box.style-historical .answer-signature,
+    .answer-box.style-news .answer-signature, .answer-box.style-weather .answer-signature, .answer-box.style-recipe .answer-signature,
+    .answer-box.style-newword .answer-signature { color: var(--style-border); }
+
+    .style-poem { --style-bg: linear-gradient(160deg,#f4f0ff,#ece4ff); --style-border:#8a63d1; --style-icon1:"🖋️"; --style-icon2:"🌙"; --style-text:#4a3a70; }
+    .style-story { --style-bg: linear-gradient(160deg,#fff8e8,#ffedc2); --style-border:#c9922c; --style-icon1:"📖"; --style-icon2:"🕯️"; --style-text:#5a4522; }
+    .style-quote { --style-bg: linear-gradient(160deg,#f0faf5,#dff2e6); --style-border:#2f9e6b; --style-icon1:"❝"; --style-icon2:"❞"; --style-text:#1f5c40; }
+    .style-quote::before, .style-quote::after { font-size: 26px !important; }
+    .style-riddle { --style-bg: linear-gradient(160deg,#eef1fb,#dbe1f7); --style-border:#4a5fc1; --style-icon1:"🔍"; --style-icon2:"❓"; --style-text:#2c3970; }
+    .style-science { --style-bg: linear-gradient(160deg,#eaf3ff,#d3e8ff); --style-border:#2f7dc7; --style-icon1:"🔭"; --style-icon2:"✨"; --style-text:#1a4a75; }
+    .style-historical { --style-bg: linear-gradient(160deg,#f5ecd9,#e8d9b0); --style-border:#8a6a3a; --style-icon1:"📜"; --style-icon2:"⏳"; --style-text:#5a4522; }
+    .style-news { --style-bg: linear-gradient(160deg,#f4f4f4,#e6e6e6); --style-border:#555555; --style-icon1:"📰"; --style-icon2:"🗞️"; --style-text:#2a2a2a; }
+    .style-weather { --style-bg: linear-gradient(160deg,#e8f4fd,#cfe8fb); --style-border:#3a9bd9; --style-icon1:"☀️"; --style-icon2:"☁️"; --style-text:#1c5a80; }
+    .style-recipe { --style-bg: linear-gradient(160deg,#fff3e0,#ffe0b8); --style-border:#d9791f; --style-icon1:"🍲"; --style-icon2:"🥄"; --style-text:#7a3f10; }
+    .style-newword { --style-bg: linear-gradient(160deg,#fdf7ff,#f3e6ff); --style-border:#a3529e; --style-icon1:"🔤"; --style-icon2:"📚"; --style-text:#5c2a58; }
+    .answer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+    .answer-badge { display: flex; align-items: center; gap: 8px; }
+    .green-dot { width: 8px; height: 8px; border-radius: 50%; background: #3aa15c; box-shadow: 0 0 8px #3aa15c; flex-shrink: 0; }
+    .answer-label { font-size: 13px; color: #3aa15c; font-weight: 700; }
+    .category-tag { font-size: 11px; color: #ff6a1f; background: #fff1e2; padding: 3px 10px; border-radius: 10px; }
+    .sources-tag { font-size: 11px; color: #a89a86; font-style: italic; opacity: 0.85; }
+    .answer-signature {
+      margin-top: 16px; padding-top: 14px; border-top: 1px dashed #f0e0cc;
+      text-align: center; font-size: 13px; font-weight: 700; color: #ff6a1f;
+      letter-spacing: 0.3px;
+    }
+    .answer-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .act-btn {
+      background: #fff8f0; color: #8a7f70; border: 1px solid #f0e0cc; border-radius: 6px;
+      padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: 'Readex Pro', sans-serif; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .act-btn:hover { background: #fff1e2; color: #ff6a1f; }
+    .act-btn.speaking { background: #ff6a1f22; color: #ff6a1f; border-color: #ff6a1f; }
+    .answer-text { font-size: 15px; line-height: 2; color: #3a332c; white-space: pre-wrap; direction: rtl; }
+    .rating-row { margin-top: 18px; padding-top: 14px; border-top: 1px dashed #f0e0cc; display: flex; align-items: center; gap: 10px; justify-content: flex-end; }
+    .rating-label { font-size: 13px; color: #a89a86; }
+    .rate-btn { background: #fff8f0; border: 1px solid #f0e0cc; border-radius: 8px; padding: 6px 14px; font-size: 17px; cursor: pointer; transition: all 0.2s; }
+    .rate-btn:hover { transform: scale(1.1); }
+    .rate-btn.active { background: #ff6a1f22; border-color: #ff6a1f; }
+    .rate-thanks { font-size: 12px; color: #ff6a1f; }
+
+    .loading-box { text-align: center; padding: 36px; }
+    .loading-icon { perspective: 700px; margin-bottom: 14px; }
+    .loading-img { width: 92px; height: 92px; object-fit: contain; display: inline-block; filter: drop-shadow(0 0 12px #ff6a1f55); }
+    @keyframes spin3d { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+    .spin-3d { animation: spin3d 2.4s linear infinite; }
+    .loading-steps { font-size: 13px; color: #a89a86; line-height: 2.2; }
+    .loading-steps .step { transition: all 0.3s; }
+    .loading-steps .step.active { color: #ff6a1f; font-weight: 600; }
+    .loading-steps .step.done { color: #3aa15c; }
+
+    .history-title { font-size: 20px; font-weight: 700; color: #ff6a1f; margin-bottom: 20px; }
+    .history-empty { text-align: center; color: #d8c8b0; padding: 60px 20px; }
+    .history-empty-icon { font-size: 44px; margin-bottom: 10px; }
+    .hist-item { background: #ffffff; border: 1px solid #f0e0cc; border-radius: 12px; padding: 14px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
+    .hist-item:hover { background: #fff8f0; border-color: #ff6a1f44; }
+    .hist-q { font-size: 14px; font-weight: 600; color: #ff6a1f; flex: 1; }
+    .hist-time { font-size: 11px; color: #c4b8a8; white-space: nowrap; }
+    .hist-preview { font-size: 13px; color: #8a7f70; line-height: 1.5; margin-top: 6px; }
+    .hist-rating { font-size: 12px; margin-top: 6px; }
+    .hist-clear {
+      background: #fff1e2; color: #b85a1e; border: 1px solid #ff6a1f33; border-radius: 8px;
+      padding: 8px 16px; font-size: 12px; cursor: pointer; font-family: 'Readex Pro', sans-serif;
+      margin-bottom: 16px; transition: all 0.2s;
+    }
+    .hist-clear:hover { background: #ffe4c8; }
+
+    .about-title { font-size: 22px; font-weight: 700; color: #ff6a1f; margin-bottom: 8px; }
+    .about-sub { font-size: 13px; color: #a89a86; margin-bottom: 24px; }
+    .about-card { background: #ffffff; border: 1px solid #ff6a1f22; border-radius: 16px; padding: 20px; margin-bottom: 14px; }
+    .about-card h3 { font-size: 16px; color: #ff6a1f; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .about-card p { font-size: 14px; line-height: 1.9; color: #4a4038; }
+    .about-card .highlight { color: #ff6a1f; font-weight: 700; }
+    .roadmap-item { display: flex; gap: 10px; margin-bottom: 12px; font-size: 14px; color: #4a4038; line-height: 1.7; }
+    .roadmap-icon { flex-shrink: 0; }
+    .contact-email {
+      display: inline-flex; align-items: center; gap: 8px; background: #fff1e2;
+      border: 1px solid #ff6a1f44; border-radius: 10px; padding: 12px 18px;
+      color: #ff6a1f; font-size: 15px; font-weight: 700; text-decoration: none;
+      margin-top: 6px; transition: all 0.2s; direction: ltr;
+    }
+    .contact-email:hover { background: #ffe4c8; }
+
+    .use-item { display: flex; gap: 10px; margin-bottom: 12px; font-size: 14px; color: #4a4038; line-height: 1.7; }
+    .use-icon { flex-shrink: 0; }
+    .note-item { display: flex; gap: 10px; margin-bottom: 14px; font-size: 14px; color: #4a4038; line-height: 1.8; }
+    .note-item:last-child { margin-bottom: 0; }
+    .note-icon { flex-shrink: 0; }
+    .note-warn { color: #d97a1f; }
+
+    .starter-box { background: #fff8f0; border: 1px solid #ff6a1f22; border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+    .starter-title { font-size: 13px; color: #ff6a1f; margin-bottom: 12px; font-weight: 700; line-height: 1.6; }
+    .starter-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .starter-chip {
+      background: #ffffff; border: 1px solid #f0e0cc; border-radius: 20px;
+      padding: 9px 14px; color: #4a4038; font-size: 13px; line-height: 1.5; cursor: pointer;
+      transition: all 0.2s; font-family: 'Readex Pro', sans-serif; text-align: right; direction: rtl;
+    }
+    body[data-dir="ltr"] .starter-chip { text-align: left; direction: ltr; }
+    .starter-chip:hover { background: #fff1e2; border-color: #ff6a1f66; color: #ff6a1f; }
+    .starter-chip .chip-ico { margin-left: 5px; }
+    body[data-dir="ltr"] .starter-chip .chip-ico { margin-left: 0; margin-right: 5px; }
+    .starter-note {
+      font-size: 12px; color: #c4b8a8; margin-top: 14px; padding-top: 12px;
+      border-top: 1px solid #f0e0cc; line-height: 1.7;
+    }
+
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #ff6a1f; color: #fff; padding: 10px 24px; border-radius: 20px;
+      font-size: 13px; font-weight: 700; opacity: 0; transition: opacity 0.3s; z-index: 999; pointer-events: none;
+    }
+    .toast.show { opacity: 1; }
+
+    footer { text-align: center; padding: 20px; border-top: 1px solid #ff6a1f18; color: #d8c8b0; font-size: 12px; }
+
+    @media (max-width: 480px) {
+      .logo-title { font-size: 16px; }
+      .nav-btn { padding: 6px 9px; font-size: 12px; }
+      .hero h1 { font-size: 22px; }
+      .btn { padding: 9px 14px; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+<div class="toast" id="toast">✓</div>
+
+<header>
+  <div class="logo-wrap">
+    <div class="logo-orb">
+      <img src="logo.jpeg" alt="Nexara AI" class="logo-img" />
+    </div>
+    <div>
+      <div class="logo-title">Nexara AI</div>
+      <div class="logo-sub" data-i18n="about_sub">مجمّع الذكاء الاصطناعي</div>
+    </div>
+  </div>
+  <nav>
+    <button class="nav-btn active" id="btn-home" onclick="switchTab('home')" data-i18n="nav_home">🏠 الرئيسية</button>
+    <button class="nav-btn" id="btn-history" onclick="switchTab('history')" data-i18n="nav_history">📚 السجل</button>
+    <button class="nav-btn" id="btn-about" onclick="switchTab('about')" data-i18n="nav_about">ℹ️ عن الموقع</button>
+  </nav>
+</header>
+
+<main>
+  <div id="tab-home">
+    <div class="hero fade-in" id="hero">
+      <div class="hero-icon">✦</div>
+      <h1 data-i18n="hero_h1">اسأل، واحصل على أفضل إجابة</h1>
+      <p data-i18n="hero_p">سؤالك يُوجّه لخبراء متخصصين، ويُدمج في إجابة واحدة قوية</p>
+    </div>
+
+    <div class="stats-bar" id="stats-bar">
+      <div class="stat-item">
+        <div class="stat-num" id="stat-visits">—</div>
+        <div class="stat-label" data-i18n="stat_visits">زيارة</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num" id="stat-questions">0</div>
+        <div class="stat-label" data-i18n="stat_questions">سؤالك</div>
+      </div>
+    </div>
+
+    <div class="beta-banner">
+      <span class="beta-icon">🧪</span>
+      <span data-i18n="beta_notice">الموقع في مرحلة تجريبية. قد يتوقف مؤقتاً إذا زاد الاستخدام — إن حدث ذلك، انتظر قليلاً وحاول مجدداً. نعمل على تطويره باستمرار، وقد نضيف خطط استخدام مرنة قريباً.</span>
+    </div>
+
+    <div class="input-card">
+      <textarea id="question-input" rows="4" data-i18n-ph="input_ph" placeholder="اكتب سؤالك هنا..."></textarea>
+      <div class="lang-row">
+        <span class="lang-label" data-i18n="lang_label">🌍 اللغة · Language:</span>
+        <select class="lang-select" id="lang-select" onchange="onLangChange()">
+          <option value="auto">🔄 تلقائي / Auto</option>
+          <option value="العربية">🇸🇦 العربية / Arabic</option>
+          <option value="English">🇬🇧 English</option>
+        </select>
+      </div>
+      <div class="adv-toggle-row">
+        <button type="button" class="adv-toggle-btn" id="adv-toggle-btn" onclick="toggleAdvancedOptions()" data-i18n="adv_toggle">⚙️ خيارات متقدمة</button>
+      </div>
+      <div class="adv-options-box" id="adv-options-box" style="display:none">
+        <div class="adv-options-list" id="adv-options-list"></div>
+      </div>
+      <div class="btn-row" id="btn-row">
+        <button class="btn btn-ghost" id="btn-clear" onclick="clearAll()" style="display:none" data-i18n="btn_clear">مسح</button>
+        <button class="btn btn-gold" id="btn-optimize" onclick="optimizePrompt()" disabled data-i18n="btn_optimize">✨ حسّن سؤالي</button>
+      </div>
+    </div>
+
+    <div class="doors-section fade-in" id="doors-section">
+      <div class="doors-title" data-i18n="doors_title">🚪 اختر باباً لتبدأ:</div>
+      <div class="doors-grid" id="doors-grid"></div>
+    </div>
+
+    <div class="starter-box fade-in" id="starter-box">
+      <div class="starter-title" data-i18n="starter_title">✨ أو جرّب أمثلة سريعة:</div>
+      <div class="starter-list" id="starter-list"></div>
+      <div class="starter-note" data-i18n="starter_note">💡 يمكنك الكتابة بأي لغة في العالم، وسأجيبك بنفس لغتك.</div>
+    </div>
+
+    <div class="suggestions-box fade-in" id="suggestions-box" style="display:none">
+      <div class="suggestions-title" data-i18n="sug_title">✨ اختر صياغة محسّنة لسؤالك:</div>
+      <div id="suggestions-list"></div>
+    </div>
+
+    <div style="text-align:left; margin-bottom:14px; display:none" id="send-row">
+      <button class="btn btn-send" id="btn-send" onclick="askQuestion()" data-i18n="btn_send">إرسال ✦</button>
+    </div>
+
+    <div class="loading-box fade-in" id="loading-box" style="display:none">
+      <div class="loading-icon">
+        <img src="logo.jpeg" alt="" class="loading-img spin-3d" />
+      </div>
+      <div class="loading-steps">
+        <div class="step" id="step-1" data-i18n="step1">🎯 تحليل وتصنيف السؤال...</div>
+        <div class="step" id="step-2" data-i18n="step2">🤖 استشارة الخبراء (Claude + Gemini)...</div>
+        <div class="step" id="step-3" data-i18n="step3">💎 دمج وتأليف الإجابة النهائية...</div>
+      </div>
+    </div>
+
+    <div class="answer-box fade-in" id="answer-box" style="display:none">
+      <div class="answer-header">
+        <div class="answer-badge">
+          <div class="green-dot"></div>
+          <span class="answer-label" data-i18n="answer_label">إجابة Nexara AI</span>
+          <span class="category-tag" id="category-tag"></span>
+        </div>
+        <div class="answer-actions">
+          <button class="act-btn" id="speak-btn" onclick="toggleSpeak()" data-i18n="act_listen">🔊 استمع</button>
+          <button class="act-btn" onclick="shareAnswer()" data-i18n="act_share">🔗 مشاركة</button>
+          <button class="act-btn" onclick="copyAnswer()" data-i18n="act_copy">⎘ نسخ</button>
+          <button class="act-btn" onclick="printAnswer()" data-i18n="act_print">🖨️ طباعة</button>
+        </div>
+      </div>
+      <div class="answer-text" id="answer-text"></div>
+      <div class="sources-tag" id="sources-tag" style="margin-top:12px"></div>
+      <div class="answer-signature" data-i18n="signature">✦ Nexara AI — nexaraapp.net</div>
+      <div class="rating-row">
+        <span class="rating-label" data-i18n="rating_label">كيف كانت الإجابة؟</span>
+        <button class="rate-btn" id="rate-good" onclick="rate('good')">👍</button>
+        <button class="rate-btn" id="rate-bad" onclick="rate('bad')">👎</button>
+        <span class="rate-thanks" id="rate-thanks" style="display:none" data-i18n="rate_thanks">شكراً لتقييمك!</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-history" style="display:none">
+    <div class="history-title" data-i18n="history_title">📚 سجل الأسئلة</div>
+    <button class="hist-clear" id="hist-clear-btn" onclick="clearHistory()" style="display:none" data-i18n="hist_clear">🗑 مسح السجل</button>
+    <div id="history-list"></div>
+  </div>
+
+  <div id="tab-about" style="display:none">
+    <div class="about-title">✦ Nexara AI</div>
+    <div class="about-sub" data-i18n="about_sub">مجمّع الذكاء الاصطناعي</div>
+
+    <div class="about-card">
+      <h3 data-i18n="about1_h">💡 ما هي فكرة Nexara AI؟</h3>
+      <p data-i18n-html="about1_p"></p>
+    </div>
+
+    <div class="about-card">
+      <h3 data-i18n="who_h">🎯 لمن هذا الموقع؟</h3>
+      <p data-i18n="who_intro" style="margin-bottom:14px"></p>
+      <div class="use-item"><span class="use-icon">📚</span><span data-i18n-html="who_students"></span></div>
+      <div class="use-item"><span class="use-icon">💻</span><span data-i18n-html="who_dev"></span></div>
+      <div class="use-item"><span class="use-icon">✍️</span><span data-i18n-html="who_writer"></span></div>
+      <div class="use-item"><span class="use-icon">💼</span><span data-i18n-html="who_business"></span></div>
+      <div class="use-item"><span class="use-icon">💹</span><span data-i18n-html="who_trading"></span></div>
+      <div class="use-item"><span class="use-icon">⚕️</span><span data-i18n-html="who_health"></span></div>
+      <div class="use-item"><span class="use-icon">🧑</span><span data-i18n-html="who_daily"></span></div>
+    </div>
+
+    <div class="about-card">
+      <h3 data-i18n="about2_h">🎯 لماذا الدمج بين نموذجين؟</h3>
+      <p data-i18n-html="about2_p"></p>
+    </div>
+
+    <div class="about-card">
+      <h3 data-i18n="notes_h">📌 معلومات مهمة</h3>
+      <div class="note-item"><span class="note-icon">⚠️</span><span class="note-warn" data-i18n="note_verify"></span></div>
+      <div class="note-item"><span class="note-icon">🌍</span><span data-i18n="note_lang"></span></div>
+      <div class="note-item"><span class="note-icon">🔧</span><span data-i18n="note_dev"></span></div>
+    </div>
+
+    <div class="about-card">
+      <h3 data-i18n="about3_h">🚀 رؤيتنا المستقبلية</h3>
+      <div class="roadmap-item"><span class="roadmap-icon">🧠</span><span data-i18n-html="about3_r1"></span></div>
+      <div class="roadmap-item"><span class="roadmap-icon">💬</span><span data-i18n-html="about3_r2"></span></div>
+      <div class="roadmap-item"><span class="roadmap-icon">🖼️</span><span data-i18n-html="about3_r3"></span></div>
+      <div class="roadmap-item"><span class="roadmap-icon">🌍</span><span data-i18n-html="about3_r4"></span></div>
+    </div>
+
+    <div class="about-card">
+      <h3 data-i18n="about4_h">📬 اتصل بنا</h3>
+      <p data-i18n="about4_p">هل لديك اقتراح، أو ملاحظة، أو ترغب بالتواصل؟ يسعدنا أن نسمع منك:</p>
+      <a class="contact-email" href="mailto:Kamakoma21@gmail.com">✉️ Kamakoma21@gmail.com</a>
+    </div>
+  </div>
+</main>
+
+<footer data-i18n="footer">Nexara AI ✦ nexaraapp.net</footer>
+
+<div class="door-modal" id="door-modal" onclick="if(event.target===this) closeDoor()">
+  <div class="door-modal-box">
+    <div class="door-modal-head">
+      <div class="door-modal-title" id="door-modal-title"></div>
+      <button class="door-modal-close" onclick="closeDoor()">✕</button>
+    </div>
+    <div id="door-modal-list"></div>
+  </div>
+</div>
+
+<script>
+  const I18N = {
+    ar: {
+      nav_home:"🏠 الرئيسية", nav_history:"📚 السجل", nav_about:"ℹ️ عن الموقع",
+      hero_h1:"اسأل، واحصل على أفضل إجابة",
+      hero_p:"سؤالك يُوجّه لخبراء متخصصين، ويُدمج في إجابة واحدة قوية",
+      stat_visits:"زيارة", stat_questions:"سؤالك",
+      input_ph:"اكتب سؤالك هنا...",
+      lang_label:"🌍 اللغة · Language:",
+      btn_clear:"مسح", btn_optimize:"✨ حسّن سؤالي", btn_optimizing:"جاري التحسين...", btn_send:"إرسال ✦",
+      adv_toggle:"⚙️ خيارات متقدمة",
+      sug_title:"✨ اختر صياغة محسّنة لسؤالك:", sug_original:"أرسل سؤالي بصيغتي الأصلية",
+      step1:"🎯 تحليل وتصنيف السؤال...", step2:"🤖 استشارة الخبراء (Claude + Gemini)...", step3:"💎 دمج وتأليف الإجابة النهائية...",
+      answer_label:"إجابة Nexara AI", act_listen:"🔊 استمع", act_stop:"⏹ إيقاف", act_share:"🔗 مشاركة", act_copy:"⎘ نسخ",
+      rating_label:"كيف كانت الإجابة؟", rate_thanks:"شكراً لتقييمك!",
+      sources_label:"🔗 المصادر:", signature:"✦ Nexara AI — nexaraapp.net",
+      history_title:"📚 سجل الأسئلة", hist_clear:"🗑 مسح السجل", hist_empty:"لا يوجد سجل بعد — ابدأ بطرح سؤالك الأول!",
+      about_sub:"مجمّع الذكاء الاصطناعي",
+      about1_h:"💡 ما هي فكرة Nexara AI؟",
+      about1_p:"Nexara AI موقع يجمع بين <span class='highlight'>أكثر من نموذج ذكاء اصطناعي</span> في مكان واحد. بدلاً من أن تسأل نموذجاً واحداً، يُوجَّه سؤالك حالياً إلى نموذجين متقدّمين (<span class='highlight'>Claude</span> و <span class='highlight'>Gemini</span>)، ثم تُدمَج إجابتاهما في إجابة واحدة أقوى وأشمل وأدق.",
+      about2_h:"🎯 لماذا الدمج بين نموذجين؟",
+      about2_p:"لكل نموذج ذكاء اصطناعي نقاط قوة مختلفة. عندما نجمع بين إجاباتهما، نحصل على تغطية أوسع، ونقلّل الأخطاء، ونستفيد من وجهات نظر متعددة.",
+      about3_h:"🚀 رؤيتنا المستقبلية",
+      about3_r1:"إضافة <span class='highlight'>نماذج ذكاء اصطناعي أكثر</span> كلما زاد استخدام الموقع.",
+      about3_r2:"جعل النماذج <span class='highlight'>تتناقش فيما بينها</span> للوصول إلى الإجابة الأدق.",
+      about3_r3:"إمكانية <span class='highlight'>إرفاق الصور</span> مع السؤال وتحليلها.",
+      about3_r4:"دعم المزيد من اللغات لخدمة مستخدمين من كل العالم.",
+      about4_h:"📬 اتصل بنا", about4_p:"هل لديك اقتراح، أو ملاحظة، أو ترغب بالتواصل؟ يسعدنا أن نسمع منك:",
+      footer:"Nexara AI ✦ nexaraapp.net",
+      beta_notice:"الموقع في مرحلة تجريبية. قد يتوقف مؤقتاً إذا زاد الاستخدام — إن حدث ذلك، انتظر قليلاً وحاول مجدداً.",
+      busy_notice:"🚀 يبدو أن الموقع يشهد إقبالاً كبيراً الآن، وقد توقّف مؤقتاً.\n\nانتظر بضع دقائق وحاول مجدداً.\n\n📧 Kamakoma21@gmail.com",
+      act_print:"🖨️ طباعة", toast_no_print:"تعذّر فتح الطباعة",
+      who_h:"🎯 لمن هذا الموقع؟",
+      who_intro:"Nexara AI مفيد لأي شخص تقريباً:",
+      who_students:"<span class='highlight'>طالب أو متعلّم:</span> اطلب شرحاً مبسّطاً لأي موضوع.",
+      who_dev:"<span class='highlight'>مبرمج:</span> اطلب كوداً جاهزاً أو حلّ خطأ برمجي.",
+      who_writer:"<span class='highlight'>كاتب:</span> اطلب مقالاً أو قصة أو نصاً إبداعياً.",
+      who_business:"<span class='highlight'>صاحب عمل:</span> أفكار تسويقية وخطط عمل.",
+      who_trading:"<span class='highlight'>مهتم بالتداول:</span> معلومات عامة، وليست نصيحة مالية.",
+      who_health:"<span class='highlight'>استشارة صحية:</span> معلومات عامة (راجع الطبيب دائماً).",
+      who_daily:"<span class='highlight'>استخدام يومي:</span> أي سؤال يخطر ببالك.",
+      notes_h:"📌 معلومات مهمة",
+      note_verify:"تحقّق دائماً من الإجابات، خاصة الأرقام والمواضيع الحساسة.",
+      note_lang:"يمكنك الكتابة بأي لغة، واترك الخيار على \"تلقائي\".",
+      note_dev:"الموقع قيد التطوير المستمر.",
+      toast_copied:"تم النسخ ✓", toast_shared:"تم نسخ الإجابة للمشاركة ✓", toast_no_tts:"المتصفح لا يدعم القراءة الصوتية",
+      optimize_fail:"تعذّر التحسين، جرّب مرة أخرى", err_prefix:"⚠️ حدث خطأ: ", confirm_clear:"هل تريد مسح كل السجل؟",
+      share_q:"سؤال:", share_a:"الإجابة:", share_via:"— عبر Nexara AI ✦ · nexaraapp.net",
+      starter_title:"✨ أو جرّب أمثلة سريعة:",
+      starter_note:"💡 يمكنك الكتابة بأي لغة في العالم، وسأجيبك بنفس لغتك.",
+      doors_title:"🚪 اختر باباً لتبدأ:",
+      starters:[
+        {i:"✍️", q:"اكتب قصة قصيرة مؤثرة عن صداقة بين طفل وشجرة"},
+        {i:"💻", q:"اكتب دالة بايثون تعكس ترتيب كلمات جملة مع شرحها"},
+        {i:"🔬", q:"اشرح لي نظرية النسبية بأسلوب مبسّط"},
+        {i:"💼", q:"اقترح خطة تسويقية لمتجر ملابس صغير"},
+        {i:"⚕️", q:"ما هي أعراض نقص فيتامين D وكيف أعالجه؟"},
+        {i:"🍎", q:"أعطني نصائح غذائية بسيطة لتقوية المناعة"},
+        {i:"🧠", q:"كيف أتعامل مع القلق قبل الامتحانات؟"},
+        {i:"🌍", q:"أعطني معلومة غريبة عن كوكب الأرض"},
+        {i:"🐙", q:"ما هي أغرب حقيقة علمية عن الأخطبوط؟"},
+        {i:"💊", q:"ما الفرق بين المسكنات والمضادات الحيوية؟"},
+        {i:"😴", q:"كيف أحسّن جودة نومي بشكل طبيعي؟"},
+        {i:"📚", q:"لخّص لي أهم أحداث الحرب العالمية الثانية"},
+        {i:"🌙", q:"ما سبب حدوث خسوف القمر بالتفصيل؟"},
+        {i:"💰", q:"كيف أبدأ بالادخار بميزانية محدودة؟"},
+        {i:"🧘", q:"أعطني تمارين تنفس بسيطة لتقليل التوتر"},
+        {i:"🦷", q:"ما هي أفضل عادات للحفاظ على صحة الأسنان؟"},
+        {i:"🐝", q:"لماذا يُعتبر النحل مهماً جداً للبيئة؟"},
+        {i:"👶", q:"ما نصائحك للعناية بطفل حديث الولادة؟"},
+        {i:"🌶️", q:"ما فوائد وأضرار الأكل الحار على الجسم؟"},
+        {i:"🎨", q:"اقترح علي هواية جديدة أجربها هذا الشهر"},
+        {i:"✈️", q:"خطط لي رحلة سفر 4 أيام لإسطنبول بميزانية متوسطة"},
+        {i:"🍲", q:"اقترح لي وصفة عشاء سهلة وسريعة التحضير"},
+        {i:"📰", q:"لخّص لي أهم الأحداث العالمية هذا الأسبوع"},
+        {i:"⚽", q:"ما آخر أخبار كرة القدم المهمة؟"},
+        {i:"🛒", q:"قارن لي بين نوعين من الهواتف قبل الشراء"},
+        {i:"📄", q:"ايش الأوراق المطلوبة لاستخراج جواز سفر؟"},
+        {i:"🗣️", q:"علّمني 5 تعابير إنجليزية شائعة بالمحادثة"}
+      ],
+      doors:[
+        {i:"✍️", n:"الكاتب الذكي", opts:["اكتب مقال عن: ","اكتب إيميل رسمي عن: ","اكتب منشور سوشيال ميديا عن: ","لخّص لي النص التالي: ","أعد صياغة النص التالي: ","اكتب قصة قصيرة عن: ","اكتب شعراً عن: ","اكتب سيرة ذاتية مختصرة عن: ","اكتب رسالة تحفيزية عن: ","اكتب وصف منتج عن: ","اكتب محتوى إعلاني ترويجي عن: ","اكتب محتوى متوافق مع SEO عن: "]},
+        {i:"💻", n:"البرمجة", opts:["اكتب كود لـ: ","اشرح لي هذا الكود: ","صحّح هذا الخطأ البرمجي: ","حوّل هذا الكود من لغة إلى أخرى: ","اكتب صفحة ويب بسيطة لـ: ","اشرح لي مفهوم: ","حسّن أداء هذا الكود: ","اكتب اختبارات لهذا الكود: ","راجع هذا الكود وأعطني ملاحظات: ","اشرح لي رسالة الخطأ التالية: ","اقترح لي أفضل مكتبة برمجية لـ: "]},
+        {i:"🎓", n:"التعلم", opts:["اشرح لي ببساطة مفهوم: ","لخّص لي هذا الدرس: ","أنشئ لي اختباراً عن: ","اشرح لي خطوة بخطوة كيفية: ","أعطني أمثلة على: ","قارن لي بين: ","ضع لي خطة مذاكرة لـ: ","بسّط لي هذا النص الصعب: ","اسألني أسئلة لأختبر فهمي في: ","اشرح لي بمثال واقعي مفهوم: "]},
+        {i:"💼", n:"العمل والمشاريع", opts:["أعطني فكرة مشروع في مجال: ","ضع لي خطة عمل لـ: ","اقترح خطة تسويقية لـ: ","حلّل لي منافسي في مجال: ","اكتب لي إعلاناً عن: ","اعمل دراسة جدوى مبسّطة لـ: ","اقترح لي أسماء لمشروع عن: ","اكتب رسالة لعميل بخصوص: ","ساعدني في تسعير خدمة: ","اعمل تحليل SWOT لـ: ","قارن لي بين هذين المنتجين قبل الشراء: "]},
+        {i:"🌐", n:"الترجمة واللغات", opts:["ترجم لي النص التالي: ","صحّح القواعد اللغوية في: ","حسّن أسلوب هذا النص الإنجليزي: ","اشرح لي الفرق بين كلمتي: ","ترجم بأسلوب احترافي للأعمال: ","بسّط لي هذا النص الإنجليزي: ","اكتب لي بالإنجليزية الرسمية: ","علّمني عبارات مفيدة بلغة: ","دقّق إملائياً النص التالي: ","ترجم مع الحفاظ على نبرة النص: "]},
+        {i:"⚡", n:"أدوات سريعة", opts:["لخّص لي هذا النص الطويل: ","استخرج النقاط المهمة من: ","حوّل هذا النص إلى قائمة: ","أنشئ لي جدولاً عن: ","ولّد لي أفكاراً عن: ","اكتب لي عناوين جذابة عن: ","نظّم لي أفكاري حول: ","اختصر لي هذه الفقرة: ","اعمل خطة نقاط لـ: ","استخرج الأسئلة المحتملة من: ","اقترح لي أفضل المواقع والأدوات المجانية لـ: "]},
+        {i:"🎭", n:"الترفيه المفيد", opts:["أجب على سؤالي شعراً: ","أجب بأسلوب قديم تراثي عن: ","أجب على شكل سجع عن: ","صف لي كمشهد سينمائي: ","حوّل هذه الفكرة لقصة قصيرة: ","اكتب لي حواراً عن: ","أجب بأسلوب ساخر عن: ","أجب على شكل نصيحة حكيم عن: ","اكتب كرسالة من المستقبل عن: ","اشرح لي بطريقة مبسّطة لطفل: ","اقترح لي لعبة أو نشاطاً ترفيهياً بسيطاً: ","اكتب لي قصة بوليسية قصيرة مليئة بالغموض: ","اكتب لي قصة خيال علمي قصيرة عن: ","اقترح عليّ لعبة ورقية بسيطة ألعبها مع أصدقائي: ","اعمل لي فزورة اختلافات ذهنية ممتعة: "]},
+        {i:"🧠", n:"المستشار", opts:["أواجه مشكلة تقنية وهي: ","عندي موقف في العمل: ","محتار في قرار بخصوص: ","عندي مشكلة مع شخص حول: ","أريد أطوّر عادة: ","أحتاج مساعدة بإدارة وقتي في: ","عندي سؤال صحي عام حول: ","محتار بقرار مالي عن: ","أريد أحسّن إنتاجيتي في: ","أحتاج نصيحة عامة بخصوص: ","أخطط لرحلة سفر إلى: ","عندي سؤال عن معاملة أو إجراء رسمي: "]},
+        {i:"📅", n:"المحتوى اليومي", opts:["أعطني معلومة مفيدة عن اليوم","احكِ لي نكتة خفيفة","اطرح عليّ لغزاً ممتعاً","أعطني حكمة ملهمة","أعطني حقيقة علمية غريبة","أعطني اقتباساً ملهماً","اقترح عليّ تحدياً إبداعياً بسيطاً","علّمني كلمة جديدة ومعناها","احكِ لي عن حدث تاريخي مثل هذا اليوم","اقترح عليّ فكرة صغيرة لأجربها اليوم","اكتب لي رسالة صباح الخير جميلة لأرسلها لأصدقائي","ابحث لي في الويب عن أهم الأخبار المحلية والعالمية اليوم","ابحث لي في الويب عن حالة الطقس المتوقعة اليوم","ابحث لي في الويب هل يوجد عطلة رسمية قريبة","اقترح لي وصفة أكل سهلة وسريعة","اكتب لي مقالاً قصيراً ممتعاً عن: ","احكِ لي عن حضارة قديمة مثيرة للاهتمام","أعطني معلومة جغرافية غريبة عن مكان في العالم","احكِ لي عن اختراع أو اكتشاف غيّر التاريخ","أعطني نصيحة صحية أو غذائية بسيطة ومفيدة"]},
+        {i:"🎲", n:"أدهشني", opts:["فاجئني بمعلومة غريبة ومفيدة","اقترح عليّ شيئاً جديداً أتعلمه اليوم","اطرح عليّ سؤالاً يوسّع تفكيري","أعطني تحدياً بسيطاً لهذا اليوم","أعطني فكرة إبداعية عشوائية","اقترح عليّ شيئاً ممتعاً لأجربه الآن","ولّد لي لغزاً ذكياً من عندك واتحدّاني أحله"]}
+      ],
+      cat:{trading:"💹 تداول",writing:"✍️ كتابة",programming:"💻 برمجة",science:"🔬 علوم",religion:"🕌 شريعة",health:"⚕️ صحة",general:"📌 عام"}
+    },
+    en: {
+      nav_home:"🏠 Home", nav_history:"📚 History", nav_about:"ℹ️ About",
+      hero_h1:"Ask, and get the best answer",
+      hero_p:"Your question goes to specialized experts and is merged into one powerful answer",
+      stat_visits:"Visits", stat_questions:"Your questions",
+      input_ph:"Type your question here...",
+      lang_label:"🌍 Language:",
+      btn_clear:"Clear", btn_optimize:"✨ Improve my question", btn_optimizing:"Improving...", btn_send:"Send ✦",
+      adv_toggle:"⚙️ Advanced options",
+      sug_title:"✨ Choose an improved version of your question:", sug_original:"Send my question as originally written",
+      step1:"🎯 Analyzing and classifying the question...", step2:"🤖 Consulting the experts (Claude + Gemini)...", step3:"💎 Merging and composing the final answer...",
+      answer_label:"Nexara AI Answer", act_listen:"🔊 Listen", act_stop:"⏹ Stop", act_share:"🔗 Share", act_copy:"⎘ Copy",
+      rating_label:"How was the answer?", rate_thanks:"Thanks for your feedback!",
+      sources_label:"🔗 Sources:", signature:"✦ Nexara AI — nexaraapp.net",
+      history_title:"📚 Question History", hist_clear:"🗑 Clear history", hist_empty:"No history yet — start by asking your first question!",
+      about_sub:"AI Aggregator",
+      about1_h:"💡 What is Nexara AI?",
+      about1_p:"Nexara AI brings together <span class='highlight'>more than one AI model</span> in one place. Your question currently goes to two advanced models (<span class='highlight'>Claude</span> and <span class='highlight'>Gemini</span>), then their answers are merged into one stronger, more accurate answer.",
+      about2_h:"🎯 Why merge two models?",
+      about2_p:"Each AI model has different strengths. Combining their answers gives broader coverage, fewer errors, and multiple perspectives.",
+      about3_h:"🚀 Our future vision",
+      about3_r1:"Adding <span class='highlight'>more AI models</span> as the site grows.",
+      about3_r2:"Letting the models <span class='highlight'>debate each other</span> for the most accurate answer.",
+      about3_r3:"Allowing you to <span class='highlight'>attach images</span> for analysis.",
+      about3_r4:"Supporting more languages worldwide.",
+      about4_h:"📬 Contact us", about4_p:"Have a suggestion or feedback? We'd love to hear from you:",
+      footer:"Nexara AI ✦ nexaraapp.net",
+      beta_notice:"The site is in a trial phase. It may pause temporarily if usage grows.",
+      busy_notice:"🚀 The site is very busy right now and has paused temporarily.\n\nPlease wait a few minutes and try again.\n\n📧 Kamakoma21@gmail.com",
+      act_print:"🖨️ Print", toast_no_print:"Couldn't open print",
+      who_h:"🎯 Who is this for?",
+      who_intro:"Nexara AI is useful for almost anyone:",
+      who_students:"<span class='highlight'>Student:</span> ask for a simple explanation of any topic.",
+      who_dev:"<span class='highlight'>Developer:</span> ask for ready code or bug fixes.",
+      who_writer:"<span class='highlight'>Writer:</span> ask for an article, story, or creative text.",
+      who_business:"<span class='highlight'>Business owner:</span> marketing ideas and business plans.",
+      who_trading:"<span class='highlight'>Into trading:</span> general information, not financial advice.",
+      who_health:"<span class='highlight'>Health question:</span> general info (always consult a specialist).",
+      who_daily:"<span class='highlight'>Everyday use:</span> any question on your mind.",
+      notes_h:"📌 Good to know",
+      note_verify:"Always verify answers, especially numbers and sensitive topics.",
+      note_lang:"You can write in any language; leave the option on \"Auto\".",
+      note_dev:"The site is under continuous development.",
+      toast_copied:"Copied ✓", toast_shared:"Answer copied for sharing ✓", toast_no_tts:"Your browser doesn't support text-to-speech",
+      optimize_fail:"Couldn't improve, try again", err_prefix:"⚠️ An error occurred: ", confirm_clear:"Clear all history?",
+      share_q:"Question:", share_a:"Answer:", share_via:"— via Nexara AI ✦ · nexaraapp.net",
+      starter_title:"✨ Or try quick examples:",
+      starter_note:"💡 You can write in any language, and I'll reply in the same language.",
+      doors_title:"🚪 Choose a door to start:",
+      starters:[
+        {i:"✍️", q:"Write a touching short story about a friendship between a child and a tree"},
+        {i:"💻", q:"Write a Python function that reverses the words in a sentence, with an explanation"},
+        {i:"🔬", q:"Explain the theory of relativity in simple terms"},
+        {i:"💼", q:"Suggest a marketing plan for a small clothing store"},
+        {i:"⚕️", q:"What are the symptoms of vitamin D deficiency and how to treat it?"},
+        {i:"🍎", q:"Give me simple nutrition tips to boost immunity"},
+        {i:"🧠", q:"How do I deal with anxiety before exams?"},
+        {i:"🌍", q:"Give me a strange fact about planet Earth"},
+        {i:"🐙", q:"What's the strangest scientific fact about octopuses?"},
+        {i:"💊", q:"What's the difference between painkillers and antibiotics?"},
+        {i:"😴", q:"How can I naturally improve my sleep quality?"},
+        {i:"📚", q:"Summarize the key events of World War II"},
+        {i:"🌙", q:"What causes a lunar eclipse, in detail?"},
+        {i:"💰", q:"How do I start saving on a limited budget?"},
+        {i:"🧘", q:"Give me simple breathing exercises to reduce stress"},
+        {i:"🦷", q:"What are the best habits for dental health?"},
+        {i:"🐝", q:"Why are bees so important for the environment?"},
+        {i:"👶", q:"What are your tips for caring for a newborn?"},
+        {i:"🌶️", q:"What are the benefits and downsides of eating spicy food?"},
+        {i:"🎨", q:"Suggest a new hobby for me to try this month"},
+        {i:"✈️", q:"Plan a 4-day trip to Istanbul on a mid-range budget"},
+        {i:"🍲", q:"Suggest an easy and quick dinner recipe"},
+        {i:"📰", q:"Summarize the most important world events this week"},
+        {i:"⚽", q:"What's the latest important football news?"},
+        {i:"🛒", q:"Compare two phones for me before I buy"},
+        {i:"📄", q:"What documents are needed to get a passport?"},
+        {i:"🗣️", q:"Teach me 5 common English conversation phrases"}
+      ],
+      doors:[
+        {i:"✍️", n:"Smart Writer", opts:["Write an article about: ","Write a formal email about: ","Write a social media post about: ","Summarize this text: ","Rewrite this text: ","Write a short story about: ","Write a poem about: ","Write a short bio about: ","Write a motivational message about: ","Write a product description for: ","Write a promotional ad for: ","Write SEO-friendly content about: "]},
+        {i:"💻", n:"Programming", opts:["Write code for: ","Explain this code: ","Fix this bug: ","Convert this code to another language: ","Build a simple web page for: ","Explain the concept of: ","Optimize this code: ","Write tests for this code: ","Review this code and give feedback: ","Explain this error message: ","Suggest the best library for: "]},
+        {i:"🎓", n:"Learning", opts:["Explain simply: ","Summarize this lesson: ","Create a quiz about: ","Explain step by step how to: ","Give me examples of: ","Compare between: ","Make a study plan for: ","Simplify this difficult text: ","Ask me questions to test my understanding of: ","Explain with a real-world example: "]},
+        {i:"💼", n:"Business & Projects", opts:["Give me a project idea in: ","Make a business plan for: ","Suggest a marketing plan for: ","Analyze my competitors in: ","Write an ad about: ","Do a simple feasibility study for: ","Suggest names for a project about: ","Write a message to a client about: ","Help me price a service: ","Do a SWOT analysis for: ","Compare these two products before I buy: "]},
+        {i:"🌐", n:"Translation & Languages", opts:["Translate this text: ","Fix the grammar in: ","Improve the style of this English text: ","Explain the difference between: ","Translate professionally for business: ","Simplify this English text: ","Write formally in English: ","Teach me useful phrases in: ","Proofread this text: ","Translate while keeping the tone of: "]},
+        {i:"⚡", n:"Quick Tools", opts:["Summarize this long text: ","Extract the key points from: ","Turn this text into a list: ","Create a table about: ","Generate ideas about: ","Write catchy titles for: ","Organize my thoughts about: ","Shorten this paragraph: ","Make a bullet-point plan for: ","Extract possible questions from: ","Suggest the best free tools and websites for: "]},
+        {i:"🎭", n:"Fun & Creative", opts:["Answer my question as a poem: ","Answer in an old classic style about: ","Answer in rhymed prose about: ","Describe as a movie scene: ","Turn this idea into a short story: ","Write a dialogue about: ","Answer sarcastically about: ","Answer as wise advice about: ","Write as a message from the future about: ","Explain simply for a child: ","Suggest a simple fun game or activity: ","Write a short mystery detective story: ","Write a short sci-fi story about: ","Suggest a simple paper or card game to play with friends: ","Make a fun spot-the-differences style riddle: "]},
+        {i:"🧠", n:"Advisor", opts:["I'm facing a technical problem: ","I have a work situation: ","I'm torn on a decision about: ","I have an issue with someone about: ","I want to build a habit: ","I need help managing my time for: ","I have a general health question about: ","I'm torn on a financial decision about: ","I want to improve my productivity in: ","I need general advice about: ","I'm planning a trip to: ","I have a question about an official procedure: "]},
+        {i:"📅", n:"Daily Content", opts:["Give me a useful fact for today","Tell me a light joke","Give me a fun riddle","Give me an inspiring quote of wisdom","Give me a strange scientific fact","Give me an inspiring quote","Suggest a simple creative challenge","Teach me a new word and its meaning","Tell me about a historical event on this day","Suggest a small idea to try today","Write me a nice good-morning message to send to friends","Search the web for today's most important local and world news","Search the web for today's expected weather","Search the web for any upcoming official holiday","Suggest a quick and easy recipe","Write me a short enjoyable article about: ","Tell me about a fascinating ancient civilization","Give me a strange geography fact about a place in the world","Tell me about an invention or discovery that changed history","Give me a simple useful health or nutrition tip"]},
+        {i:"🎲", n:"Surprise Me", opts:["Surprise me with a strange useful fact","Suggest something new for me to learn today","Ask me a question that expands my thinking","Give me a simple challenge for today","Give me a random creative idea","Suggest something fun to try right now","Generate a clever riddle and challenge me to solve it"]}
+      ],
+      cat:{trading:"💹 Trading",writing:"✍️ Writing",programming:"💻 Programming",science:"🔬 Science",religion:"🕌 Religion",health:"⚕️ Health",general:"📌 General"}
+    }
   };
 
-  if (request.method === "OPTIONS") {
-    return new Response("", { status: 200, headers });
+  const UI_MAP = { "auto":"ar", "العربية":"ar", "English":"en" };
+  const LOCALE = { ar:"ar-EG", en:"en-US" };
+  const SPEECH = { "العربية":"ar-SA", "English":"en-US" };
+
+  let uiLang = "ar";
+  let T = I18N.ar;
+  let uiLocale = "ar-EG";
+  let lastCategory = "";
+
+  function catName(c) { return (T.cat && T.cat[c]) || ""; }
+
+  function applyLang(code) {
+    uiLang = I18N[code] ? code : "ar";
+    T = I18N[uiLang];
+    uiLocale = LOCALE[uiLang] || "en-US";
+
+    document.body.dataset.dir = (uiLang === "ar") ? "rtl" : "ltr";
+    document.documentElement.lang = uiLang;
+    document.documentElement.dir = (uiLang === "ar") ? "rtl" : "ltr";
+
+    document.querySelectorAll("[data-i18n]").forEach(el => {
+      const k = el.getAttribute("data-i18n");
+      if (T[k] != null) el.textContent = T[k];
+    });
+    document.querySelectorAll("[data-i18n-html]").forEach(el => {
+      const k = el.getAttribute("data-i18n-html");
+      if (T[k] != null) el.innerHTML = T[k];
+    });
+    document.querySelectorAll("[data-i18n-ph]").forEach(el => {
+      const k = el.getAttribute("data-i18n-ph");
+      if (T[k] != null) el.placeholder = T[k];
+    });
+
+    if (document.getElementById("answer-box").style.display !== "none" && lastCategory) {
+      document.getElementById("category-tag").textContent = catName(lastCategory);
+    }
+    if (isSpeaking) {
+      const sb = document.getElementById("speak-btn");
+      if (sb) sb.textContent = T.act_stop;
+    }
+    if (document.getElementById("tab-history").style.display !== "none") renderHistory();
+    renderStarters();
+    renderDoors();
+    const advBox = document.getElementById("adv-options-box");
+    if (advBox && advBox.style.display !== "none") renderAdvOptions();
   }
-  if (request.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405, headers });
+
+  function renderStarters() {
+    const box = document.getElementById("starter-list");
+    if (!box) return;
+    box.innerHTML = "";
+    const all = T.starters || [];
+    const shuffled = [...all].sort(() => Math.random() - 0.5);
+    const picked = shuffled.slice(0, 4);
+    picked.forEach(s => {
+      const b = document.createElement("button");
+      b.className = "starter-chip";
+      b.innerHTML = '<span class="chip-ico">' + s.i + '</span> ' + s.q;
+      b.onclick = () => askStarter(s.q);
+      box.appendChild(b);
+    });
   }
 
-  const CLAUDE_KEY = env.ANTHROPIC_API_KEY;
-  const GEMINI_KEY = env.GEMINI_API_KEY;
-  const ADMIN_KEY = env.ADMIN_KEY;
-  const KV = env.NEXARA_KV; // يجب ربطه من إعدادات Pages > Functions > KV bindings
-
-  try {
-    const body = await request.json();
-    const { action, question, lang, styleOptions } = body;
-
-    // ---------- تحسين السؤال ----------
-    if (action === "optimize") {
-      const langLine = (!lang || lang === "auto")
-        ? "اكتب الصياغات الثلاث بنفس لغة السؤال الأصلي تماماً."
-        : "اكتب الصياغات الثلاث بلغة: " + lang + " فقط.";
-      const prompt = `أنت خبير في صياغة الأسئلة. أعد صياغة السؤال التالي بثلاث طرق محسّنة وأوضح وأكثر احترافية، بحيث تعطي كل صياغة نتيجة أعمق وأدق.
-${langLine}
-قواعد صارمة للإخراج:
-- أخرج النتيجة بصيغة JSON فقط بهذا الشكل بالضبط: {"suggestions":["الصياغة الأولى","الصياغة الثانية","الصياغة الثالثة"]}
-- ثلاث صياغات فقط داخل المصفوفة.
-- لا تكتب أي مقدمة أو شرح أو نص خارج الـ JSON. الـ JSON فقط.
-السؤال: ${question}`;
-
-      const result = await withTimeout(
-        askGemini(prompt, "أنت مساعد صياغة دقيق. تُخرج JSON فقط يحتوي على مصفوفة suggestions بثلاث صياغات، دون أي نص إضافي.", GEMINI_KEY, GEMINI_MAIN, 2500, false),
-        20000
-      );
-
-      let suggestions = [];
-      const raw = (result.text || "").trim();
-      try {
-        const cleaned = raw.replace(/```json/gi, "").replace(/```/g, "").trim();
-        const start = cleaned.indexOf("{");
-        const end = cleaned.lastIndexOf("}");
-        if (start !== -1 && end !== -1) {
-          const parsed = JSON.parse(cleaned.slice(start, end + 1));
-          if (Array.isArray(parsed.suggestions)) {
-            suggestions = parsed.suggestions
-              .map(s => (typeof s === "string" ? s.trim() : ""))
-              .filter(s => s.length > 5)
-              .slice(0, 3);
-          }
-        }
-      } catch { /* نتجاهل ونجرّب الطريقة البديلة */ }
-
-      if (suggestions.length === 0 && raw) {
-        suggestions = raw
-          .split(/\n+/)
-          .map(l => l
-            .replace(/[{}\[\]"]/g, "")
-            .replace(/suggestions\s*:?/gi, "")
-            .replace(/^\s*[\d\u0660-\u0669]+[\.\)\-:]\s*/, "")
-            .replace(/^["'\s\-\*]+/, "")
-            .replace(/[,"']+$/, "")
-            .trim()
-          )
-          .filter(l => l.length > 8)
-          .slice(0, 3);
-      }
-
-      return new Response(JSON.stringify({ suggestions }), { status: 200, headers });
-    }
-
-    // ---------- تقييم إجابة وتخزينها بالمكتبة عند الإيجاب ----------
-    if (action === "rate") {
-      const { answer, category, positive } = body;
-      if (!positive) {
-        return new Response(JSON.stringify({ ok: true, stored: false }), { status: 200, headers });
-      }
-      if (!isRealAnswer(answer) || !question) {
-        return new Response(JSON.stringify({ ok: false, error: "بيانات ناقصة" }), { status: 400, headers });
-      }
-      const result = await addLibraryEntry(KV, {
-        question,
-        answer,
-        category: category || "general",
-        source: "user_generated",
-      });
-      return new Response(JSON.stringify({ ok: result.ok, stored: !!result.ok }), { status: 200, headers });
-    }
-
-    // ---------- إضافة يدوية للمكتبة (محمية بمفتاح إداري) ----------
-    if (action === "addLibraryEntry") {
-      const { adminKey, answer, category } = body;
-      if (!ADMIN_KEY || adminKey !== ADMIN_KEY) {
-        return new Response(JSON.stringify({ error: "غير مصرّح" }), { status: 401, headers });
-      }
-      if (!question || !isRealAnswer(answer)) {
-        return new Response(JSON.stringify({ error: "بيانات ناقصة" }), { status: 400, headers });
-      }
-      const result = await addLibraryEntry(KV, {
-        question,
-        answer,
-        category: category || "general",
-        source: "manual",
-      });
-      return new Response(JSON.stringify(result), { status: result.ok ? 200 : 500, headers });
-    }
-
-    // ---------- الإجابة الرئيسية ----------
-    if (action === "ask") {
-      // الخطوة 0: هل السؤال طلب "دفعة" (نكت/ألغاز/اقتباسات) — تُعرض دفعة وحدة مثل صفحة مجلة
-      const batchType = detectBatchType(question);
-      if (batchType) {
-        const cfg = BATCH_CONTENT_TYPES[batchType];
-        const targetCount = cfg.pickCount();
-        const libraryItems = await getLibraryBatchByType(KV, batchType, targetCount);
-        const remaining = targetCount - libraryItems.length;
-
-        let finalItems = libraryItems;
-        let usedModel = "library_batch";
-
-        if (remaining > 0) {
-          const generated = await generateBatchFiller(batchType, remaining, libraryItems, GEMINI_KEY);
-          if (generated.length > 0) {
-            // تخزين العناصر المولّدة الجديدة بالمكتبة تلقائياً (تباعاً لتفادي تضارب الفهرس)
-            for (const text of generated) {
-              await addLibraryEntry(KV, {
-                question: text,
-                answer: text,
-                category: "daily",
-                source: "auto_generated_batch",
-              });
-            }
-            finalItems = libraryItems.concat(generated);
-            usedModel = libraryItems.length > 0 ? "mixed_batch" : "ai_batch";
-          }
-        }
-
-        if (finalItems.length === 0) {
-          finalItems = ["تعذّر توليد محتوى الآن، حاول مرة أخرى بعد قليل."];
-        }
-
-        return new Response(JSON.stringify({
-          answer: formatNumberedList(finalItems),
-          category: "daily",
-          complexity: "simple",
-          mode: usedModel,
-          batchType,
-          batchCount: finalItems.length,
-          sources: { claude: false, gemini: usedModel !== "library_batch", library: usedModel !== "ai_batch" },
-        }), { status: 200, headers });
-      }
-
-      // الخطوة 1: فحص المكتبة أولاً — صفر تكلفة API عند التطابق
-      const libraryHit = await searchLibrary(KV, question, null);
-      if (libraryHit) {
-        return new Response(JSON.stringify({
-          answer: libraryHit.answer,
-          category: libraryHit.category,
-          complexity: "simple",
-          mode: "library",
-          matchScore: libraryHit.matchScore,
-          sources: { claude: false, gemini: false, library: true },
-        }), { status: 200, headers });
-      }
-
-      // الخطوة 2: التصنيف الذكي (يحدد أيضاً الحاجة لبحث فعلي بالويب)
-      let { category, complexity, needsSearch } = await classifyQuestion(question, GEMINI_KEY);
-
-      // تجاوز إجباري: أي طلب صريح لقصة/كتابة إبداعية يُوجَّه لفئة "writing" (وبالتالي Claude)
-      // بغض النظر عن موضوع القصة (شركة، مرض، جريمة...)، لأن نية "قصة" أهم من موضوعها
-      const EXPLICIT_CREATIVE_REGEX = /اكتب.{0,15}(قصة|رواية|شعر|قصيدة)|قصة قصيرة|قصة بوليسية|قصة خيال علمي|write.{0,15}(story|poem|novel)|short story/i;
-      if (EXPLICIT_CREATIVE_REGEX.test(question) && category !== "writing") {
-        category = "writing";
-      }
-
-      let expertPrompt = EXPERTS[category] + langInstruction(lang) + styleOptionsInstruction(styleOptions);
-      const isComplex = complexity === "complex";
-      const isCreative = CREATIVE.includes(category);
-      const needClaude = (isComplex && SENSITIVE.includes(category)) || isCreative;
-
-      if (isComplex) {
-        expertPrompt += "\n" + DEEP_RULES;
-      }
-
-      let finalAnswer = "";
-      let usedModel = "gemini";
-      let debugInfo = "";
-      let searchSources = [];
-
-      if (needsSearch) {
-        const searchRes = await withTimeout(
-          askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, true),
-          25000
-        );
-        if (searchRes.ok) {
-          finalAnswer = searchRes.text;
-          usedModel = "gemini_search";
-          searchSources = searchRes.searchSources || [];
-        } else {
-          if (searchRes.debug) debugInfo = searchRes.debug;
-          const fallbackRes = await withTimeout(
-            askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, false),
-            15000
-          );
-          finalAnswer = fallbackRes.ok ? fallbackRes.text : "";
-          usedModel = "gemini_search_fallback";
-        }
-      } else if (needClaude) {
-        const claudeRes = await withTimeout(
-          askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
-          25000
-        );
-        if (claudeRes.ok) {
-          finalAnswer = claudeRes.text;
-          usedModel = "claude";
-        } else {
-          const geminiRes = await withTimeout(
-            askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, false),
-            25000
-          );
-          finalAnswer = geminiRes.ok ? geminiRes.text : "";
-          if (geminiRes.debug) debugInfo = geminiRes.debug;
-          usedModel = "gemini_fallback";
-        }
-      } else {
-        const geminiRes = await withTimeout(
-          askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, isComplex ? MAX_TOKENS_COMPLEX : MAX_TOKENS_SIMPLE, false),
-          25000
-        );
-        if (geminiRes.ok) {
-          finalAnswer = geminiRes.text;
-          usedModel = "gemini";
-        } else {
-          if (geminiRes.debug) debugInfo = geminiRes.debug;
-          const claudeRes = await withTimeout(
-            askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
-            20000
-          );
-          finalAnswer = claudeRes.ok ? claudeRes.text : "";
-          usedModel = "claude_fallback";
-        }
-      }
-
-      if (!isRealAnswer(finalAnswer)) {
-        finalAnswer = "تعذّر توليد إجابة كافية لهذا السؤال الآن. حاول تبسيط صياغته أو أعد المحاولة بعد قليل."
-          + (debugInfo ? ("\n\n[تشخيص مؤقت: " + debugInfo + "]") : "");
-      }
-
-      // تخزين تلقائي بالمكتبة — فقط للأبواب العادية غير الحساسة وغير المعتمدة على بحث لحظي
-      // (الفئات الحساسة SENSITIVE تبقى تحتاج تقييم يدوي 👍 عبر action=rate كطبقة حماية إضافية)
-      const autoStoreEligible = isRealAnswer(finalAnswer) && !needsSearch && !SENSITIVE.includes(category);
-      if (autoStoreEligible) {
-        await addLibraryEntry(KV, {
-          question,
-          answer: finalAnswer,
-          category,
-          source: "auto_generated",
-        });
-      }
-
-      return new Response(JSON.stringify({
-        answer: finalAnswer,
-        category,
-        complexity,
-        mode: usedModel,
-        usedSearch: needsSearch,
-        searchSources,
-        sources: {
-          claude: usedModel.startsWith("claude"),
-          gemini: usedModel.startsWith("gemini"),
-          library: false,
-        },
-      }), { status: 200, headers });
-    }
-
-    return new Response(JSON.stringify({ error: "Unknown action" }), { status: 400, headers });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers });
+  function askStarter(q) {
+    stopSpeak();
+    input.value = q;
+    currentQuestion = q;
+    optimizeDone = true;
+    hideDoorsArea();
+    document.getElementById("suggestions-box").style.display = "none";
+    document.getElementById("send-row").style.display = "none";
+    document.getElementById("btn-clear").style.display = "inline-flex";
+    document.getElementById("btn-optimize").disabled = false;
+    askQuestion();
   }
-}
+
+  function renderDoors() {
+    const grid = document.getElementById("doors-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+    (T.doors || []).forEach((d, idx) => {
+      const card = document.createElement("div");
+      card.className = "door-card";
+      card.innerHTML = '<div class="door-ico">' + d.i + '</div><div class="door-name">' + d.n + '</div>';
+      card.onclick = () => openDoor(idx);
+      grid.appendChild(card);
+    });
+  }
+
+  function openDoor(idx) {
+    const d = T.doors[idx];
+    if (!d) return;
+    document.getElementById("door-modal-title").innerHTML = d.i + " " + d.n;
+    const list = document.getElementById("door-modal-list");
+    list.innerHTML = "";
+    d.opts.forEach(opt => {
+      const b = document.createElement("button");
+      b.className = "door-opt";
+      b.textContent = opt;
+      b.onclick = () => selectDoorOption(opt);
+      list.appendChild(b);
+    });
+    document.getElementById("door-modal").classList.add("show");
+  }
+
+  function closeDoor() {
+    document.getElementById("door-modal").classList.remove("show");
+  }
+
+  function selectDoorOption(opt) {
+    input.value = opt;
+    currentQuestion = "";
+    optimizeDone = false;
+    closeDoor();
+    document.getElementById("btn-optimize").disabled = false;
+    document.getElementById("btn-clear").style.display = "inline-flex";
+    document.getElementById("suggestions-box").style.display = "none";
+    document.getElementById("send-row").style.display = "none";
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+  }
+
+  function hideDoorsArea() {
+    document.getElementById("doors-section").style.display = "none";
+    document.getElementById("starter-box").style.display = "none";
+  }
+  function showDoorsArea() {
+    document.getElementById("doors-section").style.display = "block";
+    document.getElementById("starter-box").style.display = "block";
+  }
+
+  function onLangChange() {
+    const sel = document.getElementById("lang-select").value;
+    localStorage.setItem("nexara_sel", sel);
+    applyLang(UI_MAP[sel] || "ar");
+  }
+
+  function loadSavedLang() {
+    const sel = localStorage.getItem("nexara_sel");
+    if (sel && UI_MAP[sel]) {
+      document.getElementById("lang-select").value = sel;
+      applyLang(UI_MAP[sel]);
+    } else {
+      applyLang("ar");
+    }
+  }
+
+  let currentQuestion = "";
+  let currentAnswer = "";
+  let optimizeDone = false;
+  let history = JSON.parse(localStorage.getItem("aljame3_history") || "[]");
+  let currentHistoryIndex = -1;
+
+  const STYLE_OPTIONS_META = [
+    { id: "practical", icon: "🎯", ar: "كن عمليًا", en: "Be practical" },
+    { id: "concise", icon: "✂️", ar: "اختصر", en: "Concise" },
+    { id: "beginner", icon: "🎓", ar: "اشرح للمبتدئين", en: "For beginners" },
+    { id: "steps", icon: "📋", ar: "خطوات تنفيذية", en: "Actionable steps" },
+    { id: "expert", icon: "🧠", ar: "فكّر كخبير", en: "Think like an expert" },
+    { id: "risks", icon: "⚠️", ar: "اذكر المخاطر", en: "Mention risks" }
+  ];
+  let selectedStyleOptions = [];
+
+  function renderAdvOptions() {
+    const box = document.getElementById("adv-options-list");
+    if (!box) return;
+    box.innerHTML = "";
+    STYLE_OPTIONS_META.forEach(opt => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "adv-chip" + (selectedStyleOptions.includes(opt.id) ? " active" : "");
+      b.textContent = opt.icon + " " + (uiLang === "ar" ? opt.ar : opt.en);
+      b.onclick = () => toggleStyleOption(opt.id, b);
+      box.appendChild(b);
+    });
+  }
+
+  function toggleStyleOption(id, btnEl) {
+    const idx = selectedStyleOptions.indexOf(id);
+    if (idx === -1) selectedStyleOptions.push(id);
+    else selectedStyleOptions.splice(idx, 1);
+    btnEl.classList.toggle("active");
+  }
+
+  function toggleAdvancedOptions() {
+    const box = document.getElementById("adv-options-box");
+    const btn = document.getElementById("adv-toggle-btn");
+    const isOpen = box.style.display !== "none";
+    if (isOpen) {
+      box.style.display = "none";
+      btn.classList.remove("open");
+    } else {
+      renderAdvOptions();
+      box.style.display = "block";
+      btn.classList.add("open");
+    }
+  }
+
+  const input = document.getElementById("question-input");
+  input.addEventListener("input", onInput);
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      if (optimizeDone) askQuestion(); else optimizePrompt();
+    }
+  });
+
+  function initStats() {
+    document.getElementById("stat-questions").textContent = history.length;
+    const url = sessionStorage.getItem("aljame3_counted")
+      ? "https://api.countapi.xyz/get/nexara-ai/visits"
+      : "https://api.countapi.xyz/hit/nexara-ai/visits";
+    sessionStorage.setItem("aljame3_counted", "1");
+    fetch(url).then(r => r.json())
+      .then(d => { if (d && typeof d.value === "number") document.getElementById("stat-visits").textContent = d.value.toLocaleString(uiLocale); })
+      .catch(() => { document.getElementById("stat-visits").textContent = "—"; });
+  }
+
+  function onInput() {
+    const val = input.value.trim();
+    document.getElementById("btn-optimize").disabled = !val;
+    document.getElementById("btn-clear").style.display = val ? "inline-flex" : "none";
+    if (!optimizeDone) {
+      document.getElementById("suggestions-box").style.display = "none";
+      document.getElementById("send-row").style.display = "none";
+    }
+    if (!val) {
+      document.getElementById("answer-box").style.display = "none";
+      document.getElementById("loading-box").style.display = "none";
+      document.getElementById("hero").style.display = "block";
+      showDoorsArea();
+    }
+  }
+
+  function switchTab(tab) {
+    ["home", "history", "about"].forEach(t => {
+      document.getElementById("tab-" + t).style.display = t === tab ? "block" : "none";
+      document.getElementById("btn-" + t).classList.toggle("active", t === tab);
+    });
+    if (tab === "history") renderHistory();
+  }
+
+  async function api(action, question, lang, styleOptions) {
+    const res = await fetch("/api", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, question, lang, styleOptions })
+    });
+    return await res.json();
+  }
+
+  async function optimizePrompt() {
+    const q = input.value.trim();
+    if (!q) return;
+    currentQuestion = q;
+    optimizeDone = false;
+
+    const btn = document.getElementById("btn-optimize");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin">⟳</span> ' + T.btn_optimizing;
+    hideDoorsArea();
+    document.getElementById("suggestions-box").style.display = "none";
+    document.getElementById("send-row").style.display = "none";
+
+    try {
+      const selLang = document.getElementById("lang-select").value;
+      const data = await api("optimize", q, selLang);
+      renderSuggestions(data.suggestions || [], q);
+    } catch {
+      renderSuggestions([T.optimize_fail], q);
+    }
+    btn.disabled = false;
+    btn.textContent = T.btn_optimize;
+  }
+
+  function renderSuggestions(suggestions, original) {
+    const list = document.getElementById("suggestions-list");
+    list.innerHTML = "";
+    suggestions.forEach((s, i) => {
+      const btn = document.createElement("button");
+      btn.className = "sug-btn";
+      btn.innerHTML = '<span class="num">' + (i + 1) + '.</span> ' + s;
+      btn.onclick = () => selectSuggestion(s);
+      list.appendChild(btn);
+    });
+    const orig = document.createElement("button");
+    orig.className = "sug-btn original";
+    orig.innerHTML = '<span class="num">' + (suggestions.length + 1) + '.</span> ' + T.sug_original;
+    orig.onclick = () => selectSuggestion(original, true);
+    list.appendChild(orig);
+    document.getElementById("suggestions-box").style.display = "block";
+    document.getElementById("hero").style.display = "none";
+  }
+
+  function selectSuggestion(text, isOriginal = false) {
+    if (!isOriginal) input.value = text;
+    currentQuestion = input.value.trim();
+    optimizeDone = true;
+    document.getElementById("suggestions-box").style.display = "none";
+    document.getElementById("send-row").style.display = "block";
+  }
+
+  function setStep(n) {
+    for (let i = 1; i <= 3; i++) {
+      const el = document.getElementById("step-" + i);
+      el.classList.remove("active", "done");
+      if (i < n) el.classList.add("done");
+      else if (i === n) el.classList.add("active");
+    }
+  }
+
+  const STYLE_META = {
+    joke:       { ar: "🎭 نكتة اليوم",      en: "🎭 Joke of the Day" },
+    morning:    { ar: "🌹 صباح الخير",       en: "🌹 Good Morning" },
+    poem:       { ar: "🖋️ قصيدة",           en: "🖋️ Poem" },
+    story:      { ar: "📖 قصة",              en: "📖 Story" },
+    quote:      { ar: "❝ حكمة",             en: "❝ Wisdom" },
+    riddle:     { ar: "🔍 لغز",              en: "🔍 Riddle" },
+    science:    { ar: "🔭 حقيقة علمية",      en: "🔭 Science Fact" },
+    historical: { ar: "📜 حدث تاريخي",       en: "📜 Historical Event" },
+    news:       { ar: "📰 ملخص الأخبار",     en: "📰 News Summary" },
+    weather:    { ar: "☀️ الطقس",           en: "☀️ Weather" },
+    recipe:     { ar: "🍲 وصفة أكل",         en: "🍲 Recipe" },
+    newword:    { ar: "🔤 كلمة جديدة",       en: "🔤 New Word" }
+  };
+  const STYLE_TESTS = [
+    ["joke", /نكتة|نكته|joke/i],
+    ["morning", /صباح الخير|good.?morning/i],
+    ["riddle", /لغز|riddle/i],
+    ["poem", /شعرا|شعراً|قصيدة|\bpoem\b/i],
+    ["quote", /حكمة|اقتباس|\bquote\b|wisdom/i],
+    ["science", /حقيقة علمية|scientific fact/i],
+    ["historical", /حدث تاريخي|historical event/i],
+    ["news", /الأخبار|أخبار اليوم|\bnews\b/i],
+    ["weather", /الطقس|\bweather\b/i],
+    ["recipe", /وصفة|\brecipe\b/i],
+    ["newword", /كلمة جديدة|new word/i],
+    ["story", /قصة قصيرة|قصة|short story/i]
+  ];
+  function detectAnswerStyle(q) {
+    const s = q || "";
+    for (const [name, re] of STYLE_TESTS) if (re.test(s)) return name;
+    return "normal";
+  }
+  function applyAnswerStyle(style) {
+    const box = document.getElementById("answer-box");
+    box.className = "answer-box fade-in";
+    const label = document.querySelector(".answer-label");
+    if (style && style !== "normal" && STYLE_META[style]) {
+      box.classList.add("style-" + style);
+      label.textContent = STYLE_META[style][uiLang] || STYLE_META[style].ar;
+    } else {
+      label.textContent = T.answer_label;
+    }
+  }
+
+  async function askQuestion() {
+    const q = currentQuestion || input.value.trim();
+    if (!q) return;
+
+    stopSpeak();
+    const lang = document.getElementById("lang-select").value;
+    const detectedStyle = detectAnswerStyle(q);
+
+    document.getElementById("send-row").style.display = "none";
+    hideDoorsArea();
+    document.getElementById("answer-box").style.display = "none";
+    document.getElementById("loading-box").style.display = "block";
+    document.getElementById("hero").style.display = "none";
+    document.getElementById("rate-thanks").style.display = "none";
+    document.querySelectorAll(".rate-btn").forEach(b => b.classList.remove("active"));
+
+    setStep(1);
+    const t1 = setTimeout(() => setStep(2), 1500);
+    const t2 = setTimeout(() => setStep(3), 7000);
+
+    try {
+      const data = await api("ask", q, lang, selectedStyleOptions);
+      clearTimeout(t1); clearTimeout(t2);
+
+      if (data.error) throw new Error(data.error);
+
+      currentAnswer = data.answer;
+      lastCategory = data.category || "";
+      document.getElementById("answer-text").textContent = data.answer;
+      document.getElementById("category-tag").textContent = catName(lastCategory);
+      applyAnswerStyle(detectedStyle);
+      const srcs = [];
+      if (data.sources?.claude) srcs.push("Claude");
+      if (data.sources?.gemini) srcs.push("Gemini");
+      document.getElementById("sources-tag").textContent = srcs.length ? (T.sources_label + " " + srcs.join(" + ")) : "";
+      document.getElementById("answer-box").style.display = "block";
+
+      const entry = { q, a: data.answer, cat: lastCategory, style: detectedStyle, time: new Date().toLocaleString(uiLocale), rating: null };
+      history.unshift(entry);
+      if (history.length > 50) history.pop();
+      currentHistoryIndex = 0;
+      saveHistory();
+      saveLastAnswer();
+      document.getElementById("stat-questions").textContent = history.length;
+    } catch (e) {
+      clearTimeout(t1); clearTimeout(t2);
+      currentAnswer = T.busy_notice;
+      lastCategory = "";
+      applyAnswerStyle("normal");
+      document.getElementById("answer-text").textContent = currentAnswer;
+      document.getElementById("category-tag").textContent = "";
+      document.getElementById("sources-tag").textContent = "";
+      document.getElementById("answer-box").style.display = "block";
+    }
+    document.getElementById("loading-box").style.display = "none";
+    optimizeDone = false;
+  }
+
+  function clearAll() {
+    stopSpeak();
+    input.value = "";
+    currentQuestion = ""; currentAnswer = ""; optimizeDone = false; currentHistoryIndex = -1; lastCategory = "";
+    selectedStyleOptions = [];
+    document.getElementById("adv-options-box").style.display = "none";
+    document.getElementById("adv-toggle-btn").classList.remove("open");
+    document.getElementById("suggestions-box").style.display = "none";
+    document.getElementById("send-row").style.display = "none";
+    document.getElementById("answer-box").style.display = "none";
+    document.getElementById("loading-box").style.display = "none";
+    document.getElementById("btn-clear").style.display = "none";
+    document.getElementById("btn-optimize").disabled = true;
+    document.getElementById("hero").style.display = "block";
+    showDoorsArea();
+    localStorage.removeItem("aljame3_last");
+    input.focus();
+  }
+
+  function copyAnswer() {
+    const textToCopy = currentAnswer + "\n\n" + T.signature;
+    navigator.clipboard.writeText(textToCopy).then(() => showToast(T.toast_copied));
+  }
+
+  function printAnswer() {
+    if (!currentAnswer) return;
+    const dir = (uiLang === "ar") ? "rtl" : "ltr";
+    const w = window.open("", "_blank");
+    if (!w) { showToast(T.toast_no_print || "..."); return; }
+    const esc = s => (s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    w.document.write(
+      '<html dir="' + dir + '"><head><meta charset="utf-8"><title>Nexara AI</title>' +
+      '<style>body{font-family:Arial,Helvetica,sans-serif;line-height:1.9;color:#111;padding:32px;max-width:800px;margin:auto}' +
+      'h2{color:#ff6a1f}.q{background:#fff3e6;border:1px solid #ffd9b8;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-weight:bold}' +
+      '.a{white-space:pre-wrap;font-size:15px}.sig{margin-top:28px;padding-top:14px;border-top:1px solid #ddd;text-align:center;color:#ff6a1f;font-weight:bold}</style>' +
+      '</head><body>' +
+      '<h2>Nexara AI</h2>' +
+      (currentQuestion ? '<div class="q">' + esc(currentQuestion) + '</div>' : '') +
+      '<div class="a">' + esc(currentAnswer) + '</div>' +
+      '<div class="sig">' + esc(T.signature) + '</div>' +
+      '</body></html>'
+    );
+    w.document.close();
+    setTimeout(() => { w.focus(); w.print(); }, 400);
+  }
+
+  function shareAnswer() {
+    const maxLen = 500;
+    const shortAnswer = currentAnswer.length > maxLen
+      ? currentAnswer.slice(0, maxLen) + "...\n\n📖 " + (uiLang === "ar" ? "تابع باقي الإجابة كاملة على الموقع" : "Read the full answer on the site")
+      : currentAnswer;
+    const shareText = T.share_via + "\n\n" + T.share_q + " " + currentQuestion + "\n\n" + T.share_a + "\n" + shortAnswer;
+    if (navigator.share) {
+      navigator.share({ title: "Nexara AI", text: shareText }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(shareText).then(() => showToast(T.toast_shared));
+    }
+  }
+
+  let isSpeaking = false;
+  function toggleSpeak() {
+    if (isSpeaking) { stopSpeak(); return; }
+    if (!("speechSynthesis" in window)) { showToast(T.toast_no_tts); return; }
+    const utter = new SpeechSynthesisUtterance(currentAnswer);
+    const sel = document.getElementById("lang-select").value;
+    utter.lang = SPEECH[sel] || (/[\u0600-\u06FF]/.test(currentAnswer) ? "ar-SA" : "en-US");
+    utter.rate = 0.95;
+    utter.onend = () => stopSpeak();
+    utter.onerror = () => { stopSpeak(); showToast(T.toast_no_tts); };
+    window.speechSynthesis.speak(utter);
+    isSpeaking = true;
+    const btn = document.getElementById("speak-btn");
+    btn.classList.add("speaking");
+    btn.textContent = T.act_stop;
+  }
+  function stopSpeak() {
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    isSpeaking = false;
+    const btn = document.getElementById("speak-btn");
+    if (btn) { btn.classList.remove("speaking"); btn.textContent = T.act_listen; }
+  }
+
+  function rate(val) {
+    document.getElementById("rate-good").classList.toggle("active", val === "good");
+    document.getElementById("rate-bad").classList.toggle("active", val === "bad");
+    document.getElementById("rate-thanks").style.display = "inline";
+    if (currentHistoryIndex >= 0 && history[currentHistoryIndex]) {
+      history[currentHistoryIndex].rating = val;
+      saveHistory();
+      saveLastAnswer();
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg; t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2000);
+  }
+
+  function saveHistory() {
+    localStorage.setItem("aljame3_history", JSON.stringify(history));
+  }
+  function saveLastAnswer() {
+    const styleVal = (currentHistoryIndex >= 0 && history[currentHistoryIndex]) ? (history[currentHistoryIndex].style || "normal") : "normal";
+    const last = { q: currentQuestion, a: currentAnswer, cat: lastCategory, style: styleVal, idx: currentHistoryIndex };
+    localStorage.setItem("aljame3_last", JSON.stringify(last));
+  }
+
+  function restoreLastAnswer() {
+    try {
+      const last = JSON.parse(localStorage.getItem("aljame3_last") || "null");
+      if (last && last.a) {
+        currentQuestion = last.q || "";
+        currentAnswer = last.a;
+        lastCategory = last.cat || "";
+        currentHistoryIndex = (typeof last.idx === "number") ? last.idx : -1;
+        input.value = last.q || "";
+        document.getElementById("answer-text").textContent = last.a;
+        document.getElementById("category-tag").textContent = catName(lastCategory);
+        document.getElementById("sources-tag").textContent = "";
+        applyAnswerStyle(last.style || "normal");
+        document.getElementById("answer-box").style.display = "block";
+        document.getElementById("hero").style.display = "none";
+        hideDoorsArea();
+        if (currentHistoryIndex >= 0 && history[currentHistoryIndex]?.rating) {
+          const r = history[currentHistoryIndex].rating;
+          document.getElementById("rate-good").classList.toggle("active", r === "good");
+          document.getElementById("rate-bad").classList.toggle("active", r === "bad");
+          document.getElementById("rate-thanks").style.display = "inline";
+        }
+      }
+    } catch {}
+  }
+
+  function renderHistory() {
+    const list = document.getElementById("history-list");
+    const clearBtn = document.getElementById("hist-clear-btn");
+    if (history.length === 0) {
+      list.innerHTML = '<div class="history-empty"><div class="history-empty-icon">📭</div><div>' + T.hist_empty + '</div></div>';
+      clearBtn.style.display = "none";
+      return;
+    }
+    clearBtn.style.display = "inline-block";
+    list.innerHTML = history.map((item, i) => {
+      const ratingIcon = item.rating === "good" ? "👍" : item.rating === "bad" ? "👎" : "";
+      const qShort = item.q.length > 70 ? item.q.slice(0, 70) + "..." : item.q;
+      return '' +
+      '<div class="hist-item" onclick="loadHistory(' + i + ')">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
+          '<div class="hist-q">' + (catName(item.cat)) + ' — ' + qShort + '</div>' +
+          '<div class="hist-time">' + item.time + '</div>' +
+        '</div>' +
+        '<div class="hist-preview">' + item.a.slice(0, 120) + '...</div>' +
+        (ratingIcon ? '<div class="hist-rating">' + ratingIcon + '</div>' : '') +
+      '</div>';
+    }).join("");
+  }
+
+  function loadHistory(i) {
+    stopSpeak();
+    const item = history[i];
+    input.value = item.q;
+    currentQuestion = item.q; currentAnswer = item.a; currentHistoryIndex = i; lastCategory = item.cat || "";
+    document.getElementById("answer-text").textContent = item.a;
+    document.getElementById("category-tag").textContent = catName(lastCategory);
+    document.getElementById("sources-tag").textContent = "";
+    applyAnswerStyle(item.style || "normal");
+    document.getElementById("answer-box").style.display = "block";
+    document.getElementById("hero").style.display = "none";
+    hideDoorsArea();
+    document.getElementById("rate-good").classList.toggle("active", item.rating === "good");
+    document.getElementById("rate-bad").classList.toggle("active", item.rating === "bad");
+    document.getElementById("rate-thanks").style.display = item.rating ? "inline" : "none";
+    saveLastAnswer();
+    switchTab("home");
+  }
+
+  function clearHistory() {
+    if (!confirm(T.confirm_clear)) return;
+    history = [];
+    saveHistory();
+    localStorage.removeItem("aljame3_last");
+    document.getElementById("stat-questions").textContent = "0";
+    renderHistory();
+  }
+
+  loadSavedLang();
+  initStats();
+  restoreLastAnswer();
+
+  if (document.getElementById("answer-box").style.display !== "block") {
+    showDoorsArea();
+  }
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+</script>
+</body>
+</html>
