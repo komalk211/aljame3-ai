@@ -1,33 +1,27 @@
 // ========================================
-// Nexara AI — الخادم الوسيط الآمن (نسخة 7 — متوافقة مع Cloudflare Pages)
+// Nexara AI — الخادم الوسيط الآمن (نسخة 9 — Cloudflare Pages)
 // يخفي مفاتيح Claude و Gemini
-// الاستراتيجية:
-//   • Gemini Flash هو النموذج الأساسي (رخيص + يتحمّل مئات وآلاف المستخدمين)
-//   • Claude يُستدعى للأسئلة المعقّدة/الحسّاسة، وأيضاً للمهام الإبداعية (كتابة/تأليف)
-//   • استدعاءان فقط لكل سؤال: تصنيف + إجابة
-//   • التحسين (optimize) على Gemini للتوفير
-// دعم اختيار لغة الإجابة (تلقائي أو لغة محددة)
-// إصلاحات محفوظة: منع المقدمات + منع Markdown + عدم ترك الإجابة فارغة أبداً
-// تحديث نسخة 7: رفع حدود التوكنز للأقصى العملي (8192) لمنع تقطيع الإجابات الطويلة
+// الجديد في نسخة 9:
+//   • حقن التاريخ والوقت الحالي في كل طلب (يحل مشكلة تواريخ 2024 القديمة)
+//   • تفعيل البحث الحيّ عبر Google Search grounding في Gemini
+//   • كشف تلقائي للأسئلة التي تحتاج بحثاً (كلمات مفتاحية + حقل needs_search من المصنّف)
+//   • الأسئلة المتغيّرة (طقس/عطل/أخبار/أسعار) تُوجَّه لـ Gemini-with-search أولاً
 // -----------------------------------------
-// ملاحظة Cloudflare: يوضع هذا الملف في المسار  functions/api.js
-// ويُستدعى تلقائياً من الواجهة عبر  /api
-// المفاتيح تُقرأ من env (وليس process.env)
+// المسار: functions/api.js — يُستدعى عبر /api
+// المفاتيح تُقرأ من env
 // ========================================
 
 // النماذج
-const GEMINI_MAIN = "gemini-2.5-flash";                 // الأساسي لكل شيء تقريباً
-const CLAUDE_HEAVY = "claude-sonnet-4-5";       // يُستدعى للضرورة القصوى + المهام الإبداعية
+const GEMINI_MAIN = "gemini-2.5-flash";
+const CLAUDE_HEAVY = "claude-sonnet-4-5";
+
+// حدود التوكنز
+const MAX_TOKENS_SIMPLE = 4000;
+const MAX_TOKENS_COMPLEX = 8192;
+const MAX_TOKENS_CLAUDE = 8192;
 
 // ========================================
-// حدود التوكنز — رُفعت للأقصى العملي حتى لا تُقطع أي إجابة
-// ========================================
-const MAX_TOKENS_SIMPLE = 4000;    // للأسئلة البسيطة (كانت 1400)
-const MAX_TOKENS_COMPLEX = 8192;   // للأسئلة المعقّدة — أقصى ما يدعمه Gemini 2.5 Flash عملياً (كانت 2200)
-const MAX_TOKENS_CLAUDE = 8192;    // لإجابات Claude (كانت 1800-2200)
-
-// ========================================
-// قواعد الأسلوب — تُضاف لكل خبير
+// قواعد الأسلوب
 // ========================================
 const STYLE_RULES = `
 قواعد إلزامية للإخراج:
@@ -38,9 +32,6 @@ const STYLE_RULES = `
 - إذا لم تكن متأكداً، قدّم أفضل تحليل ممكن مع توضيح حدود المعرفة، ولا تترك الإجابة فارغة أبداً.
 - أكمل إجابتك دائماً حتى نهايتها الطبيعية، ولا تتوقف في منتصف فكرة أو جملة.`;
 
-// ========================================
-// برومبت المعالجة العميقة — للأسئلة المعقّدة (تحليل + تدقيق داخلي في استدعاء واحد)
-// ========================================
 const DEEP_RULES = `
 منهجية الإجابة (طبّقها داخلياً ثم أخرج النتيجة النهائية فقط):
 - حلّل السؤال من أكثر من زاوية، وفكّر في الجوانب التي قد تغيب عن إجابة سطحية.
@@ -48,7 +39,63 @@ const DEEP_RULES = `
 - ادمج التحليل في إجابة واحدة عميقة ومنظّمة ودقيقة ومكتملة من أولها لآخرها.
 - لا تُظهر خطوات تفكيرك أو مراجعتك، أخرج الإجابة النهائية المصقولة فقط.`;
 
-// تعليمة اللغة: تُبنى حسب اختيار المستخدم
+// ========================================
+// سياق التاريخ — يُبنى من تاريخ الجهاز (client) مع fallback على السيرفر
+// هذا هو أهم إصلاح لمشكلة تواريخ 2024
+// ========================================
+function buildDateContext(clientLocal, clientTz) {
+  let dateStr = (typeof clientLocal === "string" && clientLocal.trim()) ? clientLocal.trim() : "";
+  let tz = (typeof clientTz === "string" && clientTz.trim()) ? clientTz.trim() : "";
+
+  if (!dateStr) {
+    // fallback: توقيت السيرفر (نستعمل الأردن كافتراضي معقول)
+    try {
+      dateStr = new Date().toLocaleString("ar-EG", {
+        dateStyle: "full", timeStyle: "short", timeZone: "Asia/Amman"
+      });
+      if (!tz) tz = "Asia/Amman";
+    } catch {
+      dateStr = new Date().toISOString();
+    }
+  }
+
+  return `معلومة زمنية مهمة جداً — اعتمدها دائماً كمرجع:
+التاريخ والوقت الحاليّان هما: ${dateStr}${tz ? " (المنطقة الزمنية: " + tz + ")" : ""}.
+لا تفترض أبداً أن السنة هي 2023 أو 2024. أي إشارة إلى "اليوم" أو "هذا العام" أو "القريب" أو "القادم" يجب أن تُحسب انطلاقاً من هذا التاريخ.
+إذا كان السؤال عن معلومة قابلة للتغيّر (طقس، عطلة رسمية، عيد، أخبار، أسعار، مواعيد، نتائج) فاعتمد على نتائج البحث إن كانت متاحة، ولا تعطِ أبداً تواريخ أو أرقاماً قديمة من ذاكرتك.`;
+}
+
+// ========================================
+// كشف الأسئلة التي تحتاج بحثاً حيّاً
+// ========================================
+function detectNeedsSearch(q) {
+  if (!q || typeof q !== "string") return false;
+  const t = q.toLowerCase();
+  const patterns = [
+    // زمن حالي
+    "اليوم","الآن","الان","حاليا","حالياً","الحين","هاليومين","هالأيام","هالايام","هذه اللحظة",
+    // طقس
+    "طقس","الطقس","حرارة","الحرارة","درجة الحرارة","أمطار","امطار","رياح","مطر","الجو","مناخ",
+    // عطل ومناسبات
+    "عطلة","عطل","العطل","إجازة","اجازة","عيد","العيد","أعياد","اعياد","مناسبة","المولد","رأس السنة","راس السنة","رمضان",
+    // أخبار
+    "أخبار","اخبار","خبر","آخر","اخر","أحدث","احدث","جديد","مستجدات","حصل","صار",
+    // أسعار
+    "سعر","أسعار","اسعار","تكلفة","كم يكلف","كم سعر","بكم","صرف الدولار","سعر الصرف",
+    // مواعيد
+    "متى","موعد","مواعيد","هذا الأسبوع","هذا الاسبوع","هذا الشهر","هذه السنة","هذا العام","القادم","القادمة","المقبل","القريب",
+    // رياضة
+    "مباراة","نتيجة","من فاز","الدوري","تشكيلة","سجّل",
+    // سنوات
+    "2024","2025","2026","2027","٢٠٢٤","٢٠٢٥","٢٠٢٦",
+    // English
+    "weather","temperature","forecast","rain","wind","today","tonight","now","current","currently",
+    "latest","news","recent","this week","this month","this year","upcoming","holiday","holidays",
+    "price","cost","how much","exchange rate","when is","when does","score","who won","standings"
+  ];
+  return patterns.some(p => t.includes(p));
+}
+
 function langInstruction(lang) {
   if (!lang || lang === "auto") {
     return `\n- مهم جداً: اكتب إجابتك بنفس لغة سؤال المستخدم تماماً. إذا سأل بالعربية أجب بالعربية، وإذا سأل بأي لغة أخرى أجب بنفس تلك اللغة.`;
@@ -68,7 +115,7 @@ function isRealAnswer(text) {
 }
 
 // ========================================
-// الشخصيات (الخبراء) — موسّعة
+// الخبراء
 // ========================================
 const EXPERTS = {
   trading: "أنت خبير تداول ومحلل أسواق مالية محترف. حلّل بدقة مع ذكر المخاطر. لا تقدّم نصيحة مالية قاطعة بل معلومات يبني عليها المستخدم قراره." + STYLE_RULES,
@@ -85,10 +132,7 @@ const EXPERTS = {
   general: "أنت مساعد ذكاء اصطناعي خبير وموسوعي. قدّم إجابة شاملة ودقيقة ومنظّمة بالعربية الواضحة." + STYLE_RULES
 };
 
-// الفئات التي تُعدّ حسّاسة (يُفضّل استدعاء Claude لها عندما تكون معقّدة)
 const SENSITIVE = ["health", "religion", "law", "trading"];
-
-// الفئات الإبداعية (تستفيد من Claude دائماً، بغضّ النظر عن التعقيد، لأن الأسلوب والابتكار هما الأهم)
 const CREATIVE = ["writing"];
 
 // ========================================
@@ -120,19 +164,25 @@ async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_HEAVY, m
 }
 
 // ========================================
-// استدعاء Gemini
+// استدعاء Gemini — مع دعم البحث (useSearch)
 // ========================================
-async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, maxTokens = MAX_TOKENS_COMPLEX) {
+async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, maxTokens = MAX_TOKENS_COMPLEX, useSearch = false) {
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const body = {
+      system_instruction: { parts: [{ text: expertPrompt }] },
+      contents: [{ parts: [{ text: question }] }],
+      generationConfig: { maxOutputTokens: maxTokens },
+    };
+    // تفعيل البحث الحيّ عبر Google Search grounding
+    if (useSearch) {
+      body.tools = [{ google_search: {} }];
+    }
+
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: expertPrompt }] },
-        contents: [{ parts: [{ text: question }] }],
-        generationConfig: { maxOutputTokens: maxTokens },
-      }),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
     if (data.error) {
@@ -147,26 +197,35 @@ async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, ma
       const reason = data.candidates?.[0]?.finishReason || "NO_TEXT";
       return { ok: false, text: "", debug: "GEMINI_EMPTY: finishReason=" + reason };
     }
-    return { ok: isRealAnswer(text), text };
+
+    // استخراج مصادر البحث (اختياري)
+    let searchSources = [];
+    try {
+      const chunks = data.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+      searchSources = chunks
+        .map(c => c?.web?.uri || c?.web?.title || "")
+        .filter(Boolean)
+        .slice(0, 5);
+    } catch { /* تجاهل */ }
+
+    return { ok: isRealAnswer(text), text, searchSources };
   } catch (e) {
     return { ok: false, text: "", debug: "GEMINI_EXCEPTION: " + (e.message || String(e)) };
   }
 }
 
 // ========================================
-// التصنيف الذكي — استدعاء واحد بـ Gemini يحدّد:
-//   المجال + مستوى التعقيد (simple / complex)
-// يُرجِع: { category, complexity }
+// التصنيف الذكي — يُرجِع: { category, complexity, needsSearch }
 // ========================================
 async function classifyQuestion(question, geminiKey) {
   const cats = Object.keys(EXPERTS).join("، ");
   const prompt = `صنّف السؤال التالي وأرجع JSON فقط بهذا الشكل بالضبط:
-{"category":"<إحدى الفئات>","complexity":"simple أو complex"}
+{"category":"<إحدى الفئات>","complexity":"simple أو complex","needs_search":true أو false}
 
 الفئات المتاحة: ${cats}.
-- اختر الفئة الأنسب لموضوع السؤال.
-- "complexity": ضع "simple" إذا كان السؤال بسيطاً ومباشراً (تعريف، معلومة سريعة، سؤال قصير).
-  وضع "complex" إذا كان يحتاج تحليلاً أو شرحاً معمّقاً أو موضوعاً متشعّباً أو حسّاساً.
+- "category": اختر الفئة الأنسب لموضوع السؤال.
+- "complexity": ضع "simple" للأسئلة البسيطة المباشرة، و"complex" لما يحتاج تحليلاً أو شرحاً معمّقاً أو موضوعاً حسّاساً.
+- "needs_search": ضع true إذا كان السؤال يحتاج معلومة حديثة أو متغيّرة (طقس، أخبار، عطل رسمية، أسعار، مواعيد، نتائج، أي شيء يتعلق بـ"اليوم" أو "الآن" أو "الأحدث")، وإلا ضع false.
 أجب بالـ JSON فقط دون أي نص إضافي.
 السؤال: ${question}`;
 
@@ -177,21 +236,21 @@ async function classifyQuestion(question, geminiKey) {
 
   let category = "general";
   let complexity = "simple";
+  let needsSearch = false;
   try {
     const raw = (result.text || "").replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(raw);
     if (EXPERTS[parsed.category]) category = parsed.category;
-    if (parsed.complexity === "simple" || parsed.complexity === "complex") {
-      complexity = parsed.complexity;
-    }
+    if (parsed.complexity === "simple" || parsed.complexity === "complex") complexity = parsed.complexity;
+    if (parsed.needs_search === true || parsed.needs_search === "true") needsSearch = true;
   } catch {
-    // في حال فشل التصنيف: نبقى على general + simple
+    // نبقى على القيم الافتراضية
   }
-  return { category, complexity };
+  return { category, complexity, needsSearch };
 }
 
 // ========================================
-// المعالج الرئيسي — صيغة Cloudflare Pages Functions
+// المعالج الرئيسي
 // ========================================
 export async function onRequest(context) {
   const { request, env } = context;
@@ -214,9 +273,9 @@ export async function onRequest(context) {
   const GEMINI_KEY = env.GEMINI_API_KEY;
 
   try {
-    const { action, question, lang } = await request.json();
+    const { action, question, lang, client_date_local, client_tz } = await request.json();
 
-    // ---------- تحسين السؤال (على Gemini للتوفير) ----------
+    // ---------- تحسين السؤال ----------
     if (action === "optimize") {
       const langLine = (!lang || lang === "auto")
         ? "اكتب الصياغات الثلاث بنفس لغة السؤال الأصلي تماماً."
@@ -250,7 +309,7 @@ ${langLine}
               .slice(0, 3);
           }
         }
-      } catch { /* نتجاهل ونجرّب الطريقة البديلة */ }
+      } catch { /* الطريقة البديلة */ }
 
       if (suggestions.length === 0 && raw) {
         suggestions = raw
@@ -272,14 +331,19 @@ ${langLine}
 
     // ---------- الإجابة ----------
     if (action === "ask") {
-      const { category, complexity } = await classifyQuestion(question, GEMINI_KEY);
+      const { category, complexity, needsSearch: classifierSearch } =
+        await classifyQuestion(question, GEMINI_KEY);
 
-      let expertPrompt = EXPERTS[category] + langInstruction(lang);
+      // البحث يتفعّل لو الكلمات المفتاحية أو المصنّف طلبه
+      const needsSearch = detectNeedsSearch(question) || classifierSearch;
+
+      // سياق التاريخ يُحقن في كل إجابة
+      const dateContext = buildDateContext(client_date_local, client_tz);
+
+      let expertPrompt = dateContext + "\n\n" + EXPERTS[category] + langInstruction(lang);
 
       const isComplex = complexity === "complex";
       const isCreative = CREATIVE.includes(category);
-      // نستدعي Claude في حالتين: (معقّد + حسّاس) أو (فئة إبداعية بغضّ النظر عن التعقيد)
-      const needClaude = (isComplex && SENSITIVE.includes(category)) || isCreative;
 
       if (isComplex) {
         expertPrompt += "\n" + DEEP_RULES;
@@ -287,41 +351,70 @@ ${langLine}
 
       let finalAnswer = "";
       let usedModel = "gemini";
+      let usedSearch = false;
+      let searchSources = [];
       let debugInfo = "";
 
-      if (needClaude) {
-        const claudeRes = await withTimeout(
-          askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
-          25000
-        );
-        if (claudeRes.ok) {
-          finalAnswer = claudeRes.text;
-          usedModel = "claude";
-        } else {
-          const geminiRes = await withTimeout(
-            askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX),
-            25000
-          );
-          finalAnswer = geminiRes.ok ? geminiRes.text : "";
-          if (geminiRes.debug) debugInfo = geminiRes.debug;
-          usedModel = "gemini_fallback";
-        }
-      } else {
+      if (needsSearch) {
+        // ===== سؤال يحتاج بحثاً: Gemini مع Google Search أولاً =====
+        // (Claude هنا لا يملك أداة بحث، لذلك نبدأ بـ Gemini)
         const geminiRes = await withTimeout(
-          askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, isComplex ? MAX_TOKENS_COMPLEX : MAX_TOKENS_SIMPLE),
-          25000
+          askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, true),
+          28000
         );
         if (geminiRes.ok) {
           finalAnswer = geminiRes.text;
           usedModel = "gemini";
+          usedSearch = true;
+          searchSources = geminiRes.searchSources || [];
         } else {
           if (geminiRes.debug) debugInfo = geminiRes.debug;
+          // fallback: Claude (بدون بحث) — أفضل من لا شيء
           const claudeRes = await withTimeout(
             askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
-            20000
+            22000
           );
           finalAnswer = claudeRes.ok ? claudeRes.text : "";
           usedModel = "claude_fallback";
+        }
+      } else {
+        // ===== المسار العادي =====
+        const needClaude = (isComplex && SENSITIVE.includes(category)) || isCreative;
+
+        if (needClaude) {
+          const claudeRes = await withTimeout(
+            askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
+            25000
+          );
+          if (claudeRes.ok) {
+            finalAnswer = claudeRes.text;
+            usedModel = "claude";
+          } else {
+            const geminiRes = await withTimeout(
+              askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX),
+              25000
+            );
+            finalAnswer = geminiRes.ok ? geminiRes.text : "";
+            if (geminiRes.debug) debugInfo = geminiRes.debug;
+            usedModel = "gemini_fallback";
+          }
+        } else {
+          const geminiRes = await withTimeout(
+            askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, isComplex ? MAX_TOKENS_COMPLEX : MAX_TOKENS_SIMPLE),
+            25000
+          );
+          if (geminiRes.ok) {
+            finalAnswer = geminiRes.text;
+            usedModel = "gemini";
+          } else {
+            if (geminiRes.debug) debugInfo = geminiRes.debug;
+            const claudeRes = await withTimeout(
+              askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
+              20000
+            );
+            finalAnswer = claudeRes.ok ? claudeRes.text : "";
+            usedModel = "claude_fallback";
+          }
         }
       }
 
@@ -335,9 +428,13 @@ ${langLine}
         category,
         complexity,
         mode: usedModel,
+        needs_search: needsSearch,
+        used_search: usedSearch,
+        search_sources: searchSources,
         sources: {
           claude: usedModel.startsWith("claude"),
           gemini: usedModel.startsWith("gemini"),
+          search: usedSearch,
         },
       }), { status: 200, headers });
     }
