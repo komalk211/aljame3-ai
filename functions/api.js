@@ -80,8 +80,20 @@ function styleOptionsInstruction(options) {
 function withTimeout(promise, ms) {
   return Promise.race([
     promise,
-    new Promise((resolve) => setTimeout(() => resolve({ ok: false, text: "", timedOut: true }), ms)),
+    new Promise((resolve) => setTimeout(() => resolve({ ok: false, text: "", timedOut: true, debug: "TIMEOUT: تجاوز الاستدعاء " + ms + "ms" }), ms)),
   ]);
+}
+
+// إعادة محاولة واحدة تلقائياً لو فشلت المحاولة الأولى (يفيد بحالات الازدحام المؤقت بالخدمة)
+async function withRetry(fn, retries = 1, delayMs = 700) {
+  let result = await fn();
+  let attempt = 0;
+  while (!result.ok && attempt < retries) {
+    await new Promise(r => setTimeout(r, delayMs));
+    result = await fn();
+    attempt++;
+  }
+  return result;
 }
 
 function isRealAnswer(text) {
@@ -662,7 +674,7 @@ ${langLine}
       } else if (needClaude) {
         const claudeRes = await withTimeout(
           askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
-          25000
+          55000
         );
         if (claudeRes.ok) {
           finalAnswer = claudeRes.text;
@@ -694,7 +706,7 @@ ${langLine}
           if (geminiRes.debug) debugInfo = geminiRes.debug;
           const claudeRes = await withTimeout(
             askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
-            20000
+            50000
           );
           finalAnswer = claudeRes.ok ? claudeRes.text : "";
           if (!claudeRes.ok && claudeRes.debug) debugInfo += " | " + claudeRes.debug;
