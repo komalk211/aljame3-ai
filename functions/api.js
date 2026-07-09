@@ -343,11 +343,16 @@ async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_HEAVY, m
       }),
     });
     const data = await res.json();
-    if (data.error) return { ok: false, text: "" };
+    if (data.error) {
+      return { ok: false, text: "", debug: "CLAUDE_ERROR: " + (data.error.message || JSON.stringify(data.error)) };
+    }
     const text = (data.content || []).map(b => b.text || "").join("");
-    return { ok: isRealAnswer(text), text };
-  } catch {
-    return { ok: false, text: "" };
+    if (!isRealAnswer(text)) {
+      return { ok: false, text: "", debug: "CLAUDE_EMPTY: stop_reason=" + (data.stop_reason || "unknown") };
+    }
+    return { ok: true, text };
+  } catch (e) {
+    return { ok: false, text: "", debug: "CLAUDE_EXCEPTION: " + (e.message || String(e)) };
   }
 }
 
@@ -613,7 +618,14 @@ ${langLine}
       }
 
       // الخطوة 2: التصنيف الذكي (يحدد أيضاً الحاجة لبحث فعلي بالويب)
-      const { category, complexity, needsSearch } = await classifyQuestion(question, GEMINI_KEY);
+      let { category, complexity, needsSearch } = await classifyQuestion(question, GEMINI_KEY);
+
+      // تجاوز إجباري: أي طلب صريح لقصة/كتابة إبداعية يُوجَّه لفئة "writing" (وبالتالي Claude)
+      // بغض النظر عن موضوع القصة (شركة، مرض، جريمة...)، لأن نية "قصة" أهم من موضوعها
+      const EXPLICIT_CREATIVE_REGEX = /اكتب.{0,15}(قصة|رواية|شعر|قصيدة)|قصة قصيرة|قصة بوليسية|قصة خيال علمي|write.{0,15}(story|poem|novel)|short story/i;
+      if (EXPLICIT_CREATIVE_REGEX.test(question) && category !== "writing") {
+        category = "writing";
+      }
 
       let expertPrompt = EXPERTS[category] + langInstruction(lang) + styleOptionsInstruction(styleOptions);
       const isComplex = complexity === "complex";
@@ -656,13 +668,19 @@ ${langLine}
           finalAnswer = claudeRes.text;
           usedModel = "claude";
         } else {
+          if (claudeRes.debug) debugInfo = claudeRes.debug;
           const geminiRes = await withTimeout(
             askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, false),
             25000
           );
-          finalAnswer = geminiRes.ok ? geminiRes.text : "";
-          if (geminiRes.debug) debugInfo = geminiRes.debug;
-          usedModel = "gemini_fallback";
+          if (geminiRes.ok) {
+            finalAnswer = geminiRes.text;
+            usedModel = "gemini_fallback";
+          } else {
+            finalAnswer = "";
+            if (geminiRes.debug) debugInfo += " | " + geminiRes.debug;
+            usedModel = "gemini_fallback";
+          }
         }
       } else {
         const geminiRes = await withTimeout(
@@ -679,18 +697,22 @@ ${langLine}
             20000
           );
           finalAnswer = claudeRes.ok ? claudeRes.text : "";
+          if (!claudeRes.ok && claudeRes.debug) debugInfo += " | " + claudeRes.debug;
           usedModel = "claude_fallback";
         }
       }
 
+      let generationFailed = false;
       if (!isRealAnswer(finalAnswer)) {
+        generationFailed = true;
         finalAnswer = "تعذّر توليد إجابة كافية لهذا السؤال الآن. حاول تبسيط صياغته أو أعد المحاولة بعد قليل."
           + (debugInfo ? ("\n\n[تشخيص مؤقت: " + debugInfo + "]") : "");
       }
 
       // تخزين تلقائي بالمكتبة — فقط للأبواب العادية غير الحساسة وغير المعتمدة على بحث لحظي
       // (الفئات الحساسة SENSITIVE تبقى تحتاج تقييم يدوي 👍 عبر action=rate كطبقة حماية إضافية)
-      const autoStoreEligible = isRealAnswer(finalAnswer) && !needsSearch && !SENSITIVE.includes(category);
+      // ملاحظة مهمة: لا نخزّن أبداً لو التوليد فشل (generationFailed)، حتى لو رسالة الفشل نفسها أطول من حد isRealAnswer
+      const autoStoreEligible = !generationFailed && isRealAnswer(finalAnswer) && !needsSearch && !SENSITIVE.includes(category);
       if (autoStoreEligible) {
         await addLibraryEntry(KV, {
           question,
