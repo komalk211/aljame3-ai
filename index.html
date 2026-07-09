@@ -982,6 +982,12 @@
       document.getElementById("suggestions-box").style.display = "none";
       document.getElementById("send-row").style.display = "none";
     }
+    if (!val) {
+      document.getElementById("answer-box").style.display = "none";
+      document.getElementById("loading-box").style.display = "none";
+      document.getElementById("hero").style.display = "block";
+      showDoorsArea();
+    }
   }
 
   function switchTab(tab) {
