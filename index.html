@@ -1184,7 +1184,8 @@
   }
 
   function copyAnswer() {
-    navigator.clipboard.writeText(currentAnswer).then(() => showToast(T.toast_copied));
+    const textToCopy = currentAnswer + "\n\n" + T.signature;
+    navigator.clipboard.writeText(textToCopy).then(() => showToast(T.toast_copied));
   }
 
   function printAnswer() {
@@ -1231,7 +1232,7 @@
     utter.lang = SPEECH[sel] || (/[\u0600-\u06FF]/.test(currentAnswer) ? "ar-SA" : "en-US");
     utter.rate = 0.95;
     utter.onend = () => stopSpeak();
-    utter.onerror = () => stopSpeak();
+    utter.onerror = () => { stopSpeak(); showToast(T.toast_no_tts); };
     window.speechSynthesis.speak(utter);
     isSpeaking = true;
     const btn = document.getElementById("speak-btn");
