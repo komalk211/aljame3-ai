@@ -711,6 +711,7 @@
     if (document.getElementById("tab-history").style.display !== "none") renderHistory();
     renderStarters();
     renderDoors();
+    updateClearBtn();
   }
 
   function renderStarters() {
@@ -737,8 +738,8 @@
     hideDoorsArea();
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
-    document.getElementById("btn-clear").style.display = "inline-flex";
     document.getElementById("btn-optimize").disabled = false;
+    updateClearBtn();
     askQuestion();
   }
 
@@ -781,9 +782,9 @@
     optimizeDone = false;
     closeDoor();
     document.getElementById("btn-optimize").disabled = false;
-    document.getElementById("btn-clear").style.display = "inline-flex";
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
+    updateClearBtn();
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
   }
@@ -795,6 +796,18 @@
   function showDoorsArea() {
     document.getElementById("doors-section").style.display = "block";
     document.getElementById("starter-box").style.display = "block";
+  }
+
+  // ===== زر المسح/الرجوع: مصدر واحد يتحكم بظهوره في كل الحالات =====
+  function isShown(id) {
+    return document.getElementById(id).style.display === "block";
+  }
+  function updateClearBtn() {
+    const hasText = input.value.trim().length > 0;
+    const busy = isShown("answer-box") || isShown("suggestions-box") ||
+                 isShown("loading-box") || isShown("send-row");
+    document.getElementById("btn-clear").style.display =
+      (hasText || busy) ? "inline-flex" : "none";
   }
 
   function onLangChange() {
@@ -841,11 +854,11 @@
   function onInput() {
     const val = input.value.trim();
     document.getElementById("btn-optimize").disabled = !val;
-    document.getElementById("btn-clear").style.display = val ? "inline-flex" : "none";
     if (!optimizeDone) {
       document.getElementById("suggestions-box").style.display = "none";
       document.getElementById("send-row").style.display = "none";
     }
+    updateClearBtn();
   }
 
   function switchTab(tab) {
@@ -857,10 +870,18 @@
   }
 
   async function api(action, question, lang) {
+    // نبعث تاريخ ووقت الجهاز الفعلي مع كل طلب — الباك-إند يقدر يستخدمها
+    // ليحقن التاريخ الصحيح في الـ system prompt (يحل مشكلة تواريخ 2024 القديمة).
+    const now = new Date();
     const res = await fetch("/api", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, question, lang })
+      body: JSON.stringify({
+        action, question, lang,
+        client_date: now.toISOString(),
+        client_date_local: now.toLocaleString("ar-EG", { dateStyle: "full", timeStyle: "short" }),
+        client_tz: (Intl.DateTimeFormat().resolvedOptions().timeZone) || ""
+      })
     });
     return await res.json();
   }
@@ -877,6 +898,7 @@
     hideDoorsArea();
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
+    updateClearBtn();
 
     try {
       const selLang = document.getElementById("lang-select").value;
@@ -906,6 +928,7 @@
     list.appendChild(orig);
     document.getElementById("suggestions-box").style.display = "block";
     document.getElementById("hero").style.display = "none";
+    updateClearBtn();
   }
 
   function selectSuggestion(text, isOriginal = false) {
@@ -914,6 +937,7 @@
     optimizeDone = true;
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "block";
+    updateClearBtn();
   }
 
   function setStep(n) {
@@ -939,6 +963,7 @@
     document.getElementById("hero").style.display = "none";
     document.getElementById("rate-thanks").style.display = "none";
     document.querySelectorAll(".rate-btn").forEach(b => b.classList.remove("active"));
+    updateClearBtn();
 
     setStep(1);
     const t1 = setTimeout(() => setStep(2), 1500);
@@ -978,21 +1003,43 @@
     }
     document.getElementById("loading-box").style.display = "none";
     optimizeDone = false;
+    updateClearBtn();
   }
 
+  // ===== المسح/الرجوع للرئيسية: إعادة تعيين كاملة وموثوقة =====
   function clearAll() {
     stopSpeak();
+    closeDoor();
+
     input.value = "";
-    currentQuestion = ""; currentAnswer = ""; optimizeDone = false; currentHistoryIndex = -1; lastCategory = "";
+    currentQuestion = "";
+    currentAnswer = "";
+    optimizeDone = false;
+    currentHistoryIndex = -1;
+    lastCategory = "";
+
+    // إخفاء كل العناصر المؤقتة
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
     document.getElementById("answer-box").style.display = "none";
     document.getElementById("loading-box").style.display = "none";
-    document.getElementById("btn-clear").style.display = "none";
-    document.getElementById("btn-optimize").disabled = true;
+
+    // إعادة زر "حسّن سؤالي" لحالته الأصلية (حتى لو كان عالقاً على "جاري التحسين")
+    const opt = document.getElementById("btn-optimize");
+    opt.disabled = true;
+    opt.textContent = T.btn_optimize;
+
+    // إعادة تعيين التقييم
+    document.getElementById("rate-thanks").style.display = "none";
+    document.querySelectorAll(".rate-btn").forEach(b => b.classList.remove("active"));
+
+    // العودة للصفحة الرئيسية الافتراضية
     document.getElementById("hero").style.display = "block";
     showDoorsArea();
+    renderStarters();
+
     localStorage.removeItem("aljame3_last");
+    updateClearBtn();
     input.focus();
   }
 
@@ -1104,6 +1151,7 @@
           document.getElementById("rate-bad").classList.toggle("active", r === "bad");
           document.getElementById("rate-thanks").style.display = "inline";
         }
+        updateClearBtn();
       }
     } catch {}
   }
@@ -1148,6 +1196,7 @@
     document.getElementById("rate-thanks").style.display = item.rating ? "inline" : "none";
     saveLastAnswer();
     switchTab("home");
+    updateClearBtn();
   }
 
   function clearHistory() {
@@ -1166,6 +1215,7 @@
   if (document.getElementById("answer-box").style.display !== "block") {
     showDoorsArea();
   }
+  updateClearBtn();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
