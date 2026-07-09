@@ -57,6 +57,26 @@ function langInstruction(lang) {
   return `\n- مهم جداً: اكتب إجابتك بالكامل بلغة: ${lang} فقط، بغضّ النظر عن لغة السؤال. يجب أن تكون الإجابة كلها بلغة ${lang}.`;
 }
 
+// ========================================
+// خيارات أسلوب الإجابة (يختارها المستخدم اختيارياً قبل الإرسال)
+// ========================================
+const STYLE_OPTION_INSTRUCTIONS = {
+  practical: "ركّز إجابتك على الجانب العملي القابل للتطبيق مباشرة، وتجنّب الحشو النظري.",
+  concise: "اختصر إجابتك قدر الإمكان مع الحفاظ على المعنى الكامل والدقة.",
+  beginner: "اشرح بأسلوب مبسّط يناسب المبتدئين تمامًا، وتجنّب المصطلحات المعقدة غير المشروحة.",
+  steps: "قدّم إجابتك على شكل خطوات تنفيذية واضحة ومرقّمة يمكن تطبيقها مباشرة.",
+  expert: "أجب بأسلوب خبير متخصص عميق المعرفة بالمجال، بمستوى تفصيل احترافي.",
+  risks: "اذكر أهم المخاطر والقيود والاستثناءات المرتبطة بالموضوع ضمن الإجابة."
+};
+function styleOptionsInstruction(options) {
+  if (!Array.isArray(options) || options.length === 0) return "";
+  const lines = options
+    .filter(o => STYLE_OPTION_INSTRUCTIONS[o])
+    .map(o => "- " + STYLE_OPTION_INSTRUCTIONS[o]);
+  if (lines.length === 0) return "";
+  return "\n" + lines.join("\n");
+}
+
 function withTimeout(promise, ms) {
   return Promise.race([
     promise,
@@ -73,7 +93,7 @@ function isRealAnswer(text) {
 // ========================================
 const EXPERTS = {
   trading: "أنت خبير تداول ومحلل أسواق مالية محترف. حلّل بدقة مع ذكر المخاطر. لا تقدّم نصيحة مالية قاطعة بل معلومات يبني عليها المستخدم قراره." + STYLE_RULES,
-  writing: "أنت كاتب وأديب عربي بارع، متمكّن من الأساليب البلاغية والإبداعية والصياغة الراقية." + STYLE_RULES,
+  writing: "أنت كاتب وأديب عربي بارع، متمكّن من الأساليب البلاغية والإبداعية والصياغة الراقية. عند كتابة قصة أو نص سردي، اكتبه كاملاً بكل تفاصيله وأحداثه الطبيعية دون اختصار أو تلخيص أو استعجال النهاية، حتى لو كان طويلاً — الطول ليس مشكلة، والأولوية لاكتمال القصة." + STYLE_RULES,
   programming: "أنت مهندس برمجيات خبير. قدّم حلولاً عملية ودقيقة مع شرح واضح وأمثلة كود نظيفة." + STYLE_RULES,
   science: "أنت عالم وباحث متخصص. قدّم معلومات دقيقة مبنية على الأدلة العلمية بلغة واضحة." + STYLE_RULES,
   religion: "أنت باحث متخصص في العلوم الشرعية، دقيق وموضوعي، تذكر الآراء المختلفة باحترام." + STYLE_RULES,
@@ -227,6 +247,83 @@ async function addLibraryEntry(kv, { question, answer, category, source }) {
 }
 
 // ========================================
+// "صفحة المجلة" — طلب دفعة عناصر من نوع واحد (نكت/ألغاز/اقتباسات) دفعة وحدة
+// ========================================
+const BATCH_CONTENT_TYPES = {
+  joke: { triggerRegex: /نكتة|نكته|joke/i, pickCount: () => 7, itemsWord: "نكتة", itemsWordPlural: "نكت" },
+  riddle: { triggerRegex: /لغز|riddle/i, pickCount: () => (Math.random() < 0.5 ? 6 : 7), itemsWord: "لغز", itemsWordPlural: "ألغاز" },
+  quote: { triggerRegex: /حكمة|اقتباس|\bquote\b|wisdom/i, pickCount: () => (Math.random() < 0.5 ? 2 : 3), itemsWord: "حكمة أو اقتباس", itemsWordPlural: "حكم واقتباسات" },
+};
+function detectBatchType(question) {
+  const s = question || "";
+  for (const [type, cfg] of Object.entries(BATCH_CONTENT_TYPES)) {
+    if (cfg.triggerRegex.test(s)) return type;
+  }
+  return null;
+}
+
+function shuffleArray(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+async function getLibraryBatchByType(kv, contentType, count) {
+  if (!kv) return [];
+  const index = await getLibraryIndex(kv);
+  const matching = index.filter(e => e.contentType === contentType);
+  const picked = shuffleArray(matching).slice(0, count);
+  const items = [];
+  for (const entry of picked) {
+    try {
+      const raw = await kv.get("lib:item:" + entry.id);
+      if (raw) {
+        const full = JSON.parse(raw);
+        items.push(full.answer);
+      }
+    } catch { /* تجاهل عنصر تالف */ }
+  }
+  return items;
+}
+
+const ARABIC_NUMS = ["١", "٢", "٣", "٤", "٥", "٦", "٧", "٨", "٩", "١٠"];
+function formatNumberedList(items) {
+  return items.map((t, i) => (ARABIC_NUMS[i] || String(i + 1)) + ". " + t).join("\n\n");
+}
+
+async function generateBatchFiller(contentType, count, existingTexts, geminiKey) {
+  const cfg = BATCH_CONTENT_TYPES[contentType];
+  const avoidList = existingTexts.length
+    ? "\nتجنّب تكرار أو مشابهة هذه العناصر الموجودة أصلاً:\n" + existingTexts.map(t => "- " + t.slice(0, 80)).join("\n")
+    : "";
+  const prompt = `أنت مصدر محتوى عربي خفيف ومتنوع. أعطني بالضبط ${count} عنصر من نوع "${cfg.itemsWordPlural}" جديدة ومختلفة تمامًا عن بعضها.${avoidList}
+قواعد الإخراج:
+- أرجع النتيجة بصيغة JSON فقط بهذا الشكل: {"items":["العنصر الأول","العنصر الثاني", ...]}
+- بالضبط ${count} عنصر داخل المصفوفة، لا أكثر ولا أقل.
+- كل عنصر جملة أو جملتين قصيرتين واضحتين، بدون ترقيم داخل النص نفسه.
+- لا تكتب أي نص أو شرح خارج الـ JSON.`;
+
+  const result = await withTimeout(
+    askGemini(prompt, "أنت مولّد محتوى دقيق تُخرج JSON فقط.", geminiKey, GEMINI_MAIN, 2000, false),
+    15000
+  );
+
+  try {
+    const raw = (result.text || "").replace(/```json|```/g, "").trim();
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
+    const parsed = JSON.parse(raw.slice(start, end + 1));
+    if (Array.isArray(parsed.items)) {
+      return parsed.items.map(s => (typeof s === "string" ? s.trim() : "")).filter(Boolean).slice(0, count);
+    }
+  } catch { /* فشل التوليد، نرجع مصفوفة فاضية */ }
+  return [];
+}
+
+// ========================================
 // استدعاء Claude
 // ========================================
 async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_HEAVY, maxTokens = MAX_TOKENS_CLAUDE) {
@@ -366,7 +463,7 @@ export async function onRequest(context) {
 
   try {
     const body = await request.json();
-    const { action, question, lang } = body;
+    const { action, question, lang, styleOptions } = body;
 
     // ---------- تحسين السؤال ----------
     if (action === "optimize") {
@@ -459,6 +556,49 @@ ${langLine}
 
     // ---------- الإجابة الرئيسية ----------
     if (action === "ask") {
+      // الخطوة 0: هل السؤال طلب "دفعة" (نكت/ألغاز/اقتباسات) — تُعرض دفعة وحدة مثل صفحة مجلة
+      const batchType = detectBatchType(question);
+      if (batchType) {
+        const cfg = BATCH_CONTENT_TYPES[batchType];
+        const targetCount = cfg.pickCount();
+        const libraryItems = await getLibraryBatchByType(KV, batchType, targetCount);
+        const remaining = targetCount - libraryItems.length;
+
+        let finalItems = libraryItems;
+        let usedModel = "library_batch";
+
+        if (remaining > 0) {
+          const generated = await generateBatchFiller(batchType, remaining, libraryItems, GEMINI_KEY);
+          if (generated.length > 0) {
+            // تخزين العناصر المولّدة الجديدة بالمكتبة تلقائياً (تباعاً لتفادي تضارب الفهرس)
+            for (const text of generated) {
+              await addLibraryEntry(KV, {
+                question: text,
+                answer: text,
+                category: "daily",
+                source: "auto_generated_batch",
+              });
+            }
+            finalItems = libraryItems.concat(generated);
+            usedModel = libraryItems.length > 0 ? "mixed_batch" : "ai_batch";
+          }
+        }
+
+        if (finalItems.length === 0) {
+          finalItems = ["تعذّر توليد محتوى الآن، حاول مرة أخرى بعد قليل."];
+        }
+
+        return new Response(JSON.stringify({
+          answer: formatNumberedList(finalItems),
+          category: "daily",
+          complexity: "simple",
+          mode: usedModel,
+          batchType,
+          batchCount: finalItems.length,
+          sources: { claude: false, gemini: usedModel !== "library_batch", library: usedModel !== "ai_batch" },
+        }), { status: 200, headers });
+      }
+
       // الخطوة 1: فحص المكتبة أولاً — صفر تكلفة API عند التطابق
       const libraryHit = await searchLibrary(KV, question, null);
       if (libraryHit) {
@@ -475,7 +615,7 @@ ${langLine}
       // الخطوة 2: التصنيف الذكي (يحدد أيضاً الحاجة لبحث فعلي بالويب)
       const { category, complexity, needsSearch } = await classifyQuestion(question, GEMINI_KEY);
 
-      let expertPrompt = EXPERTS[category] + langInstruction(lang);
+      let expertPrompt = EXPERTS[category] + langInstruction(lang) + styleOptionsInstruction(styleOptions);
       const isComplex = complexity === "complex";
       const isCreative = CREATIVE.includes(category);
       const needClaude = (isComplex && SENSITIVE.includes(category)) || isCreative;
