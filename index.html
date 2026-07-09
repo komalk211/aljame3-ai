@@ -108,6 +108,23 @@
     .lang-select:focus { outline: none; border-color: #ff6a1f; }
 
     .btn-row { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; flex-wrap: wrap; }
+
+    .adv-toggle-row { margin-top: 10px; }
+    .adv-toggle-btn {
+      background: transparent; color: #a89a86; border: 1px dashed #d8c8b0; border-radius: 8px;
+      padding: 6px 12px; font-size: 12.5px; cursor: pointer; font-family: 'Readex Pro', sans-serif;
+      transition: all 0.2s;
+    }
+    .adv-toggle-btn:hover, .adv-toggle-btn.open { color: #ff6a1f; border-color: #ff6a1f66; background: #fff8f0; }
+    .adv-options-box { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #f0e0cc; }
+    .adv-options-list { display: flex; flex-wrap: wrap; gap: 7px; }
+    .adv-chip {
+      background: #fff8f0; border: 1px solid #f0e0cc; border-radius: 16px;
+      padding: 6px 13px; color: #6a5f50; font-size: 12.5px; cursor: pointer;
+      transition: all 0.2s; font-family: 'Readex Pro', sans-serif;
+    }
+    .adv-chip.active { background: #ff6a1f; border-color: #ff6a1f; color: #fff; font-weight: 700; }
+    .adv-chip:hover:not(.active) { border-color: #ff6a1f66; color: #ff6a1f; }
     .btn {
       border: none; border-radius: 10px; padding: 10px 20px; font-size: 14px; font-weight: 700;
       font-family: 'Readex Pro', sans-serif; cursor: pointer; transition: all 0.2s;
@@ -250,7 +267,7 @@
     .style-historical { --style-bg: linear-gradient(160deg,#f5ecd9,#e8d9b0); --style-border:#8a6a3a; --style-icon1:"📜"; --style-icon2:"⏳"; --style-text:#5a4522; }
     .style-news { --style-bg: linear-gradient(160deg,#f4f4f4,#e6e6e6); --style-border:#555555; --style-icon1:"📰"; --style-icon2:"🗞️"; --style-text:#2a2a2a; }
     .style-weather { --style-bg: linear-gradient(160deg,#e8f4fd,#cfe8fb); --style-border:#3a9bd9; --style-icon1:"☀️"; --style-icon2:"☁️"; --style-text:#1c5a80; }
-    .style-recipe { --style-bg: linear-gradient(160deg,#fff3e0,#ffe0b8); --style-border:#d9791f; --style-icon1:"🍲"; --style-icon2:"👩‍🍳"; --style-text:#7a3f10; }
+    .style-recipe { --style-bg: linear-gradient(160deg,#fff3e0,#ffe0b8); --style-border:#d9791f; --style-icon1:"🍲"; --style-icon2:"🥄"; --style-text:#7a3f10; }
     .style-newword { --style-bg: linear-gradient(160deg,#fdf7ff,#f3e6ff); --style-border:#a3529e; --style-icon1:"🔤"; --style-icon2:"📚"; --style-text:#5c2a58; }
     .answer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
     .answer-badge { display: flex; align-items: center; gap: 8px; }
@@ -416,6 +433,12 @@
           <option value="English">🇬🇧 English</option>
         </select>
       </div>
+      <div class="adv-toggle-row">
+        <button type="button" class="adv-toggle-btn" id="adv-toggle-btn" onclick="toggleAdvancedOptions()" data-i18n="adv_toggle">⚙️ خيارات متقدمة</button>
+      </div>
+      <div class="adv-options-box" id="adv-options-box" style="display:none">
+        <div class="adv-options-list" id="adv-options-list"></div>
+      </div>
       <div class="btn-row" id="btn-row">
         <button class="btn btn-ghost" id="btn-clear" onclick="clearAll()" style="display:none" data-i18n="btn_clear">مسح</button>
         <button class="btn btn-gold" id="btn-optimize" onclick="optimizePrompt()" disabled data-i18n="btn_optimize">✨ حسّن سؤالي</button>
@@ -556,6 +579,7 @@
       input_ph:"اكتب سؤالك هنا...",
       lang_label:"🌍 اللغة · Language:",
       btn_clear:"مسح", btn_optimize:"✨ حسّن سؤالي", btn_optimizing:"جاري التحسين...", btn_send:"إرسال ✦",
+      adv_toggle:"⚙️ خيارات متقدمة",
       sug_title:"✨ اختر صياغة محسّنة لسؤالك:", sug_original:"أرسل سؤالي بصيغتي الأصلية",
       step1:"🎯 تحليل وتصنيف السؤال...", step2:"🤖 استشارة الخبراء (Claude + Gemini)...", step3:"💎 دمج وتأليف الإجابة النهائية...",
       answer_label:"إجابة Nexara AI", act_listen:"🔊 استمع", act_stop:"⏹ إيقاف", act_share:"🔗 مشاركة", act_copy:"⎘ نسخ",
@@ -631,11 +655,11 @@
         {i:"🎓", n:"التعلم", opts:["اشرح لي ببساطة مفهوم: ","لخّص لي هذا الدرس: ","أنشئ لي اختباراً عن: ","اشرح لي خطوة بخطوة كيفية: ","أعطني أمثلة على: ","قارن لي بين: ","ضع لي خطة مذاكرة لـ: ","بسّط لي هذا النص الصعب: ","اسألني أسئلة لأختبر فهمي في: ","اشرح لي بمثال واقعي مفهوم: "]},
         {i:"💼", n:"العمل والمشاريع", opts:["أعطني فكرة مشروع في مجال: ","ضع لي خطة عمل لـ: ","اقترح خطة تسويقية لـ: ","حلّل لي منافسي في مجال: ","اكتب لي إعلاناً عن: ","اعمل دراسة جدوى مبسّطة لـ: ","اقترح لي أسماء لمشروع عن: ","اكتب رسالة لعميل بخصوص: ","ساعدني في تسعير خدمة: ","اعمل تحليل SWOT لـ: ","قارن لي بين هذين المنتجين قبل الشراء: "]},
         {i:"🌐", n:"الترجمة واللغات", opts:["ترجم لي النص التالي: ","صحّح القواعد اللغوية في: ","حسّن أسلوب هذا النص الإنجليزي: ","اشرح لي الفرق بين كلمتي: ","ترجم بأسلوب احترافي للأعمال: ","بسّط لي هذا النص الإنجليزي: ","اكتب لي بالإنجليزية الرسمية: ","علّمني عبارات مفيدة بلغة: ","دقّق إملائياً النص التالي: ","ترجم مع الحفاظ على نبرة النص: "]},
-        {i:"⚡", n:"أدوات سريعة", opts:["لخّص لي هذا النص الطويل: ","استخرج النقاط المهمة من: ","حوّل هذا النص إلى قائمة: ","أنشئ لي جدولاً عن: ","ولّد لي أفكاراً عن: ","اكتب لي عناوين جذابة عن: ","نظّم لي أفكاري حول: ","اختصر لي هذه الفقرة: ","اعمل خطة نقاط لـ: ","استخرج الأسئلة المحتملة من: "]},
-        {i:"🎭", n:"الترفيه المفيد", opts:["أجب على سؤالي شعراً: ","أجب بأسلوب قديم تراثي عن: ","أجب على شكل سجع عن: ","صف لي كمشهد سينمائي: ","حوّل هذه الفكرة لقصة قصيرة: ","اكتب لي حواراً عن: ","أجب بأسلوب ساخر عن: ","أجب على شكل نصيحة حكيم عن: ","اكتب كرسالة من المستقبل عن: ","اشرح لي بطريقة مبسّطة لطفل: ","اقترح لي لعبة أو نشاطاً ترفيهياً بسيطاً: "]},
+        {i:"⚡", n:"أدوات سريعة", opts:["لخّص لي هذا النص الطويل: ","استخرج النقاط المهمة من: ","حوّل هذا النص إلى قائمة: ","أنشئ لي جدولاً عن: ","ولّد لي أفكاراً عن: ","اكتب لي عناوين جذابة عن: ","نظّم لي أفكاري حول: ","اختصر لي هذه الفقرة: ","اعمل خطة نقاط لـ: ","استخرج الأسئلة المحتملة من: ","اقترح لي أفضل المواقع والأدوات المجانية لـ: "]},
+        {i:"🎭", n:"الترفيه المفيد", opts:["أجب على سؤالي شعراً: ","أجب بأسلوب قديم تراثي عن: ","أجب على شكل سجع عن: ","صف لي كمشهد سينمائي: ","حوّل هذه الفكرة لقصة قصيرة: ","اكتب لي حواراً عن: ","أجب بأسلوب ساخر عن: ","أجب على شكل نصيحة حكيم عن: ","اكتب كرسالة من المستقبل عن: ","اشرح لي بطريقة مبسّطة لطفل: ","اقترح لي لعبة أو نشاطاً ترفيهياً بسيطاً: ","اكتب لي قصة بوليسية قصيرة مليئة بالغموض: ","اكتب لي قصة خيال علمي قصيرة عن: ","اقترح عليّ لعبة ورقية بسيطة ألعبها مع أصدقائي: ","اعمل لي فزورة اختلافات ذهنية ممتعة: "]},
         {i:"🧠", n:"المستشار", opts:["أواجه مشكلة تقنية وهي: ","عندي موقف في العمل: ","محتار في قرار بخصوص: ","عندي مشكلة مع شخص حول: ","أريد أطوّر عادة: ","أحتاج مساعدة بإدارة وقتي في: ","عندي سؤال صحي عام حول: ","محتار بقرار مالي عن: ","أريد أحسّن إنتاجيتي في: ","أحتاج نصيحة عامة بخصوص: ","أخطط لرحلة سفر إلى: ","عندي سؤال عن معاملة أو إجراء رسمي: "]},
-        {i:"📅", n:"المحتوى اليومي", opts:["أعطني معلومة مفيدة عن اليوم","احكِ لي نكتة خفيفة","اطرح عليّ لغزاً ممتعاً","أعطني حكمة ملهمة","أعطني حقيقة علمية غريبة","أعطني اقتباساً ملهماً","اقترح عليّ تحدياً إبداعياً بسيطاً","علّمني كلمة جديدة ومعناها","احكِ لي عن حدث تاريخي مثل هذا اليوم","اقترح عليّ فكرة صغيرة لأجربها اليوم","اكتب لي رسالة صباح الخير جميلة لأرسلها لأصدقائي","لخّص لي أهم الأخبار المحلية والعالمية اليوم","كيف حالة الطقس المتوقعة اليوم؟","هل يوجد عطلة رسمية قريبة؟","اقترح لي وصفة أكل سهلة وسريعة"]},
-        {i:"🎲", n:"أدهشني", opts:["فاجئني بمعلومة غريبة ومفيدة","اقترح عليّ شيئاً جديداً أتعلمه اليوم","اطرح عليّ سؤالاً يوسّع تفكيري","أعطني تحدياً بسيطاً لهذا اليوم","أعطني فكرة إبداعية عشوائية","اقترح عليّ شيئاً ممتعاً لأجربه الآن"]}
+        {i:"📅", n:"المحتوى اليومي", opts:["أعطني معلومة مفيدة عن اليوم","احكِ لي نكتة خفيفة","اطرح عليّ لغزاً ممتعاً","أعطني حكمة ملهمة","أعطني حقيقة علمية غريبة","أعطني اقتباساً ملهماً","اقترح عليّ تحدياً إبداعياً بسيطاً","علّمني كلمة جديدة ومعناها","احكِ لي عن حدث تاريخي مثل هذا اليوم","اقترح عليّ فكرة صغيرة لأجربها اليوم","اكتب لي رسالة صباح الخير جميلة لأرسلها لأصدقائي","ابحث لي في الويب عن أهم الأخبار المحلية والعالمية اليوم","ابحث لي في الويب عن حالة الطقس المتوقعة اليوم","ابحث لي في الويب هل يوجد عطلة رسمية قريبة","اقترح لي وصفة أكل سهلة وسريعة","اكتب لي مقالاً قصيراً ممتعاً عن: ","احكِ لي عن حضارة قديمة مثيرة للاهتمام","أعطني معلومة جغرافية غريبة عن مكان في العالم","احكِ لي عن اختراع أو اكتشاف غيّر التاريخ","أعطني نصيحة صحية أو غذائية بسيطة ومفيدة"]},
+        {i:"🎲", n:"أدهشني", opts:["فاجئني بمعلومة غريبة ومفيدة","اقترح عليّ شيئاً جديداً أتعلمه اليوم","اطرح عليّ سؤالاً يوسّع تفكيري","أعطني تحدياً بسيطاً لهذا اليوم","أعطني فكرة إبداعية عشوائية","اقترح عليّ شيئاً ممتعاً لأجربه الآن","ولّد لي لغزاً ذكياً من عندك واتحدّاني أحله"]}
       ],
       cat:{trading:"💹 تداول",writing:"✍️ كتابة",programming:"💻 برمجة",science:"🔬 علوم",religion:"🕌 شريعة",health:"⚕️ صحة",general:"📌 عام"}
     },
@@ -647,6 +671,7 @@
       input_ph:"Type your question here...",
       lang_label:"🌍 Language:",
       btn_clear:"Clear", btn_optimize:"✨ Improve my question", btn_optimizing:"Improving...", btn_send:"Send ✦",
+      adv_toggle:"⚙️ Advanced options",
       sug_title:"✨ Choose an improved version of your question:", sug_original:"Send my question as originally written",
       step1:"🎯 Analyzing and classifying the question...", step2:"🤖 Consulting the experts (Claude + Gemini)...", step3:"💎 Merging and composing the final answer...",
       answer_label:"Nexara AI Answer", act_listen:"🔊 Listen", act_stop:"⏹ Stop", act_share:"🔗 Share", act_copy:"⎘ Copy",
@@ -722,11 +747,11 @@
         {i:"🎓", n:"Learning", opts:["Explain simply: ","Summarize this lesson: ","Create a quiz about: ","Explain step by step how to: ","Give me examples of: ","Compare between: ","Make a study plan for: ","Simplify this difficult text: ","Ask me questions to test my understanding of: ","Explain with a real-world example: "]},
         {i:"💼", n:"Business & Projects", opts:["Give me a project idea in: ","Make a business plan for: ","Suggest a marketing plan for: ","Analyze my competitors in: ","Write an ad about: ","Do a simple feasibility study for: ","Suggest names for a project about: ","Write a message to a client about: ","Help me price a service: ","Do a SWOT analysis for: ","Compare these two products before I buy: "]},
         {i:"🌐", n:"Translation & Languages", opts:["Translate this text: ","Fix the grammar in: ","Improve the style of this English text: ","Explain the difference between: ","Translate professionally for business: ","Simplify this English text: ","Write formally in English: ","Teach me useful phrases in: ","Proofread this text: ","Translate while keeping the tone of: "]},
-        {i:"⚡", n:"Quick Tools", opts:["Summarize this long text: ","Extract the key points from: ","Turn this text into a list: ","Create a table about: ","Generate ideas about: ","Write catchy titles for: ","Organize my thoughts about: ","Shorten this paragraph: ","Make a bullet-point plan for: ","Extract possible questions from: "]},
-        {i:"🎭", n:"Fun & Creative", opts:["Answer my question as a poem: ","Answer in an old classic style about: ","Answer in rhymed prose about: ","Describe as a movie scene: ","Turn this idea into a short story: ","Write a dialogue about: ","Answer sarcastically about: ","Answer as wise advice about: ","Write as a message from the future about: ","Explain simply for a child: ","Suggest a simple fun game or activity: "]},
+        {i:"⚡", n:"Quick Tools", opts:["Summarize this long text: ","Extract the key points from: ","Turn this text into a list: ","Create a table about: ","Generate ideas about: ","Write catchy titles for: ","Organize my thoughts about: ","Shorten this paragraph: ","Make a bullet-point plan for: ","Extract possible questions from: ","Suggest the best free tools and websites for: "]},
+        {i:"🎭", n:"Fun & Creative", opts:["Answer my question as a poem: ","Answer in an old classic style about: ","Answer in rhymed prose about: ","Describe as a movie scene: ","Turn this idea into a short story: ","Write a dialogue about: ","Answer sarcastically about: ","Answer as wise advice about: ","Write as a message from the future about: ","Explain simply for a child: ","Suggest a simple fun game or activity: ","Write a short mystery detective story: ","Write a short sci-fi story about: ","Suggest a simple paper or card game to play with friends: ","Make a fun spot-the-differences style riddle: "]},
         {i:"🧠", n:"Advisor", opts:["I'm facing a technical problem: ","I have a work situation: ","I'm torn on a decision about: ","I have an issue with someone about: ","I want to build a habit: ","I need help managing my time for: ","I have a general health question about: ","I'm torn on a financial decision about: ","I want to improve my productivity in: ","I need general advice about: ","I'm planning a trip to: ","I have a question about an official procedure: "]},
-        {i:"📅", n:"Daily Content", opts:["Give me a useful fact for today","Tell me a light joke","Give me a fun riddle","Give me an inspiring quote of wisdom","Give me a strange scientific fact","Give me an inspiring quote","Suggest a simple creative challenge","Teach me a new word and its meaning","Tell me about a historical event on this day","Suggest a small idea to try today","Write me a nice good-morning message to send to friends","Summarize today's most important local and world news","What's the weather expected today?","Is there an upcoming official holiday?","Suggest a quick and easy recipe"]},
-        {i:"🎲", n:"Surprise Me", opts:["Surprise me with a strange useful fact","Suggest something new for me to learn today","Ask me a question that expands my thinking","Give me a simple challenge for today","Give me a random creative idea","Suggest something fun to try right now"]}
+        {i:"📅", n:"Daily Content", opts:["Give me a useful fact for today","Tell me a light joke","Give me a fun riddle","Give me an inspiring quote of wisdom","Give me a strange scientific fact","Give me an inspiring quote","Suggest a simple creative challenge","Teach me a new word and its meaning","Tell me about a historical event on this day","Suggest a small idea to try today","Write me a nice good-morning message to send to friends","Search the web for today's most important local and world news","Search the web for today's expected weather","Search the web for any upcoming official holiday","Suggest a quick and easy recipe","Write me a short enjoyable article about: ","Tell me about a fascinating ancient civilization","Give me a strange geography fact about a place in the world","Tell me about an invention or discovery that changed history","Give me a simple useful health or nutrition tip"]},
+        {i:"🎲", n:"Surprise Me", opts:["Surprise me with a strange useful fact","Suggest something new for me to learn today","Ask me a question that expands my thinking","Give me a simple challenge for today","Give me a random creative idea","Suggest something fun to try right now","Generate a clever riddle and challenge me to solve it"]}
       ],
       cat:{trading:"💹 Trading",writing:"✍️ Writing",programming:"💻 Programming",science:"🔬 Science",religion:"🕌 Religion",health:"⚕️ Health",general:"📌 General"}
     }
@@ -775,6 +800,8 @@
     if (document.getElementById("tab-history").style.display !== "none") renderHistory();
     renderStarters();
     renderDoors();
+    const advBox = document.getElementById("adv-options-box");
+    if (advBox && advBox.style.display !== "none") renderAdvOptions();
   }
 
   function renderStarters() {
@@ -883,6 +910,51 @@
   let history = JSON.parse(localStorage.getItem("aljame3_history") || "[]");
   let currentHistoryIndex = -1;
 
+  const STYLE_OPTIONS_META = [
+    { id: "practical", icon: "🎯", ar: "كن عمليًا", en: "Be practical" },
+    { id: "concise", icon: "✂️", ar: "اختصر", en: "Concise" },
+    { id: "beginner", icon: "🎓", ar: "اشرح للمبتدئين", en: "For beginners" },
+    { id: "steps", icon: "📋", ar: "خطوات تنفيذية", en: "Actionable steps" },
+    { id: "expert", icon: "🧠", ar: "فكّر كخبير", en: "Think like an expert" },
+    { id: "risks", icon: "⚠️", ar: "اذكر المخاطر", en: "Mention risks" }
+  ];
+  let selectedStyleOptions = [];
+
+  function renderAdvOptions() {
+    const box = document.getElementById("adv-options-list");
+    if (!box) return;
+    box.innerHTML = "";
+    STYLE_OPTIONS_META.forEach(opt => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "adv-chip" + (selectedStyleOptions.includes(opt.id) ? " active" : "");
+      b.textContent = opt.icon + " " + (uiLang === "ar" ? opt.ar : opt.en);
+      b.onclick = () => toggleStyleOption(opt.id, b);
+      box.appendChild(b);
+    });
+  }
+
+  function toggleStyleOption(id, btnEl) {
+    const idx = selectedStyleOptions.indexOf(id);
+    if (idx === -1) selectedStyleOptions.push(id);
+    else selectedStyleOptions.splice(idx, 1);
+    btnEl.classList.toggle("active");
+  }
+
+  function toggleAdvancedOptions() {
+    const box = document.getElementById("adv-options-box");
+    const btn = document.getElementById("adv-toggle-btn");
+    const isOpen = box.style.display !== "none";
+    if (isOpen) {
+      box.style.display = "none";
+      btn.classList.remove("open");
+    } else {
+      renderAdvOptions();
+      box.style.display = "block";
+      btn.classList.add("open");
+    }
+  }
+
   const input = document.getElementById("question-input");
   input.addEventListener("input", onInput);
   input.addEventListener("keydown", e => {
@@ -920,11 +992,11 @@
     if (tab === "history") renderHistory();
   }
 
-  async function api(action, question, lang) {
+  async function api(action, question, lang, styleOptions) {
     const res = await fetch("/api", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, question, lang })
+      body: JSON.stringify({ action, question, lang, styleOptions })
     });
     return await res.json();
   }
@@ -1055,7 +1127,7 @@
     const t2 = setTimeout(() => setStep(3), 7000);
 
     try {
-      const data = await api("ask", q, lang);
+      const data = await api("ask", q, lang, selectedStyleOptions);
       clearTimeout(t1); clearTimeout(t2);
 
       if (data.error) throw new Error(data.error);
@@ -1096,6 +1168,9 @@
     stopSpeak();
     input.value = "";
     currentQuestion = ""; currentAnswer = ""; optimizeDone = false; currentHistoryIndex = -1; lastCategory = "";
+    selectedStyleOptions = [];
+    document.getElementById("adv-options-box").style.display = "none";
+    document.getElementById("adv-toggle-btn").classList.remove("open");
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
     document.getElementById("answer-box").style.display = "none";
@@ -1288,6 +1363,3 @@
 </script>
 </body>
 </html>
-
-
-
