@@ -188,6 +188,70 @@
     }
     .answer-box::before { top: 10px; right: 14px; }
     .answer-box::after { bottom: 10px; left: 14px; }
+
+    /* شكل النكتة — صفحة مجلة قديمة */
+    .answer-box.style-joke {
+      background: #fdf3d9; border-color: #e8a33d;
+    }
+    .answer-box.style-joke::before {
+      content: ""; top: -3px; left: -3px; right: -3px; bottom: auto;
+      height: 10px; font-size: 0; opacity: 1;
+      background: repeating-linear-gradient(90deg, #ff6a1f 0 14px, #ffd23f 14px 28px, #3aa15c 28px 42px, #4fa8d8 42px 56px, #d8447a 56px 70px);
+      border-radius: 17px 17px 0 0;
+    }
+    .answer-box.style-joke::after { content: "😂"; font-size: 20px; opacity: 1; bottom: 8px; left: 16px; }
+    .answer-box.style-joke .answer-text { color: #6a4a1e; }
+    .answer-box.style-joke .answer-signature { color: #d97a1f; }
+
+    /* شكل رسالة الصباح — ورد */
+    .answer-box.style-morning {
+      background: linear-gradient(160deg, #fff0f5, #ffe0ec 60%, #ffd9e8);
+      border-color: #e8639f;
+    }
+    .answer-box.style-morning::before { content: "🌹"; font-size: 20px; opacity: 1; top: 10px; right: 14px; }
+    .answer-box.style-morning::after { content: "🌸"; font-size: 20px; opacity: 1; bottom: 8px; left: 16px; }
+    .answer-box.style-morning .answer-text { color: #7a3352; }
+    .answer-box.style-morning .answer-signature { color: #d8447a; }
+
+    /* أنماط عامة إضافية (تُبنى على متغيرات CSS لكل نوع محتوى) */
+    .answer-box.style-poem, .answer-box.style-story, .answer-box.style-quote,
+    .answer-box.style-riddle, .answer-box.style-science, .answer-box.style-historical,
+    .answer-box.style-news, .answer-box.style-weather, .answer-box.style-recipe,
+    .answer-box.style-newword {
+      background: var(--style-bg); border-color: var(--style-border);
+    }
+    .answer-box.style-poem::before, .answer-box.style-story::before, .answer-box.style-quote::before,
+    .answer-box.style-riddle::before, .answer-box.style-science::before, .answer-box.style-historical::before,
+    .answer-box.style-news::before, .answer-box.style-weather::before, .answer-box.style-recipe::before,
+    .answer-box.style-newword::before {
+      content: var(--style-icon1); opacity: 1; color: var(--style-border); font-size: 18px;
+    }
+    .answer-box.style-poem::after, .answer-box.style-story::after, .answer-box.style-quote::after,
+    .answer-box.style-riddle::after, .answer-box.style-science::after, .answer-box.style-historical::after,
+    .answer-box.style-news::after, .answer-box.style-weather::after, .answer-box.style-recipe::after,
+    .answer-box.style-newword::after {
+      content: var(--style-icon2); opacity: 1; color: var(--style-border); font-size: 18px;
+    }
+    .answer-box.style-poem .answer-text, .answer-box.style-story .answer-text, .answer-box.style-quote .answer-text,
+    .answer-box.style-riddle .answer-text, .answer-box.style-science .answer-text, .answer-box.style-historical .answer-text,
+    .answer-box.style-news .answer-text, .answer-box.style-weather .answer-text, .answer-box.style-recipe .answer-text,
+    .answer-box.style-newword .answer-text { color: var(--style-text); }
+    .answer-box.style-poem .answer-signature, .answer-box.style-story .answer-signature, .answer-box.style-quote .answer-signature,
+    .answer-box.style-riddle .answer-signature, .answer-box.style-science .answer-signature, .answer-box.style-historical .answer-signature,
+    .answer-box.style-news .answer-signature, .answer-box.style-weather .answer-signature, .answer-box.style-recipe .answer-signature,
+    .answer-box.style-newword .answer-signature { color: var(--style-border); }
+
+    .style-poem { --style-bg: linear-gradient(160deg,#f4f0ff,#ece4ff); --style-border:#8a63d1; --style-icon1:"🖋️"; --style-icon2:"🌙"; --style-text:#4a3a70; }
+    .style-story { --style-bg: linear-gradient(160deg,#fff8e8,#ffedc2); --style-border:#c9922c; --style-icon1:"📖"; --style-icon2:"🕯️"; --style-text:#5a4522; }
+    .style-quote { --style-bg: linear-gradient(160deg,#f0faf5,#dff2e6); --style-border:#2f9e6b; --style-icon1:"❝"; --style-icon2:"❞"; --style-text:#1f5c40; }
+    .style-quote::before, .style-quote::after { font-size: 26px !important; }
+    .style-riddle { --style-bg: linear-gradient(160deg,#eef1fb,#dbe1f7); --style-border:#4a5fc1; --style-icon1:"🔍"; --style-icon2:"❓"; --style-text:#2c3970; }
+    .style-science { --style-bg: linear-gradient(160deg,#eaf3ff,#d3e8ff); --style-border:#2f7dc7; --style-icon1:"🔭"; --style-icon2:"✨"; --style-text:#1a4a75; }
+    .style-historical { --style-bg: linear-gradient(160deg,#f5ecd9,#e8d9b0); --style-border:#8a6a3a; --style-icon1:"📜"; --style-icon2:"⏳"; --style-text:#5a4522; }
+    .style-news { --style-bg: linear-gradient(160deg,#f4f4f4,#e6e6e6); --style-border:#555555; --style-icon1:"📰"; --style-icon2:"🗞️"; --style-text:#2a2a2a; }
+    .style-weather { --style-bg: linear-gradient(160deg,#e8f4fd,#cfe8fb); --style-border:#3a9bd9; --style-icon1:"☀️"; --style-icon2:"☁️"; --style-text:#1c5a80; }
+    .style-recipe { --style-bg: linear-gradient(160deg,#fff3e0,#ffe0b8); --style-border:#d9791f; --style-icon1:"🍲"; --style-icon2:"👩‍🍳"; --style-text:#7a3f10; }
+    .style-newword { --style-bg: linear-gradient(160deg,#fdf7ff,#f3e6ff); --style-border:#a3529e; --style-icon1:"🔤"; --style-icon2:"📚"; --style-text:#5c2a58; }
     .answer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
     .answer-badge { display: flex; align-items: center; gap: 8px; }
     .green-dot { width: 8px; height: 8px; border-radius: 50%; background: #3aa15c; box-shadow: 0 0 8px #3aa15c; flex-shrink: 0; }
@@ -711,7 +775,6 @@
     if (document.getElementById("tab-history").style.display !== "none") renderHistory();
     renderStarters();
     renderDoors();
-    updateClearBtn();
   }
 
   function renderStarters() {
@@ -738,8 +801,8 @@
     hideDoorsArea();
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
+    document.getElementById("btn-clear").style.display = "inline-flex";
     document.getElementById("btn-optimize").disabled = false;
-    updateClearBtn();
     askQuestion();
   }
 
@@ -782,9 +845,9 @@
     optimizeDone = false;
     closeDoor();
     document.getElementById("btn-optimize").disabled = false;
+    document.getElementById("btn-clear").style.display = "inline-flex";
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
-    updateClearBtn();
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
   }
@@ -796,18 +859,6 @@
   function showDoorsArea() {
     document.getElementById("doors-section").style.display = "block";
     document.getElementById("starter-box").style.display = "block";
-  }
-
-  // ===== زر المسح/الرجوع: مصدر واحد يتحكم بظهوره في كل الحالات =====
-  function isShown(id) {
-    return document.getElementById(id).style.display === "block";
-  }
-  function updateClearBtn() {
-    const hasText = input.value.trim().length > 0;
-    const busy = isShown("answer-box") || isShown("suggestions-box") ||
-                 isShown("loading-box") || isShown("send-row");
-    document.getElementById("btn-clear").style.display =
-      (hasText || busy) ? "inline-flex" : "none";
   }
 
   function onLangChange() {
@@ -854,11 +905,11 @@
   function onInput() {
     const val = input.value.trim();
     document.getElementById("btn-optimize").disabled = !val;
+    document.getElementById("btn-clear").style.display = val ? "inline-flex" : "none";
     if (!optimizeDone) {
       document.getElementById("suggestions-box").style.display = "none";
       document.getElementById("send-row").style.display = "none";
     }
-    updateClearBtn();
   }
 
   function switchTab(tab) {
@@ -870,18 +921,10 @@
   }
 
   async function api(action, question, lang) {
-    // نبعث تاريخ ووقت الجهاز الفعلي مع كل طلب — الباك-إند يقدر يستخدمها
-    // ليحقن التاريخ الصحيح في الـ system prompt (يحل مشكلة تواريخ 2024 القديمة).
-    const now = new Date();
     const res = await fetch("/api", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action, question, lang,
-        client_date: now.toISOString(),
-        client_date_local: now.toLocaleString("ar-EG", { dateStyle: "full", timeStyle: "short" }),
-        client_tz: (Intl.DateTimeFormat().resolvedOptions().timeZone) || ""
-      })
+      body: JSON.stringify({ action, question, lang })
     });
     return await res.json();
   }
@@ -898,7 +941,6 @@
     hideDoorsArea();
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
-    updateClearBtn();
 
     try {
       const selLang = document.getElementById("lang-select").value;
@@ -928,7 +970,6 @@
     list.appendChild(orig);
     document.getElementById("suggestions-box").style.display = "block";
     document.getElementById("hero").style.display = "none";
-    updateClearBtn();
   }
 
   function selectSuggestion(text, isOriginal = false) {
@@ -937,7 +978,6 @@
     optimizeDone = true;
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "block";
-    updateClearBtn();
   }
 
   function setStep(n) {
@@ -949,12 +989,58 @@
     }
   }
 
+  const STYLE_META = {
+    joke:       { ar: "🎭 نكتة اليوم",      en: "🎭 Joke of the Day" },
+    morning:    { ar: "🌹 صباح الخير",       en: "🌹 Good Morning" },
+    poem:       { ar: "🖋️ قصيدة",           en: "🖋️ Poem" },
+    story:      { ar: "📖 قصة",              en: "📖 Story" },
+    quote:      { ar: "❝ حكمة",             en: "❝ Wisdom" },
+    riddle:     { ar: "🔍 لغز",              en: "🔍 Riddle" },
+    science:    { ar: "🔭 حقيقة علمية",      en: "🔭 Science Fact" },
+    historical: { ar: "📜 حدث تاريخي",       en: "📜 Historical Event" },
+    news:       { ar: "📰 ملخص الأخبار",     en: "📰 News Summary" },
+    weather:    { ar: "☀️ الطقس",           en: "☀️ Weather" },
+    recipe:     { ar: "🍲 وصفة أكل",         en: "🍲 Recipe" },
+    newword:    { ar: "🔤 كلمة جديدة",       en: "🔤 New Word" }
+  };
+  const STYLE_TESTS = [
+    ["joke", /نكتة|نكته|joke/i],
+    ["morning", /صباح الخير|good.?morning/i],
+    ["riddle", /لغز|riddle/i],
+    ["poem", /شعرا|شعراً|قصيدة|\bpoem\b/i],
+    ["quote", /حكمة|اقتباس|\bquote\b|wisdom/i],
+    ["science", /حقيقة علمية|scientific fact/i],
+    ["historical", /حدث تاريخي|historical event/i],
+    ["news", /الأخبار|أخبار اليوم|\bnews\b/i],
+    ["weather", /الطقس|\bweather\b/i],
+    ["recipe", /وصفة|\brecipe\b/i],
+    ["newword", /كلمة جديدة|new word/i],
+    ["story", /قصة قصيرة|قصة|short story/i]
+  ];
+  function detectAnswerStyle(q) {
+    const s = q || "";
+    for (const [name, re] of STYLE_TESTS) if (re.test(s)) return name;
+    return "normal";
+  }
+  function applyAnswerStyle(style) {
+    const box = document.getElementById("answer-box");
+    box.className = "answer-box fade-in";
+    const label = document.querySelector(".answer-label");
+    if (style && style !== "normal" && STYLE_META[style]) {
+      box.classList.add("style-" + style);
+      label.textContent = STYLE_META[style][uiLang] || STYLE_META[style].ar;
+    } else {
+      label.textContent = T.answer_label;
+    }
+  }
+
   async function askQuestion() {
     const q = currentQuestion || input.value.trim();
     if (!q) return;
 
     stopSpeak();
     const lang = document.getElementById("lang-select").value;
+    const detectedStyle = detectAnswerStyle(q);
 
     document.getElementById("send-row").style.display = "none";
     hideDoorsArea();
@@ -963,7 +1049,6 @@
     document.getElementById("hero").style.display = "none";
     document.getElementById("rate-thanks").style.display = "none";
     document.querySelectorAll(".rate-btn").forEach(b => b.classList.remove("active"));
-    updateClearBtn();
 
     setStep(1);
     const t1 = setTimeout(() => setStep(2), 1500);
@@ -979,13 +1064,14 @@
       lastCategory = data.category || "";
       document.getElementById("answer-text").textContent = data.answer;
       document.getElementById("category-tag").textContent = catName(lastCategory);
+      applyAnswerStyle(detectedStyle);
       const srcs = [];
       if (data.sources?.claude) srcs.push("Claude");
       if (data.sources?.gemini) srcs.push("Gemini");
       document.getElementById("sources-tag").textContent = srcs.length ? (T.sources_label + " " + srcs.join(" + ")) : "";
       document.getElementById("answer-box").style.display = "block";
 
-      const entry = { q, a: data.answer, cat: lastCategory, time: new Date().toLocaleString(uiLocale), rating: null };
+      const entry = { q, a: data.answer, cat: lastCategory, style: detectedStyle, time: new Date().toLocaleString(uiLocale), rating: null };
       history.unshift(entry);
       if (history.length > 50) history.pop();
       currentHistoryIndex = 0;
@@ -996,6 +1082,7 @@
       clearTimeout(t1); clearTimeout(t2);
       currentAnswer = T.busy_notice;
       lastCategory = "";
+      applyAnswerStyle("normal");
       document.getElementById("answer-text").textContent = currentAnswer;
       document.getElementById("category-tag").textContent = "";
       document.getElementById("sources-tag").textContent = "";
@@ -1003,43 +1090,21 @@
     }
     document.getElementById("loading-box").style.display = "none";
     optimizeDone = false;
-    updateClearBtn();
   }
 
-  // ===== المسح/الرجوع للرئيسية: إعادة تعيين كاملة وموثوقة =====
   function clearAll() {
     stopSpeak();
-    closeDoor();
-
     input.value = "";
-    currentQuestion = "";
-    currentAnswer = "";
-    optimizeDone = false;
-    currentHistoryIndex = -1;
-    lastCategory = "";
-
-    // إخفاء كل العناصر المؤقتة
+    currentQuestion = ""; currentAnswer = ""; optimizeDone = false; currentHistoryIndex = -1; lastCategory = "";
     document.getElementById("suggestions-box").style.display = "none";
     document.getElementById("send-row").style.display = "none";
     document.getElementById("answer-box").style.display = "none";
     document.getElementById("loading-box").style.display = "none";
-
-    // إعادة زر "حسّن سؤالي" لحالته الأصلية (حتى لو كان عالقاً على "جاري التحسين")
-    const opt = document.getElementById("btn-optimize");
-    opt.disabled = true;
-    opt.textContent = T.btn_optimize;
-
-    // إعادة تعيين التقييم
-    document.getElementById("rate-thanks").style.display = "none";
-    document.querySelectorAll(".rate-btn").forEach(b => b.classList.remove("active"));
-
-    // العودة للصفحة الرئيسية الافتراضية
+    document.getElementById("btn-clear").style.display = "none";
+    document.getElementById("btn-optimize").disabled = true;
     document.getElementById("hero").style.display = "block";
     showDoorsArea();
-    renderStarters();
-
     localStorage.removeItem("aljame3_last");
-    updateClearBtn();
     input.focus();
   }
 
@@ -1126,7 +1191,8 @@
     localStorage.setItem("aljame3_history", JSON.stringify(history));
   }
   function saveLastAnswer() {
-    const last = { q: currentQuestion, a: currentAnswer, cat: lastCategory, idx: currentHistoryIndex };
+    const styleVal = (currentHistoryIndex >= 0 && history[currentHistoryIndex]) ? (history[currentHistoryIndex].style || "normal") : "normal";
+    const last = { q: currentQuestion, a: currentAnswer, cat: lastCategory, style: styleVal, idx: currentHistoryIndex };
     localStorage.setItem("aljame3_last", JSON.stringify(last));
   }
 
@@ -1142,6 +1208,7 @@
         document.getElementById("answer-text").textContent = last.a;
         document.getElementById("category-tag").textContent = catName(lastCategory);
         document.getElementById("sources-tag").textContent = "";
+        applyAnswerStyle(last.style || "normal");
         document.getElementById("answer-box").style.display = "block";
         document.getElementById("hero").style.display = "none";
         hideDoorsArea();
@@ -1151,7 +1218,6 @@
           document.getElementById("rate-bad").classList.toggle("active", r === "bad");
           document.getElementById("rate-thanks").style.display = "inline";
         }
-        updateClearBtn();
       }
     } catch {}
   }
@@ -1188,6 +1254,7 @@
     document.getElementById("answer-text").textContent = item.a;
     document.getElementById("category-tag").textContent = catName(lastCategory);
     document.getElementById("sources-tag").textContent = "";
+    applyAnswerStyle(item.style || "normal");
     document.getElementById("answer-box").style.display = "block";
     document.getElementById("hero").style.display = "none";
     hideDoorsArea();
@@ -1196,7 +1263,6 @@
     document.getElementById("rate-thanks").style.display = item.rating ? "inline" : "none";
     saveLastAnswer();
     switchTab("home");
-    updateClearBtn();
   }
 
   function clearHistory() {
@@ -1215,7 +1281,6 @@
   if (document.getElementById("answer-box").style.display !== "block") {
     showDoorsArea();
   }
-  updateClearBtn();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
