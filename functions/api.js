@@ -22,8 +22,8 @@ const GEMINI_MAIN = "gemini-2.5-flash";
 const CLAUDE_HEAVY = "claude-sonnet-4-5";
 
 // حدود التوكنز
-const MAX_TOKENS_SIMPLE = 4000;
-const MAX_TOKENS_COMPLEX = 8192;
+const MAX_TOKENS_SIMPLE = 6000;
+const MAX_TOKENS_COMPLEX = 20000;
 const MAX_TOKENS_CLAUDE = 8192;
 
 // حد تشابه الكلمات المفتاحية لاعتبار سؤالين "نفس الشيء" (0 إلى 1)
