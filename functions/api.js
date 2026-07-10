@@ -362,7 +362,8 @@ async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_HEAVY, m
     if (!isRealAnswer(text)) {
       return { ok: false, text: "", debug: "CLAUDE_EMPTY: stop_reason=" + (data.stop_reason || "unknown") };
     }
-    return { ok: true, text };
+    const truncated = data.stop_reason === "max_tokens";
+    return { ok: true, text, truncated };
   } catch (e) {
     return { ok: false, text: "", debug: "CLAUDE_EXCEPTION: " + (e.message || String(e)) };
   }
@@ -405,7 +406,9 @@ async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, ma
       const chunks = data.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
       sources = chunks.map(c => c.web?.uri).filter(Boolean);
     } catch { /* تجاهل */ }
-    return { ok: isRealAnswer(text), text, searchSources: sources };
+    const finishReason = data.candidates?.[0]?.finishReason || "";
+    const truncated = finishReason === "MAX_TOKENS";
+    return { ok: isRealAnswer(text), text, searchSources: sources, truncated };
   } catch (e) {
     return { ok: false, text: "", debug: "GEMINI_EXCEPTION: " + (e.message || String(e)) };
   }
@@ -652,6 +655,7 @@ ${langLine}
       let usedModel = "gemini";
       let debugInfo = "";
       let searchSources = [];
+      let responseTruncated = false;
 
       if (needsSearch) {
         const searchRes = await withTimeout(
@@ -662,6 +666,7 @@ ${langLine}
           finalAnswer = searchRes.text;
           usedModel = "gemini_search";
           searchSources = searchRes.searchSources || [];
+          responseTruncated = !!searchRes.truncated;
         } else {
           if (searchRes.debug) debugInfo = searchRes.debug;
           const fallbackRes = await withTimeout(
@@ -670,6 +675,7 @@ ${langLine}
           );
           finalAnswer = fallbackRes.ok ? fallbackRes.text : "";
           usedModel = "gemini_search_fallback";
+          responseTruncated = !!fallbackRes.truncated;
         }
       } else if (needClaude) {
         const claudeRes = await withTimeout(
@@ -679,6 +685,7 @@ ${langLine}
         if (claudeRes.ok) {
           finalAnswer = claudeRes.text;
           usedModel = "claude";
+          responseTruncated = !!claudeRes.truncated;
         } else {
           if (claudeRes.debug) debugInfo = claudeRes.debug;
           const geminiRes = await withTimeout(
@@ -688,6 +695,7 @@ ${langLine}
           if (geminiRes.ok) {
             finalAnswer = geminiRes.text;
             usedModel = "gemini_fallback";
+            responseTruncated = !!geminiRes.truncated;
           } else {
             finalAnswer = "";
             if (geminiRes.debug) debugInfo += " | " + geminiRes.debug;
@@ -702,6 +710,7 @@ ${langLine}
         if (geminiRes.ok) {
           finalAnswer = geminiRes.text;
           usedModel = "gemini";
+          responseTruncated = !!geminiRes.truncated;
         } else {
           if (geminiRes.debug) debugInfo = geminiRes.debug;
           const claudeRes = await withTimeout(
@@ -711,6 +720,7 @@ ${langLine}
           finalAnswer = claudeRes.ok ? claudeRes.text : "";
           if (!claudeRes.ok && claudeRes.debug) debugInfo += " | " + claudeRes.debug;
           usedModel = "claude_fallback";
+          responseTruncated = !!claudeRes.truncated;
         }
       }
 
@@ -724,7 +734,7 @@ ${langLine}
       // تخزين تلقائي بالمكتبة — فقط للأبواب العادية غير الحساسة وغير المعتمدة على بحث لحظي
       // (الفئات الحساسة SENSITIVE تبقى تحتاج تقييم يدوي 👍 عبر action=rate كطبقة حماية إضافية)
       // ملاحظة مهمة: لا نخزّن أبداً لو التوليد فشل (generationFailed)، حتى لو رسالة الفشل نفسها أطول من حد isRealAnswer
-      const autoStoreEligible = !generationFailed && isRealAnswer(finalAnswer) && !needsSearch && !SENSITIVE.includes(category);
+      const autoStoreEligible = !generationFailed && !responseTruncated && isRealAnswer(finalAnswer) && !needsSearch && !SENSITIVE.includes(category);
       if (autoStoreEligible) {
         await addLibraryEntry(KV, {
           question,
