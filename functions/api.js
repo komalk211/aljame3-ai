@@ -656,7 +656,7 @@ ${langLine}
       if (needsSearch) {
         const searchRes = await withTimeout(
           askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, true),
-          25000
+          40000
         );
         if (searchRes.ok) {
           finalAnswer = searchRes.text;
@@ -666,7 +666,7 @@ ${langLine}
           if (searchRes.debug) debugInfo = searchRes.debug;
           const fallbackRes = await withTimeout(
             askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, false),
-            15000
+            35000
           );
           finalAnswer = fallbackRes.ok ? fallbackRes.text : "";
           usedModel = "gemini_search_fallback";
@@ -683,7 +683,7 @@ ${langLine}
           if (claudeRes.debug) debugInfo = claudeRes.debug;
           const geminiRes = await withTimeout(
             askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, false),
-            25000
+            40000
           );
           if (geminiRes.ok) {
             finalAnswer = geminiRes.text;
@@ -697,7 +697,7 @@ ${langLine}
       } else {
         const geminiRes = await withTimeout(
           askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, isComplex ? MAX_TOKENS_COMPLEX : MAX_TOKENS_SIMPLE, false),
-          25000
+          45000
         );
         if (geminiRes.ok) {
           finalAnswer = geminiRes.text;
