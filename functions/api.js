@@ -121,9 +121,12 @@ const EXPERTS = {
   general: "أنت مساعد ذكاء اصطناعي خبير وموسوعي. قدّم إجابة شاملة ودقيقة ومنظّمة بالعربية الواضحة." + STYLE_RULES
 };
 
+// SENSITIVE تُستخدم الآن فقط لمنع التخزين التلقائي بالمكتبة (تحتاج تقييم يدوي 👍) وليس لتوجيه النموذج
 const SENSITIVE = ["health", "religion", "law", "trading", "business"];
 const CREATIVE = ["writing"];
 const USUALLY_NEEDS_SEARCH = ["daily"];
+// فئات التعاون: كلود وجيميناي يجاوبون سوا ثم تُدمج إجاباتهما بأفضل حل موحّد
+const COLLAB_CATEGORIES = ["trading", "programming", "writing"];
 
 // ========================================
 // تصنيف نوع المحتوى (لتنظيم المكتبة: نكتة/قصة/شعر/حكمة/لغز/علوم/تاريخ/مقال/معلومة عامة)
@@ -374,12 +377,16 @@ async function askClaude(question, expertPrompt, apiKey, model = CLAUDE_HEAVY, m
 // ========================================
 // استدعاء Gemini (مع دعم اختياري للبحث الفعلي بالويب)
 // ========================================
-async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, maxTokens = MAX_TOKENS_COMPLEX, useSearch = false) {
+async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, maxTokens = MAX_TOKENS_COMPLEX, useSearch = false, fileData = null) {
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const parts = [{ text: question }];
+    if (fileData && fileData.base64 && fileData.mimeType) {
+      parts.push({ inline_data: { mime_type: fileData.mimeType, data: fileData.base64 } });
+    }
     const body = {
       system_instruction: { parts: [{ text: expertPrompt }] },
-      contents: [{ parts: [{ text: question }] }],
+      contents: [{ parts }],
       generationConfig: { maxOutputTokens: maxTokens },
     };
     if (useSearch) {
@@ -394,10 +401,10 @@ async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, ma
     if (data.error) {
       return { ok: false, text: "", debug: "GEMINI_ERROR: " + (data.error.message || JSON.stringify(data.error)) };
     }
-    const parts = data.candidates?.[0]?.content?.parts;
+    const parts2 = data.candidates?.[0]?.content?.parts;
     let text = "";
-    if (Array.isArray(parts)) {
-      text = parts.map(p => (p && p.text) ? p.text : "").join("");
+    if (Array.isArray(parts2)) {
+      text = parts2.map(p => (p && p.text) ? p.text : "").join("");
     }
     if (!text) {
       const reason = data.candidates?.[0]?.finishReason || "NO_TEXT";
@@ -414,6 +421,47 @@ async function askGemini(question, expertPrompt, apiKey, model = GEMINI_MAIN, ma
   } catch (e) {
     return { ok: false, text: "", debug: "GEMINI_EXCEPTION: " + (e.message || String(e)) };
   }
+}
+
+// ========================================
+// وضع التعاون: كلود وجيميناي يجاوبان معاً، ثم تُدمج إجابتاهما بإجابة نهائية واحدة موحّدة
+// يُستخدم فقط لفئات COLLAB_CATEGORIES (تداول، برمجة، كتابة)
+// ========================================
+async function askCollaborative(question, expertPrompt, claudeKey, geminiKey) {
+  const [geminiRes, claudeRes] = await Promise.all([
+    withTimeout(askGemini(question, expertPrompt, geminiKey, GEMINI_MAIN, MAX_TOKENS_COMPLEX, false), 45000),
+    withTimeout(askClaude(question, expertPrompt, claudeKey, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE), 55000),
+  ]);
+
+  if (geminiRes.ok && claudeRes.ok) {
+    const synthPrompt = `لديك إجابتان لنفس السؤال من مصدرين مختلفين. ادمجهما في إجابة نهائية واحدة أقوى وأدق وأشمل، خذ أفضل ما في كل إجابة، وصحّح أي تناقض بينهما بالاعتماد على الأدق والأكثر منطقية. لا تذكر أبداً أنك تدمج إجابتين أو تشير لوجود مصدرين — أخرج إجابة نهائية واحدة متماسكة تبدو وكأنها مكتوبة من البداية بصوت واحد.
+
+السؤال الأصلي: ${question}
+
+الإجابة الأولى:
+${geminiRes.text}
+
+الإجابة الثانية:
+${claudeRes.text}`;
+
+    const synthRes = await withTimeout(
+      askClaude(synthPrompt, expertPrompt, claudeKey, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
+      55000
+    );
+    if (synthRes.ok) {
+      return { text: synthRes.text, mode: "collab_synthesis", truncated: !!synthRes.truncated };
+    }
+    // فشل الدمج: نرجع أطول إجابة متاحة من الاثنين (غالباً الأشمل)
+    const fallback = claudeRes.text.length >= geminiRes.text.length ? claudeRes : geminiRes;
+    return { text: fallback.text, mode: "collab_partial", truncated: !!fallback.truncated };
+  }
+  if (claudeRes.ok) {
+    return { text: claudeRes.text, mode: "claude_only", truncated: !!claudeRes.truncated, debug: geminiRes.debug };
+  }
+  if (geminiRes.ok) {
+    return { text: geminiRes.text, mode: "gemini_only", truncated: !!geminiRes.truncated, debug: claudeRes.debug };
+  }
+  return { text: "", mode: "collab_failed", debug: (geminiRes.debug || "") + " | " + (claudeRes.debug || "") };
 }
 
 // ========================================
@@ -485,7 +533,7 @@ export async function onRequest(context) {
 
   try {
     const body = await request.json();
-    const { action, question, lang, styleOptions } = body;
+    const { action, question, lang, styleOptions, conversationHistory, fileData } = body;
 
     // ---------- تحسين السؤال ----------
     if (action === "optimize") {
@@ -578,6 +626,28 @@ ${langLine}
 
     // ---------- الإجابة الرئيسية ----------
     if (action === "ask") {
+      // مسار الملفات المرفقة (صورة/PDF): استدعاء مباشر ومبسّط بدون تصنيف أو تعاون معقّد
+      if (fileData && fileData.base64 && fileData.mimeType) {
+        const filePrompt = "أنت مساعد ذكي تحلل المرفقات (صور أو ملفات PDF) وتجاوب على أسئلة المستخدم بخصوصها بدقة ووضوح."
+          + langInstruction(lang) + STYLE_RULES;
+        const fileRes = await withTimeout(
+          askGemini(question || "حلّل هذا المرفق واشرح محتواه بالتفصيل.", filePrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, false, fileData),
+          45000
+        );
+        let fileAnswer = fileRes.text;
+        if (!isRealAnswer(fileAnswer)) {
+          fileAnswer = "تعذّر تحليل هذا المرفق الآن. تأكد من نوع الملف (صورة أو PDF) وحاول مرة أخرى."
+            + (fileRes.debug ? ("\n\n[تشخيص مؤقت: " + fileRes.debug + "]") : "");
+        }
+        return new Response(JSON.stringify({
+          answer: fileAnswer,
+          category: "general",
+          complexity: "simple",
+          mode: "gemini_file",
+          sources: { claude: false, gemini: true, library: false },
+        }), { status: 200, headers });
+      }
+
       // الخطوة 0: هل السؤال طلب "دفعة" (نكت/ألغاز/اقتباسات) — تُعرض دفعة وحدة مثل صفحة مجلة
       const batchType = detectBatchType(question);
       if (batchType) {
@@ -646,8 +716,30 @@ ${langLine}
 
       let expertPrompt = EXPERTS[category] + langInstruction(lang) + styleOptionsInstruction(styleOptions);
       const isComplex = complexity === "complex";
-      const isCreative = CREATIVE.includes(category);
-      const needClaude = (isComplex && SENSITIVE.includes(category)) || isCreative;
+      const isCollab = COLLAB_CATEGORIES.includes(category);
+
+      // بناء سياق المحادثة (لو موجود) — يُستخدم فقط بالاستدعاء الفعلي للنماذج،
+      // ولا يؤثر على التصنيف أو البحث بالمكتبة أو التخزين (التي تعتمد على السؤال الخام)
+      let effectiveQuestion = question;
+      if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+        // بالبرمجة: كل الذاكرة متاحة بدون قصّ (خطوات متتالية بمشروع واحد قد تكون كثيرة)
+        // بباقي المجالات: آخر 12 تبادل كافية عادة
+        const isProgrammingCategory = category === "programming";
+        const historyLimit = isProgrammingCategory ? conversationHistory.length : 12;
+        const qCharLimit = isProgrammingCategory ? 800 : 400;
+        const aCharLimit = isProgrammingCategory ? 4000 : 1500;
+        const recentHistory = conversationHistory.slice(-historyLimit);
+        let historyText = recentHistory
+          .map(h => "سؤال سابق: " + String(h.q || "").slice(0, qCharLimit) + "\nإجابة سابقة: " + String(h.a || "").slice(0, aCharLimit))
+          .join("\n\n");
+        // حد أمان إجمالي حتى لا يبتلع السياق كل حصة التوكنز — نُبقي الأحدث ونقصّ من البداية عند الحاجة
+        const MAX_CONTEXT_CHARS = 16000;
+        if (historyText.length > MAX_CONTEXT_CHARS) {
+          historyText = "…\n" + historyText.slice(-MAX_CONTEXT_CHARS);
+        }
+        effectiveQuestion = "سياق المحادثة السابقة (استفد منه فقط إذا كان السؤال الحالي متابعة أو استكمالاً له، وتجاهله إذا كان سؤالاً مستقلاً):\n"
+          + historyText + "\n\nالسؤال الحالي الذي يجب الرد عليه:\n" + question;
+      }
 
       if (isComplex) {
         expertPrompt += "\n" + DEEP_RULES;
@@ -661,7 +753,7 @@ ${langLine}
 
       if (needsSearch) {
         const searchRes = await withTimeout(
-          askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, true),
+          askGemini(effectiveQuestion, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, true),
           40000
         );
         if (searchRes.ok) {
@@ -672,41 +764,24 @@ ${langLine}
         } else {
           if (searchRes.debug) debugInfo = searchRes.debug;
           const fallbackRes = await withTimeout(
-            askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, false),
+            askGemini(effectiveQuestion, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, false),
             35000
           );
           finalAnswer = fallbackRes.ok ? fallbackRes.text : "";
           usedModel = "gemini_search_fallback";
           responseTruncated = !!fallbackRes.truncated;
         }
-      } else if (needClaude) {
-        const claudeRes = await withTimeout(
-          askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
-          55000
-        );
-        if (claudeRes.ok) {
-          finalAnswer = claudeRes.text;
-          usedModel = "claude";
-          responseTruncated = !!claudeRes.truncated;
-        } else {
-          if (claudeRes.debug) debugInfo = claudeRes.debug;
-          const geminiRes = await withTimeout(
-            askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, MAX_TOKENS_COMPLEX, false),
-            40000
-          );
-          if (geminiRes.ok) {
-            finalAnswer = geminiRes.text;
-            usedModel = "gemini_fallback";
-            responseTruncated = !!geminiRes.truncated;
-          } else {
-            finalAnswer = "";
-            if (geminiRes.debug) debugInfo += " | " + geminiRes.debug;
-            usedModel = "gemini_fallback";
-          }
-        }
+      } else if (isCollab) {
+        // فئات التعاون: تداول / برمجة / كتابة — كلود وجيميناي معاً ثم دمج
+        const collab = await askCollaborative(effectiveQuestion, expertPrompt, CLAUDE_KEY, GEMINI_KEY);
+        finalAnswer = collab.text;
+        usedModel = collab.mode;
+        responseTruncated = !!collab.truncated;
+        if (!collab.text && collab.debug) debugInfo = collab.debug;
       } else {
+        // كل الفئات الأخرى: جيميناي لحاله، وكلود احتياط طارئ فقط عند فشل جيميناي كليًا
         const geminiRes = await withTimeout(
-          askGemini(question, expertPrompt, GEMINI_KEY, GEMINI_MAIN, isComplex ? MAX_TOKENS_COMPLEX : MAX_TOKENS_SIMPLE, false),
+          askGemini(effectiveQuestion, expertPrompt, GEMINI_KEY, GEMINI_MAIN, isComplex ? MAX_TOKENS_COMPLEX : MAX_TOKENS_SIMPLE, false),
           45000
         );
         if (geminiRes.ok) {
@@ -716,7 +791,7 @@ ${langLine}
         } else {
           if (geminiRes.debug) debugInfo = geminiRes.debug;
           const claudeRes = await withTimeout(
-            askClaude(question, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
+            askClaude(effectiveQuestion, expertPrompt, CLAUDE_KEY, CLAUDE_HEAVY, MAX_TOKENS_CLAUDE),
             50000
           );
           finalAnswer = claudeRes.ok ? claudeRes.text : "";
@@ -754,8 +829,8 @@ ${langLine}
         usedSearch: needsSearch,
         searchSources,
         sources: {
-          claude: usedModel.startsWith("claude"),
-          gemini: usedModel.startsWith("gemini"),
+          claude: usedModel.startsWith("claude") || usedModel.startsWith("collab"),
+          gemini: usedModel.startsWith("gemini") || usedModel.startsWith("collab"),
           library: false,
         },
       }), { status: 200, headers });
