@@ -110,6 +110,25 @@
     .btn-row { display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end; flex-wrap: wrap; }
 
     .adv-toggle-row { margin-top: 10px; }
+
+    .attach-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .attach-btn {
+      background: transparent; color: #a89a86; border: 1px dashed #d8c8b0; border-radius: 8px;
+      padding: 6px 12px; font-size: 12.5px; cursor: pointer; font-family: 'Readex Pro', sans-serif;
+      transition: all 0.2s;
+    }
+    .attach-btn:hover { color: #ff6a1f; border-color: #ff6a1f66; background: #fff8f0; }
+    .attach-name { font-size: 12.5px; color: #6a5f50; background: #fff1e2; padding: 5px 10px; border-radius: 8px; }
+    .attach-remove {
+      background: #fff1e2; border: none; color: #b85a1e; border-radius: 50%;
+      width: 22px; height: 22px; font-size: 12px; cursor: pointer; line-height: 1;
+    }
+    .code-download-btn {
+      background: #fff8f0; color: #8a7f70; border: 1px solid #f0e0cc; border-radius: 6px;
+      padding: 5px 12px; font-size: 12px; cursor: pointer; font-family: 'Readex Pro', sans-serif; transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .code-download-btn:hover { background: #fff1e2; color: #ff6a1f; }
     .adv-toggle-btn {
       background: transparent; color: #a89a86; border: 1px dashed #d8c8b0; border-radius: 8px;
       padding: 6px 12px; font-size: 12.5px; cursor: pointer; font-family: 'Readex Pro', sans-serif;
@@ -425,6 +444,12 @@
 
     <div class="input-card">
       <textarea id="question-input" rows="4" data-i18n-ph="input_ph" placeholder="اكتب سؤالك هنا..."></textarea>
+      <div class="attach-row">
+        <input type="file" id="file-input" accept="image/*,.pdf,.txt" style="display:none" onchange="onFileSelected(event)" />
+        <button type="button" class="attach-btn" onclick="document.getElementById('file-input').click()" data-i18n="attach_btn">📎 إرفاق ملف</button>
+        <span class="attach-name" id="attach-name" style="display:none"></span>
+        <button type="button" class="attach-remove" id="attach-remove" onclick="removeAttachedFile()" style="display:none">✕</button>
+      </div>
       <div class="lang-row">
         <span class="lang-label" data-i18n="lang_label">🌍 اللغة · Language:</span>
         <select class="lang-select" id="lang-select" onchange="onLangChange()">
@@ -580,6 +605,7 @@
       lang_label:"🌍 اللغة · Language:",
       btn_clear:"مسح", btn_optimize:"✨ حسّن سؤالي", btn_optimizing:"جاري التحسين...", btn_send:"إرسال ✦",
       adv_toggle:"⚙️ خيارات متقدمة",
+      attach_btn:"📎 إرفاق ملف",
       sug_title:"✨ اختر صياغة محسّنة لسؤالك:", sug_original:"أرسل سؤالي بصيغتي الأصلية",
       step1:"🎯 تحليل وتصنيف السؤال...", step2:"🤖 استشارة الخبراء (Claude + Gemini)...", step3:"💎 دمج وتأليف الإجابة النهائية...",
       answer_label:"إجابة Nexara AI", act_listen:"🔊 استمع", act_stop:"⏹ إيقاف", act_share:"🔗 مشاركة", act_copy:"⎘ نسخ",
@@ -672,6 +698,7 @@
       lang_label:"🌍 Language:",
       btn_clear:"Clear", btn_optimize:"✨ Improve my question", btn_optimizing:"Improving...", btn_send:"Send ✦",
       adv_toggle:"⚙️ Advanced options",
+      attach_btn:"📎 Attach file",
       sug_title:"✨ Choose an improved version of your question:", sug_original:"Send my question as originally written",
       step1:"🎯 Analyzing and classifying the question...", step2:"🤖 Consulting the experts (Claude + Gemini)...", step3:"💎 Merging and composing the final answer...",
       answer_label:"Nexara AI Answer", act_listen:"🔊 Listen", act_stop:"⏹ Stop", act_share:"🔗 Share", act_copy:"⎘ Copy",
@@ -909,6 +936,10 @@
   let optimizeDone = false;
   let history = JSON.parse(localStorage.getItem("aljame3_history") || "[]");
   let currentHistoryIndex = -1;
+  let conversationMemory = JSON.parse(localStorage.getItem("aljame3_convmemory") || "[]");
+  function saveConversationMemory() {
+    localStorage.setItem("aljame3_convmemory", JSON.stringify(conversationMemory.slice(-40)));
+  }
 
   const STYLE_OPTIONS_META = [
     { id: "practical", icon: "🎯", ar: "كن عمليًا", en: "Be practical" },
@@ -919,6 +950,120 @@
     { id: "risks", icon: "⚠️", ar: "اذكر المخاطر", en: "Mention risks" }
   ];
   let selectedStyleOptions = [];
+
+  // ========================================
+  // إرفاق الملفات (صور/PDF/نصوص)
+  // ========================================
+  let attachedFileData = null; // { base64, mimeType } للصور وPDF
+  let attachedFileName = "";
+
+  function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        const base64 = result.split(",")[1] || "";
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function fileToText(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result || "");
+      reader.onerror = reject;
+      reader.readAsText(file);
+    });
+  }
+
+  async function onFileSelected(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    const maxSize = 8 * 1024 * 1024; // 8MB حد أقصى
+    if (file.size > maxSize) {
+      showToast(uiLang === "ar" ? "حجم الملف كبير جداً (الحد 8MB)" : "File too large (max 8MB)");
+      event.target.value = "";
+      return;
+    }
+
+    attachedFileName = file.name;
+    document.getElementById("attach-name").textContent = "📄 " + file.name;
+    document.getElementById("attach-name").style.display = "inline-block";
+    document.getElementById("attach-remove").style.display = "inline-flex";
+
+    if (file.type === "text/plain" || /\.txt$/i.test(file.name)) {
+      // ملف نصي: ندمج محتواه مباشرة بنص السؤال، بدون ملف مرفق للـAPI
+      attachedFileData = null;
+      try {
+        const text = await fileToText(file);
+        const marker = uiLang === "ar" ? "\n\n[محتوى الملف المرفق: " + file.name + "]\n" : "\n\n[Attached file content: " + file.name + "]\n";
+        input.value = (input.value ? input.value + "\n" : "") + marker + text.slice(0, 8000);
+        onInput();
+      } catch {
+        showToast(uiLang === "ar" ? "تعذّرت قراءة الملف" : "Couldn't read file");
+      }
+    } else {
+      // صورة أو PDF: تُرسل كمرفق فعلي للـAPI
+      try {
+        const base64 = await fileToBase64(file);
+        const mimeType = file.type || (/\.pdf$/i.test(file.name) ? "application/pdf" : "image/jpeg");
+        attachedFileData = { base64, mimeType };
+        document.getElementById("btn-optimize").disabled = false;
+        document.getElementById("btn-clear").style.display = "inline-flex";
+      } catch {
+        showToast(uiLang === "ar" ? "تعذّر تحميل الملف" : "Couldn't load file");
+      }
+    }
+  }
+
+  function removeAttachedFile() {
+    attachedFileData = null;
+    attachedFileName = "";
+    document.getElementById("file-input").value = "";
+    document.getElementById("attach-name").style.display = "none";
+    document.getElementById("attach-remove").style.display = "none";
+  }
+
+  // استخراج أول كتلة كود من نص الإجابة (بين ```) لعرض زر تنزيل عند وجودها
+  function extractCodeBlock(text) {
+    const match = /```(\w*)\n?([\s\S]*?)```/.exec(text || "");
+    if (!match) return null;
+    const lang = (match[1] || "").toLowerCase();
+    const code = match[2] || "";
+    if (!code.trim()) return null;
+    const extMap = { python: "py", py: "py", javascript: "js", js: "js", html: "html", css: "css", java: "java", c: "c", cpp: "cpp", "c++": "cpp", json: "json", sql: "sql", bash: "sh", sh: "sh", php: "php", ruby: "rb", go: "go", typescript: "ts", ts: "ts" };
+    const ext = extMap[lang] || "txt";
+    return { code, ext };
+  }
+
+  function downloadCode(code, ext) {
+    const blob = new Blob([code], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "nexara-code." + ext;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function updateCodeDownloadButton(answerText) {
+    const existing = document.getElementById("code-dl-btn");
+    if (existing) existing.remove();
+    const block = extractCodeBlock(answerText);
+    if (!block) return;
+    const btn = document.createElement("button");
+    btn.className = "act-btn code-download-btn";
+    btn.id = "code-dl-btn";
+    btn.textContent = uiLang === "ar" ? "⬇️ تنزيل الكود" : "⬇️ Download Code";
+    btn.onclick = () => downloadCode(block.code, block.ext);
+    document.querySelector(".answer-actions").appendChild(btn);
+  }
 
   function renderAdvOptions() {
     const box = document.getElementById("adv-options-list");
@@ -998,11 +1143,11 @@
     if (tab === "history") renderHistory();
   }
 
-  async function api(action, question, lang, styleOptions) {
+  async function api(action, question, lang, styleOptions, conversationHistory, fileData) {
     const res = await fetch("/api", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action, question, lang, styleOptions })
+      body: JSON.stringify({ action, question, lang, styleOptions, conversationHistory, fileData })
     });
     return await res.json();
   }
@@ -1133,7 +1278,7 @@
     const t2 = setTimeout(() => setStep(3), 7000);
 
     try {
-      const data = await api("ask", q, lang, selectedStyleOptions);
+      const data = await api("ask", q, lang, selectedStyleOptions, conversationMemory, attachedFileData);
       clearTimeout(t1); clearTimeout(t2);
 
       if (data.error) throw new Error(data.error);
@@ -1143,6 +1288,8 @@
       document.getElementById("answer-text").textContent = data.answer;
       document.getElementById("category-tag").textContent = catName(lastCategory);
       applyAnswerStyle(detectedStyle);
+      updateCodeDownloadButton(data.answer);
+      removeAttachedFile();
       const srcs = [];
       if (data.sources?.claude) srcs.push("Claude");
       if (data.sources?.gemini) srcs.push("Gemini");
@@ -1156,6 +1303,12 @@
       saveHistory();
       saveLastAnswer();
       document.getElementById("stat-questions").textContent = history.length;
+
+      if (!data.batchType) {
+        conversationMemory.push({ q, a: data.answer });
+        if (conversationMemory.length > 40) conversationMemory.shift();
+        saveConversationMemory();
+      }
     } catch (e) {
       clearTimeout(t1); clearTimeout(t2);
       currentAnswer = T.busy_notice;
@@ -1175,6 +1328,7 @@
     input.value = "";
     currentQuestion = ""; currentAnswer = ""; optimizeDone = false; currentHistoryIndex = -1; lastCategory = "";
     selectedStyleOptions = [];
+    removeAttachedFile();
     document.getElementById("adv-options-box").style.display = "none";
     document.getElementById("adv-toggle-btn").classList.remove("open");
     document.getElementById("suggestions-box").style.display = "none";
